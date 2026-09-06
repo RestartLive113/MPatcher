@@ -74,6 +74,10 @@ public class settingsIngame
 
 	public int setupPrecisionEditorMode;
 
+	public bool playerPresence = true;
+
+	public int playerPresenceMode;
+
 	public bool audioCutoffFix;
 
 	public bool OBJPlan;

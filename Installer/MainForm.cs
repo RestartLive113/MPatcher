@@ -179,7 +179,7 @@ namespace MachineCraftMPatcherInstaller
 				if (choice != DialogResult.OK)
 					return;
 			}
-			RunOperation(delegate { return InstallerEngine.Install(pathBox.Text, AppendActivity); });
+			RunOperation(delegate { return InstallerEngine.Install(pathBox.Text, AppendActivity); }, false);
 		}
 
 		private void UninstallButtonClick(object sender, EventArgs e)
@@ -188,10 +188,10 @@ namespace MachineCraftMPatcherInstaller
 				PayloadInfo.ProductName, MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
 			if (choice != DialogResult.OK)
 				return;
-			RunOperation(delegate { return InstallerEngine.Uninstall(pathBox.Text, AppendActivity); });
+			RunOperation(delegate { return InstallerEngine.Uninstall(pathBox.Text, AppendActivity); }, true);
 		}
 
-		private void RunOperation(Func<OperationResult> operation)
+		private void RunOperation(Func<OperationResult> operation, bool uninstall)
 		{
 			installButton.Enabled = false;
 			uninstallButton.Enabled = false;
@@ -200,8 +200,11 @@ namespace MachineCraftMPatcherInstaller
 			try
 			{
 				OperationResult result = operation();
+				string title = result.Success
+					? (uninstall ? InstallerText.UninstallSuccessTitle : InstallerText.InstallSuccessTitle)
+					: (uninstall ? InstallerText.UninstallFailureTitle : InstallerText.InstallFailureTitle);
 				MessageBox.Show(this, result.Message + (string.IsNullOrEmpty(result.LogPath) ? string.Empty : "\r\n\r\n" + InstallerText.LogPrefix + result.LogPath),
-					PayloadInfo.ProductName, MessageBoxButtons.OK, result.Success ? MessageBoxIcon.Information : MessageBoxIcon.Error);
+					title, MessageBoxButtons.OK, result.Success ? MessageBoxIcon.Information : MessageBoxIcon.Error);
 			}
 			finally
 			{

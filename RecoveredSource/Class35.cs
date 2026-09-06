@@ -919,6 +919,22 @@ internal class Class35 : Rw1gRBZINYqqUycQDAVzVUspDHxB9kBz2FYjLkqn6c5t8_00242gRBS
 		}
 	}
 
+	internal static void EnsureSettingsUiScheduled()
+	{
+		if (settingsUiRoot != null || settingsUiBuildPending)
+		{
+			return;
+		}
+		MPatchr runner = MPatchr.xcBvxcM_0024ckBeZyvdSoAkJoM;
+		if (runner == null)
+		{
+			LogSettingsUi("cannot schedule deferred initialization because MPatchr runner is missing");
+			return;
+		}
+		settingsUiBuildPending = true;
+		runner.StartCoroutine(BuildSettingsUiAfterSceneReady());
+	}
+
 	private static IEnumerator BuildSettingsUiAfterSceneReady()
 	{
 		LogSettingsUi("deferred settings UI initialization scheduled");
@@ -950,18 +966,7 @@ internal class Class35 : Rw1gRBZINYqqUycQDAVzVUspDHxB9kBz2FYjLkqn6c5t8_00242gRBS
 		LogSettingsUi("Option.Start postfix entered; timeSinceLevelLoad=" + timeSinceLevelLoad);
 		if (timeSinceLevelLoad < 1f || !IsSettingsUiTemplateReady())
 		{
-			if (!settingsUiBuildPending)
-			{
-				settingsUiBuildPending = true;
-				MPatchr runner = MPatchr.xcBvxcM_0024ckBeZyvdSoAkJoM;
-				if (runner == null)
-				{
-					settingsUiBuildPending = false;
-					LogSettingsUi("cannot schedule deferred initialization because MPatchr runner is missing");
-					return;
-				}
-				runner.StartCoroutine(BuildSettingsUiAfterSceneReady());
-			}
+			EnsureSettingsUiScheduled();
 			return;
 		}
 		Hn0l0GNFrsPTtJLnYPdC5kstSoR0QDTE9ryF4MZWxnfvyPILHvg2xgflP78f6237KLozQUyL_0024rkMHW57LTXcv7a9PYzi9PlA1Haf6t_0024yjosu settingsUi = new Hn0l0GNFrsPTtJLnYPdC5kstSoR0QDTE9ryF4MZWxnfvyPILHvg2xgflP78f6237KLozQUyL_0024rkMHW57LTXcv7a9PYzi9PlA1Haf6t_0024yjosu();
@@ -1050,6 +1055,17 @@ internal class Class35 : Rw1gRBZINYqqUycQDAVzVUspDHxB9kBz2FYjLkqn6c5t8_00242gRBS
 		LogSettingsUi("adding Setup Precision toggle on P2; initial=" + MPatchr._0024Ymloe9RVCTW7x1ASuQ3c68.setupPrecision);
 		MPatcherFork.CustomPatches.SetupPrecisionSettingsUi.CreateRow(list_0[int_0], gameObject.transform,
 			new Vector3(oXDDyITkEuj8nDCyvcjtZDQ, om7X2R_aOZ08nmTyKqLRdgs));
+#if !MPATCHER_EXCLUDE_PLAYER_PRESENCE
+		oXDDyITkEuj8nDCyvcjtZDQ += int_1;
+		if (oXDDyITkEuj8nDCyvcjtZDQ >= AAQQTSoA9S5pIq8vyt_0Jn0 + int_1 * yE0WRQCDuxkVK37TLNJxGY4)
+		{
+			oXDDyITkEuj8nDCyvcjtZDQ = AAQQTSoA9S5pIq8vyt_0Jn0;
+			om7X2R_aOZ08nmTyKqLRdgs += int_2;
+		}
+		smethod_41("Toggle_PlayerPresence", "Player Status", gameObject.transform,
+			MPatcherFork.CustomPatches.PlayerPresence.SetEnabled,
+			MPatchr._0024Ymloe9RVCTW7x1ASuQ3c68.playerPresence, reInit: false);
+#endif
 		int_0 = 0;
 		JqKDtyiFnJcdoNFYMikviGo.Clear();
 		for (int num = 0; num < list_0.Count; num++)
@@ -1065,7 +1081,7 @@ internal class Class35 : Rw1gRBZINYqqUycQDAVzVUspDHxB9kBz2FYjLkqn6c5t8_00242gRBS
 			JqKDtyiFnJcdoNFYMikviGo.Add(control);
 		}
 		URHB7oHimfLtN31uHHTfkH6leCSDr7GxS9wOPypJM2F_();
-		LogSettingsUi("legacy updater controls omitted: button, channel and notifications");
+		MPatcherFork.CustomPatches.MPatcherUpdaterUi.Create(gameObject.transform);
 		GameObject gameObject_0 = settingsUi.gameObject_0 = Rw1gRBZINYqqUycQDAVzVUspDHxB9kBz2FYjLkqn6c5t8_00242gRBS9DLOoFVjsA69CGA.qSsYOsEQb7x452a9Y45dVEk(new Vector2(400f, 55f), new Vector2(420f, 100f));
 		gameObject_0.SetActive(value: false);
 		listController_0 = Rw1gRBZINYqqUycQDAVzVUspDHxB9kBz2FYjLkqn6c5t8_00242gRBS9DLOoFVjsA69CGA.nN2N4qjnQLwFOaONUPeRAdg(global::_003CModule_003E.smethod_27<string>(3878816143u), global::_003CModule_003E.smethod_26<string>(2002403624u), new Vector3(-100f, -10f), uGQUy_0024Mw_q46atKOrYCeWos, gameObject_0.transform);
@@ -1162,6 +1178,7 @@ internal class Class35 : Rw1gRBZINYqqUycQDAVzVUspDHxB9kBz2FYjLkqn6c5t8_00242gRBS
 			LogSettingsUi("launcher onValueChanged: " + toggled);
 			settingsUi.Q8IRIYh1xdDNYZLo3rk05vw(toggled);
 		});
+		MPatcherFork.CustomPatches.MPatcherUpdaterUi.BindLauncher(settingsLauncher);
 		settingsUiRoot = gameObject;
 		LogSettingsUi("settings UI ready");
 		}

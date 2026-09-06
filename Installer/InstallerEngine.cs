@@ -26,7 +26,10 @@ namespace MachineCraftMPatcherInstaller
 	{
 		internal bool Success;
 		internal string Message;
+		internal string ErrorDetails;
 		internal string LogPath;
+		internal int ClosedGameProcessCount;
+		internal int ForcedGameProcessCount;
 	}
 
 	internal sealed class InstallManifest
@@ -40,11 +43,23 @@ namespace MachineCraftMPatcherInstaller
 		internal string OriginalSha256;
 	}
 
+	internal sealed class SupportDirectoryReset
+	{
+		internal string SupportPath;
+		internal string SnapshotPath;
+		internal string SnapshotFilePath;
+		internal bool PreviousDirectory;
+		internal bool PreviousFile;
+		internal bool ReplacementCreated;
+		internal bool Committed;
+	}
+
 	internal static class InstallerEngine
 	{
 		private const string ManifestFileName = "MPatcherFork.install.ini";
 		private const string BackupDirectoryName = "MPatcherForkBackup";
 		private const string SupportDirectoryName = "MPatcherFork";
+		private const string SupportSnapshotDirectoryName = "MPatcherFork.install-previous";
 		private const string WatchdogFileName = "MPatcherCrashWatchdog.exe";
 		private static readonly object LogSync = new object();
 
@@ -183,7 +198,11 @@ namespace MachineCraftMPatcherInstaller
 			{
 				root = NormalizeAndValidateRoot(root);
 				result.LogPath = GetInstallerLogPath(root);
-				EnsureGameIsClosed(root);
+				GameCloseResult gameClose = GameProcessController.CloseSelectedGame(root,
+					delegate(string message) { Report(root, progress, message); });
+				result.ClosedGameProcessCount = gameClose.ClosedProcessCount;
+				result.ForcedGameProcessCount = gameClose.ForcedProcessCount;
+				WaitForCrashWatchdog(root);
 				MigrateLegacyLogs(root);
 				Report(root, progress, "INSTALL_BEGIN version=" + PayloadInfo.Version);
 
@@ -194,7 +213,6 @@ namespace MachineCraftMPatcherInstaller
 				string supportDirectory = Path.Combine(root, "McnCraft_Data", SupportDirectoryName);
 				string watchdogPath = GetWatchdogPath(root);
 				Directory.CreateDirectory(backupDirectory);
-				Directory.CreateDirectory(supportDirectory);
 
 				InstallManifest manifest = null;
 				if (File.Exists(manifestPath))
@@ -242,93 +260,208 @@ namespace MachineCraftMPatcherInstaller
 					Report(root, progress, "MANAGED_UPDATE previousVersion=" + (manifest.ProductVersion ?? "unknown"));
 				}
 
+				SupportDirectoryReset supportReset = BeginSupportDirectoryReset(root, supportDirectory, progress);
 				string stagedPayload = Path.Combine(monoDirectory, "__Internal.MPatcherFork.staged.dll");
-				ExtractResource(PayloadInfo.ResourceName, stagedPayload);
-				string stagedHash = ComputeSha256(stagedPayload);
-				if (!string.Equals(stagedHash, PayloadInfo.Sha256, StringComparison.OrdinalIgnoreCase))
-					throw new InvalidDataException(InstallerText.EmbeddedHashMismatch(stagedHash));
 				string stagedWatchdog = Path.Combine(supportDirectory, WatchdogFileName + ".staged");
-				ExtractResource(PayloadInfo.WatchdogResourceName, stagedWatchdog);
-				string stagedWatchdogHash = ComputeSha256(stagedWatchdog);
-				if (!string.Equals(stagedWatchdogHash, PayloadInfo.WatchdogSha256, StringComparison.OrdinalIgnoreCase))
-					throw new InvalidDataException(InstallerText.EmbeddedHashMismatch(stagedWatchdogHash));
-
-				string rollbackPath = Path.Combine(monoDirectory, "__Internal.MPatcherFork.rollback.dll");
-				string watchdogRollbackPath = Path.Combine(supportDirectory, WatchdogFileName + ".rollback");
-				string manifestRollbackPath = manifestPath + ".rollback";
-				DeleteIfExists(rollbackPath);
-				DeleteIfExists(watchdogRollbackPath);
-				DeleteIfExists(manifestRollbackPath);
-				bool previousLoaderExisted = File.Exists(loaderPath);
-				bool previousWatchdogExisted = File.Exists(watchdogPath);
-				bool previousManifestExisted = File.Exists(manifestPath);
 				try
 				{
-					if (previousManifestExisted)
-						File.Copy(manifestPath, manifestRollbackPath, false);
-					if (previousLoaderExisted)
-					{
-						File.SetAttributes(loaderPath, FileAttributes.Normal);
-						File.Move(loaderPath, rollbackPath);
-					}
-					if (previousWatchdogExisted)
-					{
-						File.SetAttributes(watchdogPath, FileAttributes.Normal);
-						File.Move(watchdogPath, watchdogRollbackPath);
-					}
-					File.Move(stagedPayload, loaderPath);
-					File.Move(stagedWatchdog, watchdogPath);
+					ExtractResource(PayloadInfo.ResourceName, stagedPayload);
+					string stagedHash = ComputeSha256(stagedPayload);
+					if (!string.Equals(stagedHash, PayloadInfo.Sha256, StringComparison.OrdinalIgnoreCase))
+						throw new InvalidDataException(InstallerText.EmbeddedHashMismatch(stagedHash));
+					ExtractResource(PayloadInfo.WatchdogResourceName, stagedWatchdog);
+					string stagedWatchdogHash = ComputeSha256(stagedWatchdog);
+					if (!string.Equals(stagedWatchdogHash, PayloadInfo.WatchdogSha256, StringComparison.OrdinalIgnoreCase))
+						throw new InvalidDataException(InstallerText.EmbeddedHashMismatch(stagedWatchdogHash));
 
-					manifest.ProductVersion = PayloadInfo.Version;
-					manifest.InstalledPayloadSha256 = PayloadInfo.Sha256;
-					manifest.InstalledWatchdogSha256 = PayloadInfo.WatchdogSha256;
-					manifest.InstalledUtc = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
-					WriteManifest(manifestPath, manifest);
-
-					string installedHash = ComputeSha256(loaderPath);
-					if (!string.Equals(installedHash, PayloadInfo.Sha256, StringComparison.OrdinalIgnoreCase))
-						throw new InvalidDataException(InstallerText.InstalledHashMismatch(installedHash));
-					string installedWatchdogHash = ComputeSha256(watchdogPath);
-					if (!string.Equals(installedWatchdogHash, PayloadInfo.WatchdogSha256, StringComparison.OrdinalIgnoreCase))
-						throw new InvalidDataException(InstallerText.InstalledHashMismatch(installedWatchdogHash));
+					string rollbackPath = Path.Combine(monoDirectory, "__Internal.MPatcherFork.rollback.dll");
+					string manifestRollbackPath = manifestPath + ".rollback";
 					DeleteIfExists(rollbackPath);
-					DeleteIfExists(watchdogRollbackPath);
 					DeleteIfExists(manifestRollbackPath);
-				}
-				catch
-				{
-					DeleteIfExists(loaderPath);
-					if (File.Exists(rollbackPath))
-						File.Move(rollbackPath, loaderPath);
-					DeleteIfExists(watchdogPath);
-					if (File.Exists(watchdogRollbackPath))
-						File.Move(watchdogRollbackPath, watchdogPath);
-					DeleteIfExists(manifestPath);
-					if (File.Exists(manifestRollbackPath))
-						File.Move(manifestRollbackPath, manifestPath);
-					throw;
+					bool previousLoaderExisted = File.Exists(loaderPath);
+					bool previousManifestExisted = File.Exists(manifestPath);
+					bool loaderMovedToRollback = false;
+					bool newLoaderInstalled = false;
+					try
+					{
+						if (previousManifestExisted)
+							File.Copy(manifestPath, manifestRollbackPath, false);
+						if (previousLoaderExisted)
+						{
+							File.SetAttributes(loaderPath, FileAttributes.Normal);
+							File.Move(loaderPath, rollbackPath);
+							loaderMovedToRollback = true;
+						}
+						File.Move(stagedPayload, loaderPath);
+						newLoaderInstalled = true;
+						File.Move(stagedWatchdog, watchdogPath);
+
+						manifest.ProductVersion = PayloadInfo.Version;
+						manifest.InstalledPayloadSha256 = PayloadInfo.Sha256;
+						manifest.InstalledWatchdogSha256 = PayloadInfo.WatchdogSha256;
+						manifest.InstalledUtc = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+						WriteManifest(manifestPath, manifest);
+
+						string installedHash = ComputeSha256(loaderPath);
+						if (!string.Equals(installedHash, PayloadInfo.Sha256, StringComparison.OrdinalIgnoreCase))
+							throw new InvalidDataException(InstallerText.InstalledHashMismatch(installedHash));
+						string installedWatchdogHash = ComputeSha256(watchdogPath);
+						if (!string.Equals(installedWatchdogHash, PayloadInfo.WatchdogSha256, StringComparison.OrdinalIgnoreCase))
+							throw new InvalidDataException(InstallerText.InstalledHashMismatch(installedWatchdogHash));
+						DeleteIfExists(rollbackPath);
+						DeleteIfExists(manifestRollbackPath);
+					}
+					catch
+					{
+						if (newLoaderInstalled)
+							DeleteIfExists(loaderPath);
+						if (loaderMovedToRollback && File.Exists(rollbackPath))
+							File.Move(rollbackPath, loaderPath);
+						if (File.Exists(manifestRollbackPath))
+						{
+							DeleteIfExists(manifestPath);
+							File.Move(manifestRollbackPath, manifestPath);
+						}
+						else if (!previousManifestExisted)
+							DeleteIfExists(manifestPath);
+						throw;
+					}
+					finally
+					{
+						DeleteIfExists(manifestRollbackPath);
+					}
+					CommitSupportDirectoryReset(root, supportReset, progress);
 				}
 				finally
 				{
 					DeleteIfExists(stagedPayload);
 					DeleteIfExists(stagedWatchdog);
-					DeleteIfExists(manifestRollbackPath);
+					if (!supportReset.Committed)
+						RollbackSupportDirectoryReset(root, supportReset, progress);
 				}
 
 				Report(root, progress, "INSTALL_OK sha256=" + PayloadInfo.Sha256
 					+ " watchdogSha256=" + PayloadInfo.WatchdogSha256);
 				result.Success = true;
-				result.Message = InstallerText.InstallSucceeded(PayloadInfo.Version);
+				result.Message = InstallerText.InstallSucceeded(PayloadInfo.Version, root,
+					result.ClosedGameProcessCount, result.ForcedGameProcessCount);
 			}
 			catch (Exception error)
 			{
 				SafeReport(root, progress, "INSTALL_FAILED type=" + error.GetType().Name + " message=" + error.Message);
 				result.Success = false;
-				result.Message = error.Message;
+				result.ErrorDetails = error.Message;
+				result.Message = InstallerText.InstallFailed(error.Message);
 				if (string.IsNullOrEmpty(result.LogPath))
 					result.LogPath = GetFallbackLogPath();
 			}
 			return result;
+		}
+
+		private static SupportDirectoryReset BeginSupportDirectoryReset(string root,
+			string supportDirectory, Action<string> progress)
+		{
+			string dataDirectory = Path.Combine(root, "McnCraft_Data");
+			SupportDirectoryReset reset = new SupportDirectoryReset();
+			reset.SupportPath = supportDirectory;
+			reset.SnapshotPath = Path.Combine(dataDirectory, SupportSnapshotDirectoryName);
+			reset.SnapshotFilePath = reset.SnapshotPath + ".file";
+			ValidateManagedSupportPath(root, reset.SupportPath);
+			ValidateManagedSupportPath(root, reset.SnapshotPath);
+			ValidateManagedSupportPath(root, reset.SnapshotFilePath);
+			Report(root, progress, "SUPPORT_RESET_BEGIN path=" + supportDirectory);
+			try
+			{
+				DeleteManagedSupportPath(root, reset.SnapshotPath);
+				DeleteManagedSupportPath(root, reset.SnapshotFilePath);
+				if (Directory.Exists(supportDirectory))
+				{
+					Directory.Move(supportDirectory, reset.SnapshotPath);
+					reset.PreviousDirectory = true;
+				}
+				else if (File.Exists(supportDirectory))
+				{
+					File.SetAttributes(supportDirectory, FileAttributes.Normal);
+					File.Move(supportDirectory, reset.SnapshotFilePath);
+					reset.PreviousFile = true;
+				}
+				Directory.CreateDirectory(supportDirectory);
+				reset.ReplacementCreated = true;
+				Report(root, progress, "SUPPORT_RESET_READY previous="
+					+ (reset.PreviousDirectory ? "directory" : reset.PreviousFile ? "file" : "none"));
+				return reset;
+			}
+			catch
+			{
+				RollbackSupportDirectoryReset(root, reset, progress);
+				throw;
+			}
+		}
+
+		private static void CommitSupportDirectoryReset(string root,
+			SupportDirectoryReset reset, Action<string> progress)
+		{
+			reset.Committed = true;
+			try
+			{
+				DeleteManagedSupportPath(root, reset.SnapshotPath);
+				DeleteManagedSupportPath(root, reset.SnapshotFilePath);
+				Report(root, progress, "SUPPORT_RESET_COMMIT");
+			}
+			catch (Exception error)
+			{
+				SafeReport(root, progress, "SUPPORT_RESET_CLEANUP_FAILED type="
+					+ error.GetType().Name + " message=" + error.Message);
+			}
+		}
+
+		private static void RollbackSupportDirectoryReset(string root,
+			SupportDirectoryReset reset, Action<string> progress)
+		{
+			try
+			{
+				if (reset.ReplacementCreated || reset.PreviousDirectory || reset.PreviousFile)
+					DeleteManagedSupportPath(root, reset.SupportPath);
+				if (reset.PreviousDirectory && Directory.Exists(reset.SnapshotPath))
+					Directory.Move(reset.SnapshotPath, reset.SupportPath);
+				else if (reset.PreviousFile && File.Exists(reset.SnapshotFilePath))
+					File.Move(reset.SnapshotFilePath, reset.SupportPath);
+				SafeReport(root, progress, "SUPPORT_RESET_ROLLBACK");
+			}
+			catch (Exception error)
+			{
+				SafeReport(root, progress, "SUPPORT_RESET_ROLLBACK_FAILED type="
+					+ error.GetType().Name + " message=" + error.Message);
+			}
+		}
+
+		private static void DeleteManagedSupportPath(string root, string path)
+		{
+			ValidateManagedSupportPath(root, path);
+			if (Directory.Exists(path))
+			{
+				FileAttributes attributes = File.GetAttributes(path);
+				Directory.Delete(path, (attributes & FileAttributes.ReparsePoint) == 0);
+			}
+			else if (File.Exists(path))
+			{
+				File.SetAttributes(path, FileAttributes.Normal);
+				File.Delete(path);
+			}
+		}
+
+		private static void ValidateManagedSupportPath(string root, string path)
+		{
+			string dataDirectory = Path.GetFullPath(Path.Combine(root, "McnCraft_Data"));
+			string fullPath = Path.GetFullPath(path);
+			if (!string.Equals(Path.GetDirectoryName(fullPath), dataDirectory,
+				StringComparison.OrdinalIgnoreCase))
+				throw new InvalidOperationException("Refusing support path outside McnCraft_Data: " + fullPath);
+			string name = Path.GetFileName(fullPath);
+			if (!string.Equals(name, SupportDirectoryName, StringComparison.OrdinalIgnoreCase)
+				&& !string.Equals(name, SupportSnapshotDirectoryName, StringComparison.OrdinalIgnoreCase)
+				&& !string.Equals(name, SupportSnapshotDirectoryName + ".file", StringComparison.OrdinalIgnoreCase))
+				throw new InvalidOperationException("Refusing unmanaged support path: " + fullPath);
 		}
 
 		private static string CreateBackupFileName(string backupDirectory, string sha256)
@@ -353,7 +486,11 @@ namespace MachineCraftMPatcherInstaller
 			{
 				root = NormalizeAndValidateRoot(root);
 				result.LogPath = GetInstallerLogPath(root);
-				EnsureGameIsClosed(root);
+				GameCloseResult gameClose = GameProcessController.CloseSelectedGame(root,
+					delegate(string message) { Report(root, progress, message); });
+				result.ClosedGameProcessCount = gameClose.ClosedProcessCount;
+				result.ForcedGameProcessCount = gameClose.ForcedProcessCount;
+				WaitForCrashWatchdog(root);
 				Report(root, progress, "UNINSTALL_BEGIN");
 
 				string loaderPath = GetLoaderPath(root);
@@ -369,7 +506,8 @@ namespace MachineCraftMPatcherInstaller
 						DeleteCurrentWatchdog(root, watchdogPath, PayloadInfo.WatchdogSha256, progress);
 						Report(root, progress, "UNINSTALL_OK mode=unmanaged-current-payload");
 						result.Success = true;
-						result.Message = InstallerText.UnmanagedPayloadRemoved;
+						result.Message = InstallerText.UninstallSucceeded(InstallerText.UnmanagedPayloadRemoved,
+							root, result.ClosedGameProcessCount, result.ForcedGameProcessCount);
 						return result;
 					}
 					throw new InvalidOperationException(InstallerText.InstallManifestMissing);
@@ -417,12 +555,15 @@ namespace MachineCraftMPatcherInstaller
 				DeleteIfExists(manifestPath);
 				Report(root, progress, "UNINSTALL_OK");
 				result.Success = true;
+				result.Message = InstallerText.UninstallSucceeded(result.Message, root,
+					result.ClosedGameProcessCount, result.ForcedGameProcessCount);
 			}
 			catch (Exception error)
 			{
 				SafeReport(root, progress, "UNINSTALL_FAILED type=" + error.GetType().Name + " message=" + error.Message);
 				result.Success = false;
-				result.Message = error.Message;
+				result.ErrorDetails = error.Message;
+				result.Message = InstallerText.UninstallFailed(error.Message);
 				if (string.IsNullOrEmpty(result.LogPath))
 					result.LogPath = GetFallbackLogPath();
 			}
@@ -436,23 +577,8 @@ namespace MachineCraftMPatcherInstaller
 			return Path.GetFullPath(root.Trim());
 		}
 
-		private static void EnsureGameIsClosed(string root)
+		private static void WaitForCrashWatchdog(string root)
 		{
-			Process[] processes = Process.GetProcessesByName("McnCraft");
-			for (int i = 0; i < processes.Length; i++)
-			{
-				try
-				{
-					string processRoot = Path.GetDirectoryName(processes[i].MainModule.FileName);
-					if (string.Equals(Path.GetFullPath(processRoot), root, StringComparison.OrdinalIgnoreCase))
-						throw new InvalidOperationException(InstallerText.CloseSelectedGame);
-				}
-				finally
-				{
-					processes[i].Dispose();
-				}
-			}
-
 			string watchdogPath = GetWatchdogPath(root);
 			Process[] watchdogs = Process.GetProcessesByName("MPatcherCrashWatchdog");
 			for (int i = 0; i < watchdogs.Length; i++)
@@ -672,6 +798,11 @@ namespace MachineCraftMPatcherInstaller
 				if (progress != null)
 					progress(message);
 			}
+		}
+
+		internal static void LogAutomaticEvent(string root, string message)
+		{
+			Report(root, null, message);
 		}
 	}
 }

@@ -2127,7 +2127,8 @@ public class MPatchr : MonoBehaviour
 		}
 		smethod_22((UnityEngine.Object)smethod_21((Component)this));
 		xcBvxcM_0024ckBeZyvdSoAkJoM = this;
-		mK6lLU33ECSzxV4u22c7_0024ijC0MeyAkqA_PRIEl9WpAZK.YELeoCirSeVGf6u7nOIXkng("[MPatcher.Update] disabled: settings controls and startup network check removed");
+		MPatcherFork.CustomPatches.MPatcherUpdater.TryStart(this);
+		Class35.EnsureSettingsUiScheduled();
 		smethod_23((MonoBehaviour)this, VV868WF7nSRjwt_00244L9Mu9fg());
 		smethod_20((MonoBehaviour)this, global::_003CModule_003E.smethod_27<string>(1979248642u), 5f, 60f);
 		smethod_24((UnityAction<Scene, LoadSceneMode>)delegate
@@ -2407,6 +2408,12 @@ public class MPatchr : MonoBehaviour
 		MPatcherFork.CustomPatches.LegacyMoreViewDistance.TryRegister();
 		MPatcherFork.CustomPatches.LegacyServerScripts.TryRegister();
 		MPatcherFork.CustomPatches.NormalMapStampOffsets.TryRegister();
+		MPatcherFork.CustomPatches.MainMenuVersionLabel.TryRegister();
+#if MPATCHER_EXCLUDE_PLAYER_PRESENCE
+		mK6lLU33ECSzxV4u22c7_0024ijC0MeyAkqA_PRIEl9WpAZK.YELeoCirSeVGf6u7nOIXkng("[PLAYER-PRESENCE] EXCLUDED_FROM_BUILD");
+#else
+		MPatcherFork.CustomPatches.PlayerPresence.TryRegister();
+#endif
 		mK6lLU33ECSzxV4u22c7_0024ijC0MeyAkqA_PRIEl9WpAZK.YELeoCirSeVGf6u7nOIXkng("[NORMALMAP-STAMPS] MCPD_NULL_GUARD=active");
 		mK6lLU33ECSzxV4u22c7_0024ijC0MeyAkqA_PRIEl9WpAZK.YELeoCirSeVGf6u7nOIXkng("[PATCH-SETTINGS] DefaultCollisionOff=" + _0024Ymloe9RVCTW7x1ASuQ3c68.defaultCollisionsOff + " AudioCutoffFix=" + _0024Ymloe9RVCTW7x1ASuQ3c68.audioCutoffFix + " GraphicsPlus=" + _0024Ymloe9RVCTW7x1ASuQ3c68.graphicsPlus);
 		xcBvxcM_0024ckBeZyvdSoAkJoM = new GameObject("MPatcher").AddComponent<MPatchr>();
