@@ -137,8 +137,8 @@ namespace MachineCraftMPatcherInstaller
 				ProcessStartInfo start = new ProcessStartInfo();
 				start.FileName = packagePath;
 				start.WorkingDirectory = gameRoot;
-				start.UseShellExecute = false;
-				start.CreateNoWindow = true;
+				start.UseShellExecute = true;
+				start.Verb = "runas";
 				start.WindowStyle = ProcessWindowStyle.Hidden;
 				start.Arguments = "--" + actionName + " " + QuoteArgument(gameRoot)
 					+ " --lang " + LanguageCode(language)

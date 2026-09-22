@@ -2176,6 +2176,7 @@ public class MPatchr : MonoBehaviour
 			}
 			NNbVj5nqStzgkt0zSfIM_qs(global::_003CModule_003E.smethod_25<string>(1502479181u), global::_003CModule_003E.smethod_29<string>(1273961863u));
 		}
+		MPatcherFork.CustomPatches.MPatcherStartupGate.MarkRuntimeReady();
 	}
 
 	private static IEnumerator M1eixzEGkwtX6Xhke7uW1qY(string[] string_3)
@@ -2395,20 +2396,37 @@ public class MPatchr : MonoBehaviour
 	{
 		mK6lLU33ECSzxV4u22c7_0024ijC0MeyAkqA_PRIEl9WpAZK.YELeoCirSeVGf6u7nOIXkng("** MPATCHER " + globals.VERSION_NUM + globals.VERSION_POSTFIX + " (" + globals.VERSION_NUM_EXTRA + ") **");
 		MPatcherFork.CustomPatches.CrashDiagnostics.TryRegister();
+		if (MPatcherFork.CustomPatches.LegacyServiceProbe.TryRegisterBaseline()) return;
 		metG733wDBlDhjB0MSUi_0024WZtiv2d5Ta15QUy66BHDFij5pgSnnkUUekfxHo4GGqdng.bl10qLgwUVVComuGzPN5IogJQnTiOUknRHmdHIbVuGoP();
 		xh28Je5vGZzmlyaYTv4leqahX_0024d76HU68fsrFhxkr_aiwJvGWxEZr2ULd9ujX_W1gg.oJN_00244IcEU0waAX7Zww3G6zI();
 		while (SceneMan.JFAOKFIDAGK == null)
 		{
 		}
+		// Menu.Start can run in the frame used to present the startup blocker.
+		// Register this lightweight hook before yielding; the remaining patch set
+		// is installed behind the blocker by CompleteLoad.
+		MPatcherFork.CustomPatches.MainMenuVersionLabel.TryRegister();
+		MPatcherFork.CustomPatches.MPatcherStartupGate.Begin(CompleteLoad);
+	}
+
+	private static void CompleteLoad()
+	{
 		metG733wDBlDhjB0MSUi_0024WZtiv2d5Ta15QUy66BHDFij5pgSnnkUUekfxHo4GGqdng.PCrZEnMBeTE_Ad8AsAfHu4lIZnc9gW0uRKh76v2TV2aBQO1YeBmVPNFNDHO1Kk1Rng.smethod_0();
 		MPatcherFork.CustomPatches.HardKickFaultInjection.TryRegister();
+		MPatcherFork.CustomPatches.LegacyZapret.TryRegister();
+		MPatcherFork.CustomPatches.SettingsListIsolation.TryRegister();
 		MPatcherFork.CustomPatches.LegacyMachineChangeIngame.TryRegister();
+		MPatcherFork.CustomPatches.MagnificationDownscale.TryRegister();
 		MPatcherFork.CustomPatches.LegacyPrivateRooms.TryRegister();
+		MPatcherFork.CustomPatches.LegacySessionDiagnostics.TryRegister();
+		MPatcherFork.CustomPatches.LegacyServiceProbe.TryRegister();
+		MPatcherFork.CustomPatches.LegacyIndivFixBundle.TryRegister();
+		MPatcherFork.CustomPatches.LegacyTransientReconnect.TryRegister();
 		MPatcherFork.CustomPatches.MachineCompression.TryRegister();
 		MPatcherFork.CustomPatches.LegacyMoreViewDistance.TryRegister();
 		MPatcherFork.CustomPatches.LegacyServerScripts.TryRegister();
+		MPatcherFork.CustomPatches.InstallerBackupScriptCompatibility.TryRegister();
 		MPatcherFork.CustomPatches.NormalMapStampOffsets.TryRegister();
-		MPatcherFork.CustomPatches.MainMenuVersionLabel.TryRegister();
 #if MPATCHER_EXCLUDE_PLAYER_PRESENCE
 		mK6lLU33ECSzxV4u22c7_0024ijC0MeyAkqA_PRIEl9WpAZK.YELeoCirSeVGf6u7nOIXkng("[PLAYER-PRESENCE] EXCLUDED_FROM_BUILD");
 #else
@@ -2437,6 +2455,7 @@ public class MPatchr : MonoBehaviour
 			if (!xcBvxcM_0024ckBeZyvdSoAkJoM.gZ4fFW5kn1euhEA_p9GeO0U)
 			{
 				O92TSlvwgqhGaTEuTVL_00240jo(Application.dataPath);
+				MPatcherFork.CustomPatches.InstallerBackupScriptCompatibility.ScanCompleted();
 				if (_0024Ymloe9RVCTW7x1ASuQ3c68.discordRPC && _0024Ymloe9RVCTW7x1ASuQ3c68.discordSupported)
 				{
 					U_0024Y3HeQRR_0024vHVl515guIm5pFz5zddo_EEiypiKocRd4SQiyP7ZyPcC8WZZRlllFLCg.oJN_00244IcEU0waAX7Zww3G6zI();
@@ -2506,7 +2525,7 @@ public class MPatchr : MonoBehaviour
 
 	internal static string[] smethod_11(string string_3, string string_4, SearchOption searchOption_0)
 	{
-		return Directory.GetFiles(string_3, string_4, searchOption_0);
+		return MPatcherFork.CustomPatches.InstallerBackupScriptCompatibility.GetActiveDlls(string_3, string_4, searchOption_0);
 	}
 
 	internal static string smethod_12(string string_3, int int_0)

@@ -117,7 +117,10 @@ namespace MachineCraftMPatcherInstaller
 			if (!string.Equals(packageUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
 				|| !string.Equals(packageUri.Host, "github.com", StringComparison.OrdinalIgnoreCase))
 				return false;
-			string expectedPath = BootstrapInfo.RepositoryReleasePath + "v" + versionText + "/" + BootstrapInfo.PackageFileName;
+			bool alpha = sourceUri.AbsolutePath.EndsWith(
+				"/releases/download/alpha/MPatcherUpdate.ini", StringComparison.OrdinalIgnoreCase);
+			string expectedPath = BootstrapInfo.RepositoryReleasePath
+				+ (alpha ? "alpha" : "v" + versionText) + "/" + BootstrapInfo.PackageFileName;
 			return string.Equals(packageUri.AbsolutePath, expectedPath, StringComparison.OrdinalIgnoreCase)
 				&& string.IsNullOrEmpty(packageUri.Query) && string.IsNullOrEmpty(packageUri.Fragment);
 		}
@@ -128,7 +131,7 @@ namespace MachineCraftMPatcherInstaller
 			if (string.IsNullOrWhiteSpace(text))
 				return false;
 			string[] pieces = text.Split('.');
-			if (pieces.Length != 3)
+			if (pieces.Length != 3 && pieces.Length != 4)
 				return false;
 			for (int i = 0; i < pieces.Length; i++)
 			{

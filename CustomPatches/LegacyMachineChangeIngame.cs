@@ -9,7 +9,8 @@ using UnityEngine;
 namespace MPatcherFork.CustomPatches
 {
 	// Restores the Legacy/Individual path that the recovered MPatcher explicitly
-	// rejects, while preserving the same machine-regulation checks used by Lobby.
+	// rejects. Legacy replacement has no gameplay cooldown and destroys the
+	// outgoing machine before allocating the selected one.
 	internal static class LegacyMachineChangeIngame
 	{
 		private sealed class MachineSelectionSnapshot
@@ -23,18 +24,43 @@ namespace MPatcherFork.CustomPatches
 			internal GameObject ActiveRoot;
 			internal MachineController ActiveController;
 			internal HashSet<int> ControllerIds;
+			internal Meeting Meeting;
+			internal GameObject OutgoingRoot;
+			internal Vector3 Position;
+			internal Quaternion Rotation;
 		}
 
-		private const string PatchId = "local.moddev.machinecraft.machinechange-legacy.v5";
+		private const string PatchId = "local.moddev.machinecraft.machinechange-legacy.v12";
 		private const int SpawnReadyTimeoutSeconds = 5;
+		private static LegacySpawnFinalization spawnFinalization;
+		private static readonly FieldInfo SledContactSensorField = AccessTools.Field(typeof(SledController), "IHHNBGLEBMH");
+		private const int CleanupFrameLimit = 6;
+		private const long HighVirtualMemoryBytes = 3L * 1024L * 1024L * 1024L;
 
 		private static Harmony harmony;
+		private static bool registered;
+		private static FieldInfo cooldownField;
 		private static GameObject legacyNetworkDestroyedRoot;
 		private static MachineSelectionSnapshot pendingSelection;
+		private static bool replacementInProgress;
+		private static bool allowDeferredCommit;
+		private static bool previousCooldownValid;
+		private static float previousCooldown;
+		private static MachineController attackBypassController;
+		private static bool suppressRegulationRollback;
+		private static int suppressDebugMessageFrame = -1;
+		private static bool directSpawnPositionValid;
+		private static Vector3 directSpawnPosition;
+		private static Quaternion directSpawnRotation;
+		private static bool networkSpawnPositionApplied;
+		private static bool initializeSpawnPositionApplied;
+		private static bool networkAnchorRepaired;
+		private static int repairedNetworkAnchorBlocks;
+		private static Vector3 repairedNetworkAnchor;
 
 		internal static void TryRegister()
 		{
-			if (harmony != null)
+			if (registered)
 				return;
 
 			try
@@ -43,32 +69,74 @@ namespace MPatcherFork.CustomPatches
 				MethodInfo meetingAction = AccessTools.Method(typeof(Meeting), "BDKIMPEDKCJ", new Type[] { typeof(string), typeof(GameObject) });
 				MethodInfo networkDestroy = AccessTools.Method(patchType, "smethod_19", new Type[] { typeof(GameObject) });
 				MethodInfo localDestroy = AccessTools.Method(patchType, "smethod_20", new Type[] { typeof(UnityEngine.Object) });
+				MethodInfo networkInstantiate = AccessTools.Method(patchType, "smethod_22",
+					new Type[] { typeof(UnityEngine.Object), typeof(Vector3), typeof(Quaternion), typeof(int) });
+				MethodInfo initializeMachine = AccessTools.Method(patchType, "smethod_26",
+					new Type[] { typeof(MachineController), typeof(string), typeof(BuildData), typeof(AssignData), typeof(Vector3) });
+				MethodInfo showDebugMessage = AccessTools.Method(typeof(MPatchrMain.MPatchr), "ShowDebugMsg", new Type[] { typeof(string) });
+				cooldownField = AccessTools.Field(patchType, "float_0");
 
 				MethodInfo meetingActionPrefix = AccessTools.Method(typeof(LegacyMachineChangeIngame), "MeetingActionPrefix");
+				MethodInfo meetingActionPostfix = AccessTools.Method(typeof(LegacyMachineChangeIngame), "MeetingActionPostfix");
 				MethodInfo networkDestroyPrefix = AccessTools.Method(typeof(LegacyMachineChangeIngame), "NetworkDestroyPrefix");
 				MethodInfo localDestroyPrefix = AccessTools.Method(typeof(LegacyMachineChangeIngame), "LocalDestroyPrefix");
+				MethodInfo networkInstantiatePrefix = AccessTools.Method(typeof(LegacyMachineChangeIngame), "NetworkInstantiatePrefix");
+				MethodInfo initializeMachinePrefix = AccessTools.Method(typeof(LegacyMachineChangeIngame), "InitializeMachinePrefix");
+				MethodInfo initializeMachinePostfix = AccessTools.Method(typeof(LegacyMachineChangeIngame), "InitializeMachinePostfix");
+				MethodInfo showDebugMessagePrefix = AccessTools.Method(typeof(LegacyMachineChangeIngame), "ShowDebugMessagePrefix");
 
-				if (meetingAction == null || networkDestroy == null || localDestroy == null
-					|| meetingActionPrefix == null || networkDestroyPrefix == null || localDestroyPrefix == null)
+				if (meetingAction == null || networkDestroy == null || localDestroy == null || networkInstantiate == null
+					|| initializeMachine == null || showDebugMessage == null || cooldownField == null
+					|| meetingActionPrefix == null || meetingActionPostfix == null || networkDestroyPrefix == null
+					|| localDestroyPrefix == null || networkInstantiatePrefix == null || initializeMachinePrefix == null
+					|| initializeMachinePostfix == null
+					|| showDebugMessagePrefix == null)
 				{
 					throw new MissingMethodException("Recovered MachineChangeIngame methods");
 				}
 
 				harmony = new Harmony(PatchId);
 				PatchPrefix(meetingAction, meetingActionPrefix);
+				PatchPostfix(meetingAction, meetingActionPostfix);
 				PatchPrefix(networkDestroy, networkDestroyPrefix);
 				PatchPrefix(localDestroy, localDestroyPrefix);
+				PatchPrefix(networkInstantiate, networkInstantiatePrefix);
+				PatchPrefix(initializeMachine, initializeMachinePrefix);
+				PatchPostfix(initializeMachine, initializeMachinePostfix);
+				harmony.Patch(AccessTools.Method(typeof(MachineController), "Initialize",
+					new Type[] { typeof(string), typeof(BuildData), typeof(AssignData), typeof(Vector3) }),
+					transpiler: new HarmonyMethod(AccessTools.Method(typeof(LegacyMachineNetworkAnchor), "InitializeTranspiler")));
+				PatchPrefix(AccessTools.Method(typeof(MachineSerializer), "SyncStructure", new Type[] { typeof(bool[]) }),
+					AccessTools.Method(typeof(LegacyMachineChangeIngame), "BeforeSyncStructure"));
+				PatchPrefix(showDebugMessage, showDebugMessagePrefix);
 
-				Log("REGISTERED entry=Meeting.BDKIMPEDKCJ validator=Legacy-regulation destroy=Unity-Network");
+				registered = true;
+				Log("REGISTERED entry=Meeting.BDKIMPEDKCJ restrictions=none cooldownSeconds=0"
+					+ " replacement=validation-dispatch/deferred-cleanup spawnPosition=target/ready-warp"
+					+ " networkAnchor=native-bounds-excluding-missile-template-hierarchy"
+					+ " destroy=Unity-Network/rebound-server-retire scriptHelpers=SpringControl");
 			}
 			catch (Exception error)
 			{
+				registered = false;
+				try
+				{
+					if (harmony != null)
+						harmony.UnpatchAll(PatchId);
+				}
+				catch (Exception rollbackError)
+				{
+					Log("REGISTER_ROLLBACK_FAILED type=" + rollbackError.GetType().Name
+						+ " message=" + rollbackError.Message);
+				}
+				harmony = null;
 				Log("REGISTER_FAILED type=" + error.GetType().Name + " message=" + error.Message);
 			}
 		}
 
 		private static bool MeetingActionPrefix(string DPGKEOAGONA, GameObject NGLBLAGMBLN, Meeting __instance)
 		{
+			RestoreAttackBypass();
 			if (HNJDDKJLHMM.FHLGOMHPDLN != HNJDDKJLHMM.HKGAACMIPIH.Legacy
 				|| JKGKJLLFMLE.EGFHGHKLNAO != JKGKJLLFMLE.LENPCAMMAEP.Meeting)
 			{
@@ -78,15 +146,16 @@ namespace MPatcherFork.CustomPatches
 			string pending = global::dyl7NQFWvb8SnwY4dXogp_aCQhx2Y7dLGUBgzCus25T9Wpo6h01g9Y342KDBl8ctV_NzWUOypgYMsbS0RAESeaU.Class50.WCKsvBPB6cSYds0fexVu_00247Y;
 			string selectedText = string.Empty;
 			string selectedColor = string.Empty;
+			UnityEngine.UI.Text selectedLabel = null;
 			try
 			{
 				if (NGLBLAGMBLN && NGLBLAGMBLN.transform.childCount > 0)
 				{
-					UnityEngine.UI.Text text = NGLBLAGMBLN.transform.GetChild(0).GetComponent<UnityEngine.UI.Text>();
-					if (text)
+					selectedLabel = NGLBLAGMBLN.transform.GetChild(0).GetComponent<UnityEngine.UI.Text>();
+					if (selectedLabel)
 					{
-						selectedText = text.text;
-						selectedColor = text.color.ToString();
+						selectedText = selectedLabel.text;
+						selectedColor = selectedLabel.color.ToString();
 					}
 				}
 			}
@@ -102,7 +171,64 @@ namespace MPatcherFork.CustomPatches
 				+ " color=" + Quote(selectedColor)
 				+ " machine=" + Quote(JKGKJLLFMLE.IGOBPLOLHEP.machineName));
 
+			if (replacementInProgress
+				&& string.Equals(DPGKEOAGONA, "File", StringComparison.Ordinal)
+				&& string.Equals(pending, "SelectMachine", StringComparison.Ordinal))
+			{
+				Log("EVENT ignored reason=replacement-in-progress cooldownSeconds=0");
+				return false;
+			}
+
+			if (string.Equals(DPGKEOAGONA, "File", StringComparison.Ordinal)
+				&& string.Equals(pending, "SelectMachine", StringComparison.Ordinal)
+				&& selectedLabel && selectedLabel.color != Color.yellow)
+			{
+				ApplyZeroCooldown();
+			}
+
+			if (string.Equals(DPGKEOAGONA, "File", StringComparison.Ordinal)
+				&& string.Equals(pending, "SelectMachine", StringComparison.Ordinal)
+				&& __instance && __instance.FICMBCLEFDL && __instance.FICMBCLEFDL.KDODJPCDEHO)
+			{
+				attackBypassController = __instance.FICMBCLEFDL;
+				attackBypassController.KDODJPCDEHO = false;
+				Log("LIMIT bypassed=attack mode=Legacy restrictions=none cooldownSeconds=0");
+			}
+
 			return true;
+		}
+
+		private static void MeetingActionPostfix()
+		{
+			RestoreAttackBypass();
+		}
+
+		private static void RestoreAttackBypass()
+		{
+			MachineController controller = attackBypassController;
+			attackBypassController = null;
+			if (controller)
+				controller.KDODJPCDEHO = true;
+		}
+
+		private static void ApplyZeroCooldown()
+		{
+			if (cooldownField == null)
+				return;
+
+			try
+			{
+				float previous = (float)cooldownField.GetValue(null);
+				if (previous <= -2000000000f)
+					return;
+
+				cooldownField.SetValue(null, -2147483648f);
+				Log("LIMIT bypassed=cooldown previous=" + previous.ToString("0.###") + " cooldownSeconds=0");
+			}
+			catch (Exception error)
+			{
+				Log("COOLDOWN bypass-failed type=" + error.GetType().Name + " message=" + Quote(error.Message));
+			}
 		}
 
 		private static string Quote(string value)
@@ -119,90 +245,43 @@ namespace MPatcherFork.CustomPatches
 			harmony.Patch(original, prefix, null, null, null);
 		}
 
+		private static void PatchPostfix(MethodInfo original, MethodInfo postfixMethod)
+		{
+			HarmonyMethod postfix = new HarmonyMethod(postfixMethod);
+			postfix.priority = Priority.Last;
+			harmony.Patch(original, null, postfix, null, null);
+		}
+
 		internal static bool ValidateCurrentSelection()
 		{
-			HashSet<int> activeObjectsBefore = CaptureActiveGameObjects();
-			try
+			BuildData build = JKGKJLLFMLE.HHGILAIOCLG;
+			if (!registered || HNJDDKJLHMM.FHLGOMHPDLN != HNJDDKJLHMM.HKGAACMIPIH.Legacy)
+				return true;
+
+			MachineSelectionSnapshot snapshot = pendingSelection;
+			if (snapshot == null || !snapshot.Meeting || !snapshot.OutgoingRoot)
 			{
-				bool allowed = ValidateLegacyMachine();
-				int leakedRoots = CleanupValidationLeaks(activeObjectsBefore);
-				if (leakedRoots > 0)
-					Log("VALIDATE_CLEANUP result=removed roots=" + leakedRoots + " outcome=" + (allowed ? "ALLOW" : "DENY"));
-				return allowed;
-			}
-			catch (Exception error)
-			{
-				int leakedRoots = CleanupValidationLeaks(activeObjectsBefore);
-				Log("VALIDATE_FAILED type=" + error.GetType().Name
-					+ " message=" + error.Message
-					+ " leakedRootsRemoved=" + leakedRoots
-					+ " stack=" + Quote(error.StackTrace));
+				Log("VALIDATE result=REJECT reason=invalid-deferred-context transaction=" + (snapshot != null)
+					+ " meeting=" + (snapshot != null && snapshot.Meeting)
+					+ " outgoingRoot=" + (snapshot != null && snapshot.OutgoingRoot));
+				RollbackSelectionTransaction("invalid-deferred-context");
+				suppressRegulationRollback = true;
+				suppressDebugMessageFrame = Time.frameCount;
 				return false;
 			}
-		}
 
-		private static HashSet<int> CaptureActiveGameObjects()
-		{
-			HashSet<int> ids = new HashSet<int>();
-			GameObject[] objects = UnityEngine.Object.FindObjectsOfType<GameObject>();
-			foreach (GameObject gameObject in objects)
-			{
-				if (gameObject)
-					ids.Add(gameObject.GetInstanceID());
-			}
-			return ids;
-		}
+			bool handled = BeginDeferredReplacement(snapshot.Meeting, snapshot.OutgoingRoot,
+				snapshot.Position, snapshot.Rotation);
+			if (!handled)
+				return true;
 
-		private static int CleanupValidationLeaks(HashSet<int> activeObjectsBefore)
-		{
-			Dictionary<int, GameObject> newRoots = new Dictionary<int, GameObject>();
-			GameObject[] activeObjectsAfter = UnityEngine.Object.FindObjectsOfType<GameObject>();
-			foreach (GameObject gameObject in activeObjectsAfter)
-			{
-				if (!gameObject || activeObjectsBefore.Contains(gameObject.GetInstanceID()))
-					continue;
-
-				Transform rootTransform = gameObject.transform;
-				while (rootTransform.parent
-					&& !activeObjectsBefore.Contains(rootTransform.parent.gameObject.GetInstanceID()))
-				{
-					rootTransform = rootTransform.parent;
-				}
-
-				GameObject root = rootTransform.gameObject;
-				if (!activeObjectsBefore.Contains(root.GetInstanceID()))
-					newRoots[root.GetInstanceID()] = root;
-			}
-
-			int removed = 0;
-			foreach (GameObject root in newRoots.Values)
-			{
-				if (!root)
-					continue;
-
-				MachineController machine = root.GetComponentInChildren<MachineController>(true);
-				NetworkView networkView = root.GetComponentInChildren<NetworkView>(true);
-				if (machine || networkView)
-				{
-					Log("VALIDATE_LEAK skipped root=" + Quote(root.name)
-						+ " position=" + FormatPosition(root.transform.position)
-						+ " machine=" + (bool)machine
-						+ " network=" + (bool)networkView);
-					continue;
-				}
-
-				BlockController block = root.GetComponentInChildren<BlockController>(true);
-				string rootName = root.name;
-				Vector3 rootPosition = root.transform.position;
-				root.SetActive(false);
-				UnityEngine.Object.Destroy(root);
-				removed++;
-				Log("VALIDATE_LEAK removed root=" + Quote(rootName)
-					+ " position=" + FormatPosition(rootPosition)
-					+ " block=" + (bool)block);
-			}
-
-			return removed;
+			suppressRegulationRollback = true;
+			suppressDebugMessageFrame = Time.frameCount;
+			Log("VALIDATE result=DEFERRED mode=unrestricted cooldownSeconds=0 machine="
+				+ Quote(JKGKJLLFMLE.IGOBPLOLHEP.machineName)
+				+ " blocks=" + (build == null || build.blockData == null ? -1 : build.blockData.Count)
+				+ " target=" + FormatPosition(snapshot.Position));
+			return false;
 		}
 
 		internal static void BeginSelectionTransaction(Meeting meeting)
@@ -215,6 +294,10 @@ namespace MPatcherFork.CustomPatches
 					controllerIds.Add(controller.GetInstanceID());
 			}
 
+			GameObject activeRoot = meeting ? meeting.JPIAFJHAPHM : null;
+			Transform activeTransform = activeRoot ? activeRoot.transform : null;
+			Transform activeParent = activeTransform ? activeTransform.parent : null;
+
 			pendingSelection = new MachineSelectionSnapshot
 			{
 				MachineName = JKGKJLLFMLE.IGOBPLOLHEP.machineName,
@@ -223,28 +306,519 @@ namespace MPatcherFork.CustomPatches
 				Assign = JKGKJLLFMLE.MIIGKEBFKKD,
 				MachineDataLoaded = JKGKJLLFMLE.MLBCKBAPAMJ,
 				MachineAudioReady = JKGKJLLFMLE.KAOJMNJNLLM,
-				ActiveRoot = meeting ? meeting.JPIAFJHAPHM : null,
+				ActiveRoot = activeRoot,
 				ActiveController = meeting ? meeting.FICMBCLEFDL : null,
-				ControllerIds = controllerIds
+				ControllerIds = controllerIds,
+				Meeting = meeting,
+				OutgoingRoot = activeParent ? activeParent.gameObject : activeRoot,
+				Position = activeTransform ? activeTransform.position : Vector3.zero,
+				Rotation = activeTransform ? activeTransform.rotation : Quaternion.identity
 			};
 
 			Log("TRANSACTION begin machine=" + Quote(pendingSelection.MachineName)
 				+ " folder=" + Quote(pendingSelection.FolderName)
 				+ " activeRoot=" + Quote(pendingSelection.ActiveRoot ? pendingSelection.ActiveRoot.name : null)
+				+ " outgoingRoot=" + Quote(pendingSelection.OutgoingRoot ? pendingSelection.OutgoingRoot.name : null)
 				+ " activePosition=" + FormatPosition(pendingSelection.ActiveController)
 				+ " controllers=" + controllerIds.Count);
 		}
 
 		internal static void CommitSelectionTransaction()
 		{
+			if (replacementInProgress && !allowDeferredCommit)
+			{
+				Log("TRANSACTION commit-deferred reason=replacement-in-progress");
+				return;
+			}
+
 			MachineSelectionSnapshot snapshot = pendingSelection;
 			pendingSelection = null;
 			Log("TRANSACTION commit previous=" + Quote(snapshot == null ? null : snapshot.MachineName)
 				+ " current=" + Quote(JKGKJLLFMLE.IGOBPLOLHEP.machineName));
 		}
 
+		internal static bool BeginDeferredReplacement(Meeting meeting, GameObject oldRoot, Vector3 position, Quaternion rotation)
+		{
+			if (LegacyTransientReconnect.MachineChangeMustWait())
+			{
+				Log("REPLACE_START rejected reason=recovery-in-progress");
+				RollbackSelectionTransaction("recovery-in-progress");
+				return true;
+			}
+			if (replacementInProgress)
+			{
+				Log("REPLACE_START rejected reason=already-in-progress");
+				RollbackSelectionTransaction("replacement-already-in-progress");
+				return true;
+			}
+
+			if (!meeting || !oldRoot || pendingSelection == null)
+			{
+				Log("REPLACE_START rejected reason=invalid-context meeting=" + (bool)meeting
+					+ " oldRoot=" + (bool)oldRoot
+					+ " transaction=" + (pendingSelection != null));
+				RollbackSelectionTransaction("invalid-replacement-context");
+				return true;
+			}
+
+			replacementInProgress = true;
+			CapturePreviousCooldown();
+			Log("REPLACE_START mode=Legacy machine=" + Quote(JKGKJLLFMLE.IGOBPLOLHEP.machineName)
+				+ " oldRoot=" + Quote(oldRoot.name)
+				+ " target=" + FormatPosition(position));
+			LogMemory("before-destroy");
+
+			try
+			{
+				meeting.StartCoroutine(DeferredLegacyReplacement(meeting, oldRoot, position, rotation));
+				return true;
+			}
+			catch (Exception error)
+			{
+				replacementInProgress = false;
+				RollbackSelectionTransaction("coroutine-start-failed-" + error.GetType().Name);
+				RestorePreviousCooldown();
+				Log("REPLACE_START_FAILED type=" + error.GetType().Name
+					+ " message=" + Quote(error.Message)
+					+ " stack=" + Quote(error.StackTrace));
+				return true;
+			}
+		}
+
+		private static IEnumerator DeferredLegacyReplacement(Meeting meeting, GameObject oldRoot,
+			Vector3 position, Quaternion rotation)
+		{
+			string requestedMachine = JKGKJLLFMLE.IGOBPLOLHEP.machineName;
+			try
+			{
+				int scriptHelpers = CleanupSpringControlHelpers(oldRoot, false);
+				Exception destroyError = DestroyOutgoingMachine(oldRoot);
+
+				int waitedFrames = 0;
+				do
+				{
+					yield return new WaitForEndOfFrame();
+					waitedFrames++;
+				}
+				while (oldRoot && waitedFrames < CleanupFrameLimit);
+				if (oldRoot)
+				{
+					RollbackSelectionTransaction("destroy-timeout");
+					RestorePreviousCooldown();
+					Log("REPLACE_FAILED phase=destroy machine=" + Quote(requestedMachine)
+						+ " reason=old-root-still-alive waitedFrames=" + waitedFrames
+						+ " type=" + (destroyError == null ? "<none>" : destroyError.GetType().Name)
+						+ " message=" + Quote(destroyError == null ? null : destroyError.Message));
+					yield break;
+				}
+				if (destroyError != null)
+				{
+					Log("DESTROY_WARNING type=" + destroyError.GetType().Name
+						+ " message=" + Quote(destroyError.Message));
+				}
+
+				int staleHelpers = CleanupSpringControlHelpers(null, true);
+				ForceManagedCollection();
+				long virtualMemory = GetVirtualMemoryBytes();
+				bool unloadedAssets = virtualMemory >= HighVirtualMemoryBytes;
+				if (unloadedAssets)
+				{
+					AsyncOperation unloadOperation = null;
+					try
+					{
+						unloadOperation = Resources.UnloadUnusedAssets();
+					}
+					catch (Exception error)
+					{
+						Log("MEMORY unload-failed type=" + error.GetType().Name
+							+ " message=" + Quote(error.Message));
+					}
+
+					if (unloadOperation != null)
+						yield return unloadOperation;
+					ForceManagedCollection();
+				}
+
+				Log("CLEANUP complete oldRootDestroyed=" + (!oldRoot)
+					+ " waitedFrames=" + waitedFrames
+					+ " associatedSpringControls=" + scriptHelpers
+					+ " staleSpringControls=" + staleHelpers
+					+ " unloadUnusedAssets=" + unloadedAssets);
+				LogMemory("before-spawn");
+
+				Exception spawnError;
+				bool spawned = TryCompleteLegacyReplacement(meeting, position, rotation, out spawnError);
+				LegacySpawnFinalization finalization = spawnFinalization;
+				if (spawned)
+				{
+					yield return AwaitSpawnFinalization(finalization);
+					spawned = finalization != null && finalization.Succeeded;
+					if (!spawned) spawnError = finalization == null
+						? new InvalidOperationException("Spawn did not schedule finalization") : finalization.Error;
+				}
+				if (spawned)
+				{
+					try
+					{
+						CompleteDeferredSelection();
+					}
+					catch (Exception error)
+					{
+						Log("REPLACE_COMMIT_WARNING type=" + error.GetType().Name
+							+ " message=" + Quote(error.Message));
+					}
+
+					Log("REPLACE_COMPLETE result=success machine=" + Quote(requestedMachine)
+						+ " cooldownSeconds=0");
+					previousCooldownValid = false;
+					LogMemory("after-spawn");
+					yield break;
+				}
+
+				GameObject failedRoot = meeting ? meeting.JPIAFJHAPHM : null;
+				DestroyFailedReplacement(meeting, failedRoot, oldRoot);
+				RollbackSelectionTransaction("spawn-failed-" + (spawnError == null ? "unknown" : spawnError.GetType().Name));
+				RestorePreviousCooldown();
+				Log("REPLACE_FAILED phase=spawn machine=" + Quote(requestedMachine)
+					+ " type=" + (spawnError == null ? "Unknown" : spawnError.GetType().Name)
+					+ " message=" + Quote(spawnError == null ? null : spawnError.Message));
+
+				yield return new WaitForEndOfFrame();
+				CleanupSpringControlHelpers(null, true);
+				ForceManagedCollection();
+
+				Exception restoreError;
+				bool restored = TryCompleteLegacyReplacement(meeting, position, rotation, out restoreError);
+				LegacySpawnFinalization rollbackFinalization = spawnFinalization;
+				if (restored)
+				{
+					yield return AwaitSpawnFinalization(rollbackFinalization);
+					restored = rollbackFinalization != null && rollbackFinalization.Succeeded;
+					if (!restored) restoreError = rollbackFinalization == null
+						? new InvalidOperationException("Rollback did not schedule finalization") : rollbackFinalization.Error;
+				}
+				Log("REPLACE_ROLLBACK result=" + (restored ? "restored" : "failed")
+					+ " machine=" + Quote(JKGKJLLFMLE.IGOBPLOLHEP.machineName)
+					+ " type=" + (restoreError == null ? "<none>" : restoreError.GetType().Name)
+					+ " message=" + Quote(restoreError == null ? null : restoreError.Message));
+				LogMemory("after-rollback");
+			}
+			finally
+			{
+				if (pendingSelection != null)
+				{
+					try
+					{
+						RollbackSelectionTransaction("replacement-coroutine-ended");
+					}
+					catch (Exception error)
+					{
+						Log("TRANSACTION emergency-rollback-failed type=" + error.GetType().Name
+							+ " message=" + Quote(error.Message));
+					}
+					RestorePreviousCooldown();
+				}
+				replacementInProgress = false;
+			}
+		}
+
+		private static Exception DestroyOutgoingMachine(GameObject oldRoot)
+		{
+			Exception firstError = null;
+			try
+			{
+				global::dyl7NQFWvb8SnwY4dXogp_aCQhx2Y7dLGUBgzCus25T9Wpo6h01g9Y342KDBl8ctV_NzWUOypgYMsbS0RAESeaU.smethod_19(oldRoot);
+			}
+			catch (Exception error)
+			{
+				firstError = error;
+			}
+
+			try
+			{
+				global::dyl7NQFWvb8SnwY4dXogp_aCQhx2Y7dLGUBgzCus25T9Wpo6h01g9Y342KDBl8ctV_NzWUOypgYMsbS0RAESeaU.smethod_20(oldRoot);
+			}
+			catch (Exception error)
+			{
+				if (firstError == null)
+					firstError = error;
+			}
+
+			try
+			{
+				global::dyl7NQFWvb8SnwY4dXogp_aCQhx2Y7dLGUBgzCus25T9Wpo6h01g9Y342KDBl8ctV_NzWUOypgYMsbS0RAESeaU.smethod_21();
+			}
+			catch (Exception error)
+			{
+				if (firstError == null)
+					firstError = error;
+			}
+
+			return firstError;
+		}
+
+		private static bool TryCompleteLegacyReplacement(Meeting meeting, Vector3 position,
+			Quaternion rotation, out Exception error)
+		{
+			error = null;
+			spawnFinalization = null;
+			GameObject anchorRoot = null;
+			try
+			{
+				anchorRoot = new GameObject("MPatcherMachineChangeAnchorRoot");
+				GameObject anchorMachine = new GameObject("MPatcherMachineChangeAnchor");
+				anchorMachine.transform.parent = anchorRoot.transform;
+				anchorMachine.transform.position = position;
+				anchorMachine.transform.rotation = rotation;
+				meeting.JPIAFJHAPHM = anchorMachine;
+
+				directSpawnPosition = position;
+				directSpawnRotation = rotation;
+				networkSpawnPositionApplied = false;
+				initializeSpawnPositionApplied = false;
+				networkAnchorRepaired = false;
+				repairedNetworkAnchorBlocks = 0;
+				repairedNetworkAnchor = Vector3.zero;
+				directSpawnPositionValid = true;
+				global::dyl7NQFWvb8SnwY4dXogp_aCQhx2Y7dLGUBgzCus25T9Wpo6h01g9Y342KDBl8ctV_NzWUOypgYMsbS0RAESeaU.mDZmboOC2mLx2MmBzu_00244bNw(meeting);
+				if (!meeting.JPIAFJHAPHM || !meeting.FICMBCLEFDL)
+				{
+					error = new InvalidOperationException("Legacy replacement did not create a MachineController.");
+					return false;
+				}
+				return true;
+			}
+			catch (Exception caught)
+			{
+				error = caught;
+				return false;
+			}
+			finally
+			{
+				directSpawnPositionValid = false;
+				LegacyMachineNetworkAnchor.Clear();
+				if (error != null && spawnFinalization != null) spawnFinalization.Fail(error);
+				if (anchorRoot)
+				{
+					anchorRoot.SetActive(false);
+					UnityEngine.Object.Destroy(anchorRoot);
+				}
+			}
+		}
+
+		private static void CompleteDeferredSelection()
+		{
+			allowDeferredCommit = true;
+			try
+			{
+				CommitSelectionTransaction();
+				global::zAOrzM_2ysNo3jthAClNSQ3POH9nkmbIAQjQeFsGY2hYwlsUfYcNDVio3ZwNGLR_00245A.smethod_0();
+			}
+			finally
+			{
+				allowDeferredCommit = false;
+			}
+		}
+
+		private static void CapturePreviousCooldown()
+		{
+			previousCooldownValid = false;
+			try
+			{
+				previousCooldown = (float)cooldownField.GetValue(null);
+				previousCooldownValid = true;
+				Log("COOLDOWN captured previous=" + previousCooldown.ToString("0.###"));
+			}
+			catch (Exception error)
+			{
+				Log("COOLDOWN capture-failed type=" + error.GetType().Name
+					+ " message=" + Quote(error.Message));
+			}
+		}
+
+		private static void RestorePreviousCooldown()
+		{
+			if (!previousCooldownValid)
+				return;
+
+			try
+			{
+				cooldownField.SetValue(null, previousCooldown);
+				Log("COOLDOWN restored value=" + previousCooldown.ToString("0.###"));
+			}
+			catch (Exception error)
+			{
+				Log("COOLDOWN restore-failed type=" + error.GetType().Name
+					+ " message=" + Quote(error.Message));
+			}
+			finally
+			{
+				previousCooldownValid = false;
+			}
+		}
+
+		private static void DestroyFailedReplacement(Meeting meeting, GameObject failedRoot, GameObject oldRoot)
+		{
+			if (failedRoot && !object.ReferenceEquals(failedRoot, oldRoot))
+			{
+				NetworkView networkView = failedRoot.GetComponent<NetworkView>();
+				if (!networkView)
+					networkView = failedRoot.GetComponentInChildren<NetworkView>(true);
+				DestroyRejectedController(failedRoot, networkView);
+			}
+
+			if (meeting)
+			{
+				meeting.JPIAFJHAPHM = null;
+				meeting.FICMBCLEFDL = null;
+			}
+		}
+
+		private static int CleanupSpringControlHelpers(GameObject outgoingRoot, bool staleOnly)
+		{
+			int inspected = 0;
+			int removed = 0;
+			int failures = 0;
+			HashSet<int> removedObjects = new HashSet<int>();
+			MonoBehaviour[] behaviours = UnityEngine.Object.FindObjectsOfType<MonoBehaviour>();
+			foreach (MonoBehaviour behaviour in behaviours)
+			{
+				if (!behaviour)
+					continue;
+
+				Type type = behaviour.GetType();
+				if (!string.Equals(type.FullName, "LibSawUtil_reg.SpringControl", StringComparison.Ordinal))
+					continue;
+
+				inspected++;
+				try
+				{
+					FieldInfo jointField = type.GetField("joint", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+					FieldInfo enabledField = type.GetField("isEnabled", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+					HingeJoint joint = jointField == null ? null : jointField.GetValue(behaviour) as HingeJoint;
+					bool controlsDestroyedJoint = !joint
+						&& enabledField != null
+						&& enabledField.FieldType == typeof(bool)
+						&& (bool)enabledField.GetValue(behaviour);
+					bool belongsToOutgoing = !staleOnly && joint && IsUnderRoot(joint.transform, outgoingRoot);
+					if (!belongsToOutgoing && !controlsDestroyedJoint)
+						continue;
+
+					if (enabledField != null && enabledField.FieldType == typeof(bool))
+						enabledField.SetValue(behaviour, false);
+					behaviour.enabled = false;
+
+					GameObject helper = behaviour.gameObject;
+					if (!helper || !removedObjects.Add(helper.GetInstanceID()))
+						continue;
+
+					helper.SetActive(false);
+					UnityEngine.Object.Destroy(helper);
+					removed++;
+					Log("SCRIPT_HELPER removed type=" + Quote(type.FullName)
+						+ " reason=" + (belongsToOutgoing ? "outgoing-joint" : "destroyed-joint")
+						+ " object=" + Quote(helper.name));
+				}
+				catch (Exception error)
+				{
+					failures++;
+					Log("SCRIPT_HELPER cleanup-failed type=" + Quote(type.FullName)
+						+ " error=" + error.GetType().Name
+						+ " message=" + Quote(error.Message));
+				}
+			}
+
+			if (inspected > 0 || removed > 0 || failures > 0)
+				Log("SCRIPT_HELPER summary inspected=" + inspected + " removed=" + removed + " failures=" + failures);
+			return removed;
+		}
+
+		private static bool IsUnderRoot(Transform transform, GameObject root)
+		{
+			if (!transform || !root)
+				return false;
+
+			Transform rootTransform = root.transform;
+			Transform current = transform;
+			while (current)
+			{
+				if (current == rootTransform)
+					return true;
+				current = current.parent;
+			}
+			return false;
+		}
+
+		private static void ForceManagedCollection()
+		{
+			try
+			{
+				GC.Collect();
+			}
+			catch (Exception error)
+			{
+				Log("MEMORY collect-failed type=" + error.GetType().Name
+					+ " message=" + Quote(error.Message));
+			}
+		}
+
+		private static long GetVirtualMemoryBytes()
+		{
+			System.Diagnostics.Process process = null;
+			try
+			{
+				process = System.Diagnostics.Process.GetCurrentProcess();
+				return process.VirtualMemorySize64;
+			}
+			catch (Exception)
+			{
+				return 0L;
+			}
+			finally
+			{
+				if (process != null)
+					process.Close();
+			}
+		}
+
+		private static void LogMemory(string phase)
+		{
+			System.Diagnostics.Process process = null;
+			try
+			{
+				process = System.Diagnostics.Process.GetCurrentProcess();
+				Log("MEMORY phase=" + phase
+					+ " workingMiB=" + ToMiB(process.WorkingSet64)
+					+ " privateMiB=" + ToMiB(process.PrivateMemorySize64)
+					+ " virtualMiB=" + ToMiB(process.VirtualMemorySize64)
+					+ " managedMiB=" + ToMiB(GC.GetTotalMemory(false)));
+			}
+			catch (Exception error)
+			{
+				Log("MEMORY phase=" + phase + " unavailable=" + error.GetType().Name);
+			}
+			finally
+			{
+				if (process != null)
+					process.Close();
+			}
+		}
+
+		private static string ToMiB(long bytes)
+		{
+			return (bytes / (1024d * 1024d)).ToString("0.0");
+		}
+
 		internal static void RollbackSelectionTransaction(string reason)
 		{
+			if (suppressRegulationRollback && string.Equals(reason, "regulation-denied", StringComparison.Ordinal))
+			{
+				suppressRegulationRollback = false;
+				Log("TRANSACTION rollback-suppressed reason=deferred-dispatch");
+				return;
+			}
+			suppressRegulationRollback = false;
+
 			MachineSelectionSnapshot snapshot = pendingSelection;
 			pendingSelection = null;
 			if (snapshot == null)
@@ -272,46 +846,57 @@ namespace MPatcherFork.CustomPatches
 
 		internal static IEnumerator FinalizeAcceptedReplacement(MachineController replacement, Vector3 position, Quaternion rotation)
 		{
+			bool networkPositionApplied = networkSpawnPositionApplied;
+			bool initializePositionApplied = initializeSpawnPositionApplied;
+			bool anchorRepaired = networkAnchorRepaired;
+			int anchorBlocks = repairedNetworkAnchorBlocks;
+			Vector3 anchor = repairedNetworkAnchor;
+			networkSpawnPositionApplied = false;
+			initializeSpawnPositionApplied = false;
+			networkAnchorRepaired = false;
+			repairedNetworkAnchorBlocks = 0;
+			repairedNetworkAnchor = Vector3.zero;
+			spawnFinalization = new LegacySpawnFinalization();
+			return FinalizeAcceptedReplacementCore(replacement, position, rotation, spawnFinalization,
+				networkPositionApplied, initializePositionApplied, anchorRepaired, anchorBlocks, anchor);
+		}
+
+		private static IEnumerator AwaitSpawnFinalization(LegacySpawnFinalization result)
+		{
+			if (result == null) yield break;
+			float deadline = Time.realtimeSinceStartup + SpawnReadyTimeoutSeconds + 2f;
+			while (!result.Completed && Time.realtimeSinceStartup < deadline) yield return null;
+			if (!result.Completed) result.Fail(new TimeoutException("Spawn finalizer did not complete"));
+		}
+
+		private static IEnumerator FinalizeAcceptedReplacementCore(MachineController replacement,
+			Vector3 position, Quaternion rotation, LegacySpawnFinalization result,
+			bool networkPositionApplied, bool initializePositionApplied,
+			bool anchorRepaired, int anchorBlocks, Vector3 anchor)
+		{
 			string rootName = replacement ? replacement.gameObject.name : null;
-			Vector3 stagingPosition = replacement ? replacement.transform.position : Vector3.zero;
-			bool ready = false;
+			bool direct = networkPositionApplied && initializePositionApplied && anchorRepaired;
+			// Ordinary native construction at y=4000 already has its native anchor.
+			bool anchorReady = anchorRepaired || !initializePositionApplied;
+			float started = Time.realtimeSinceStartup;
 			int missingSensors = -1;
-			int waitedSeconds = 0;
-
-			while (replacement && waitedSeconds < SpawnReadyTimeoutSeconds)
-			{
-				yield return new WaitForSeconds(1f);
-				waitedSeconds++;
-				ready = AreSledSensorsReady(replacement, out missingSensors);
-				if (ready)
-					break;
-			}
-
-			if (!replacement)
-			{
-				Log("SPAWN_FINALIZE skipped reason=replacement-destroyed root=" + Quote(rootName));
-				yield break;
-			}
-
-			Vector3 beforeWarp = replacement.transform.position;
-			try
-			{
-				replacement.Warp(position, rotation, true);
-				Log("SPAWN_FINALIZE result=WARP root=" + Quote(rootName)
-					+ " staging=" + FormatPosition(stagingPosition)
-					+ " before=" + FormatPosition(beforeWarp)
-					+ " target=" + FormatPosition(position)
-					+ " after=" + FormatPosition(replacement.transform.position)
-					+ " waitedSeconds=" + waitedSeconds
-					+ " sledSensorsReady=" + ready
-					+ " missingSensors=" + missingSensors
-					+ (ready ? string.Empty : " timeout=True"));
-			}
-			catch (Exception error)
-			{
-				Log("SPAWN_FINALIZE_FAILED root=" + Quote(rootName)
-					+ " type=" + error.GetType().Name + " message=" + error.Message);
-			}
+			IEnumerator operation = result.Run(
+				delegate { return replacement; },
+				delegate { return AreSledSensorsReady(replacement, out missingSensors)
+					&& anchorReady; },
+				delegate { replacement.Warp(position, rotation, true); },
+				delegate { return Time.realtimeSinceStartup; }, SpawnReadyTimeoutSeconds);
+			try { while (operation.MoveNext()) yield return operation.Current; }
+			finally { ((IDisposable)operation).Dispose(); }
+			if (result.Succeeded)
+				Log("SPAWN_FINALIZE result=" + (direct ? "DIRECT_WARP" : "FALLBACK_WARP")
+					+ " root=" + Quote(rootName) + " position=" + FormatPosition(replacement)
+					+ " missingSledSensors=" + missingSensors + " anchorBlocks=" + anchorBlocks
+					+ " waitedSeconds=" + (Time.realtimeSinceStartup - started));
+			else
+				Log("SPAWN_FINALIZE_FAILED phase=" + (direct ? "direct-warp" : "fallback-warp")
+					+ " root=" + Quote(rootName) + " missingSledSensors=" + missingSensors
+					+ " error=" + Quote(result.Error == null ? "unknown" : result.Error.ToString()));
 		}
 
 		private static bool AreSledSensorsReady(MachineController controller, out int missingSensors)
@@ -325,13 +910,16 @@ namespace MPatcherFork.CustomPatches
 
 			foreach (GameObject body in controller.KBLANAFAJFP)
 			{
-				if (!body)
-					continue;
+				if (!body || !body.GetComponent<BodyController>())
+				{
+					missingSensors = -1;
+					return false;
+				}
 
 				SledController[] sleds = body.GetComponentsInChildren<SledController>();
 				foreach (SledController sled in sleds)
 				{
-					if (!sled || !sled.GetComponent<ContactSensor>())
+					if (!sled || !(SledContactSensorField.GetValue(sled) as ContactSensor))
 						missingSensors++;
 				}
 			}
@@ -407,171 +995,6 @@ namespace MPatcherFork.CustomPatches
 			return "(" + position.x.ToString("0.###") + "," + position.y.ToString("0.###") + "," + position.z.ToString("0.###") + ")";
 		}
 
-		private static bool ValidateLegacyMachine()
-		{
-			BuildData build = JKGKJLLFMLE.HHGILAIOCLG;
-			RegulationData regulation = JKGKJLLFMLE.JNOGNOMLMEA;
-			if (build == null || !build.isReady || build.blockData == null || build.blockData.Count == 0)
-			{
-				Log("VALIDATE result=DENY reason=build-not-ready");
-				return false;
-			}
-			if (regulation == null)
-			{
-				Log("VALIDATE result=DENY reason=regulation-unavailable");
-				return false;
-			}
-
-			List<GameObject> temporaryBlocks = new List<GameObject>();
-			try
-			{
-				HDBLLPODNLN summary = global::dyl7NQFWvb8SnwY4dXogp_aCQhx2Y7dLGUBgzCus25T9Wpo6h01g9Y342KDBl8ctV_NzWUOypgYMsbS0RAESeaU.smethod_1();
-				HIPBCCKFFAG bounds = global::dyl7NQFWvb8SnwY4dXogp_aCQhx2Y7dLGUBgzCus25T9Wpo6h01g9Y342KDBl8ctV_NzWUOypgYMsbS0RAESeaU.smethod_2();
-				global::dyl7NQFWvb8SnwY4dXogp_aCQhx2Y7dLGUBgzCus25T9Wpo6h01g9Y342KDBl8ctV_NzWUOypgYMsbS0RAESeaU.smethod_3(summary, false);
-
-				int blockIndex = 0;
-				foreach (BlockData block in build.blockData)
-				{
-					GameObject blockObject;
-					try
-					{
-						blockObject = global::dyl7NQFWvb8SnwY4dXogp_aCQhx2Y7dLGUBgzCus25T9Wpo6h01g9Y342KDBl8ctV_NzWUOypgYMsbS0RAESeaU.smethod_4(block, false);
-					}
-					catch (Exception error)
-					{
-						Log("VALIDATE_BLOCK_FAILED index=" + blockIndex
-							+ " type=" + block.type
-							+ " gid=" + block.gid
-							+ " typeError=" + error.GetType().Name
-							+ " message=" + error.Message);
-						throw;
-					}
-					if (!blockObject)
-					{
-						blockIndex++;
-						continue;
-					}
-
-					temporaryBlocks.Add(blockObject);
-					blockObject.SetActive(false);
-					summary.HDLEKABOEFL(blockObject.GetComponent<BlockController>());
-					blockIndex++;
-				}
-
-				summary.ANBKLJFHMOB(null);
-				summary.JKAJGAGDMAJ();
-				summary.ACBKKKLCJCH();
-
-				if (build.size == 0)
-				{
-					Exception boundsError = null;
-					try
-					{
-						try
-						{
-							bounds.ACMGPBMMKNI(true, false);
-						}
-						catch (Exception error)
-						{
-							// The original MPatcher deliberately continued here. Some valid
-							// builds (for example Steam/Workshop exports) leave the bounds
-							// calculator with a partial result before it throws.
-							boundsError = error;
-						}
-
-						build.size = bounds.CBEGHPGKNNI;
-						build.spawnAltOffset = Mathf.RoundToInt(0f - bounds.MFGJHOHNCDB.min.y) + 1;
-						if (boundsError != null)
-						{
-							Log("VALIDATE_BOUNDS_PARTIAL machine=" + Quote(JKGKJLLFMLE.IGOBPLOLHEP.machineName)
-								+ " type=" + boundsError.GetType().Name
-								+ " message=" + Quote(boundsError.Message)
-								+ " size=" + build.size
-								+ " spawnAltOffset=" + build.spawnAltOffset);
-						}
-					}
-					finally
-					{
-						bounds.MEDPEFNEGIG(false);
-					}
-					JKGKJLLFMLE.BOMAFGLNGMI();
-				}
-
-				List<string> failures = new List<string>();
-				int bodies = summary.KADEOCMCJLA();
-				int cost = summary.OHNPKPMDHGK();
-				float weight = summary.PCFKNOAKFHD;
-
-				if (bodies > 65)
-					failures.Add("bodies=" + bodies + ">65");
-
-				bool bossExemption = (regulation.gameType == JKGKJLLFMLE.LENPCAMMAEP.BossHunt
-					|| regulation.gameType == JKGKJLLFMLE.LENPCAMMAEP.Meeting)
-					&& JKGKJLLFMLE.IGOBPLOLHEP.machineName.StartsWith("BOSS_", StringComparison.Ordinal);
-
-				if (!bossExemption)
-				{
-					CheckMaximum(failures, "cost", cost, regulation.maxCost);
-					CheckMaximum(failures, "size", build.size, regulation.maxSize);
-					if (weight < regulation.minWeight)
-						failures.Add("weight=" + weight + "<" + regulation.minWeight);
-					if (weight > regulation.maxWeight)
-						failures.Add("weight=" + weight + ">" + regulation.maxWeight);
-
-					CheckBlockMaximum(failures, summary, BlockData.AAHMDBHDCDK.JointTS, regulation.maxJoint, "joint");
-					CheckBlockMaximum(failures, summary, BlockData.AAHMDBHDCDK.Thruster, regulation.maxThruster, "thruster");
-					CheckBlockMaximum(failures, summary, BlockData.AAHMDBHDCDK.AGDevice, regulation.maxAGD, "agd");
-					CheckBlockMaximum(failures, summary, BlockData.AAHMDBHDCDK.Wheel, regulation.maxWheel, "wheel");
-					CheckBlockMaximum(failures, summary, BlockData.AAHMDBHDCDK.Shaft, regulation.maxShaft, "shaft");
-					CheckBlockMaximum(failures, summary, BlockData.AAHMDBHDCDK.Mover, regulation.maxMover, "mover");
-					int cannons = summary.BGIDJHJBICM[(int)BlockData.AAHMDBHDCDK.Cannon1]
-						+ summary.BGIDJHJBICM[(int)BlockData.AAHMDBHDCDK.Cannon2];
-					CheckMaximum(failures, "cannon", cannons, regulation.maxCannon);
-					CheckBlockMaximum(failures, summary, BlockData.AAHMDBHDCDK.Sword, regulation.maxSword, "sword");
-					CheckBlockMaximum(failures, summary, BlockData.AAHMDBHDCDK.Discharger, regulation.maxDischarger, "discharger");
-					CheckBlockMaximum(failures, summary, BlockData.AAHMDBHDCDK.Launcher, regulation.maxLauncher, "launcher");
-					CheckBlockMaximum(failures, summary, BlockData.AAHMDBHDCDK.Beamer, regulation.maxBeamer, "beamer");
-					CheckBlockMaximum(failures, summary, BlockData.AAHMDBHDCDK.Shield, regulation.maxShield, "shield");
-					CheckBlockMaximum(failures, summary, BlockData.AAHMDBHDCDK.Tracker, regulation.maxTracker, "tracker");
-					CheckMaximum(failures, "tire", summary.GPKANGPHHMC, regulation.maxTireSize);
-					CheckMaximum(failures, "wing", summary.CAACNMEKOOC, regulation.maxWingSize);
-				}
-
-				if (!JKGKJLLFMLE.IGOBPLOLHEP.isExpert && (int)regulation.worldType == 5)
-					failures.Add("space-requires-expert");
-
-				bool allowed = failures.Count == 0;
-				Log("VALIDATE result=" + (allowed ? "ALLOW" : "DENY")
-					+ " machine=" + JKGKJLLFMLE.IGOBPLOLHEP.machineName
-					+ " blocks=" + build.blockData.Count
-					+ " bodies=" + bodies
-					+ " cost=" + cost
-					+ " weight=" + weight
-					+ (allowed ? string.Empty : " reasons=" + string.Join(",", failures.ToArray())));
-				return allowed;
-			}
-			finally
-			{
-				foreach (GameObject temporaryBlock in temporaryBlocks)
-				{
-					if (temporaryBlock)
-						UnityEngine.Object.Destroy(temporaryBlock);
-				}
-			}
-		}
-
-		private static void CheckBlockMaximum(List<string> failures, HDBLLPODNLN summary,
-			BlockData.AAHMDBHDCDK type, int maximum, string label)
-		{
-			CheckMaximum(failures, label, summary.BGIDJHJBICM[(int)type], maximum);
-		}
-
-		private static void CheckMaximum(List<string> failures, string label, int actual, int maximum)
-		{
-			if (actual > maximum)
-				failures.Add(label + "=" + actual + ">" + maximum);
-		}
-
 		private static bool NetworkDestroyPrefix(GameObject gameObject_0)
 		{
 			if (HNJDDKJLHMM.FHLGOMHPDLN != HNJDDKJLHMM.HKGAACMIPIH.Legacy)
@@ -597,6 +1020,12 @@ namespace MPatcherFork.CustomPatches
 			string networkObjectName = networkObject.name;
 			NetworkViewID viewId = networkView.viewID;
 			bool isMine = networkView.isMine;
+			if (LegacyTransientReconnect.TryRetireReboundView(networkView))
+			{
+				Log("DESTROY transport=Legacy mode=rebound-server-retire root=" + rootName
+					+ " networkObject=" + networkObjectName + " view=" + viewId + " isMine=" + isMine);
+				return false;
+			}
 
 			try
 			{
@@ -621,6 +1050,85 @@ namespace MPatcherFork.CustomPatches
 				Log("DESTROY_FAILED fallback=local type=" + error.GetType().Name + " message=" + error.Message);
 			}
 
+			return false;
+		}
+
+		private static void NetworkInstantiatePrefix(ref Vector3 vector3_0, ref Quaternion quaternion_0)
+		{
+			if (HNJDDKJLHMM.FHLGOMHPDLN != HNJDDKJLHMM.HKGAACMIPIH.Legacy || !directSpawnPositionValid)
+				return;
+
+			Vector3 requestedPosition = vector3_0;
+			vector3_0 = directSpawnPosition;
+			quaternion_0 = directSpawnRotation;
+			networkSpawnPositionApplied = true;
+			Log("NETWORK_SPAWN_POSITION requested=" + FormatPosition(requestedPosition)
+				+ " target=" + FormatPosition(vector3_0));
+		}
+
+		private static void InitializeMachinePrefix(MachineController machineController_0, ref Vector3 vector3_0)
+		{
+			if (HNJDDKJLHMM.FHLGOMHPDLN != HNJDDKJLHMM.HKGAACMIPIH.Legacy || !directSpawnPositionValid)
+				return;
+
+			Vector3 requestedPosition = vector3_0;
+			vector3_0 = directSpawnPosition;
+			initializeSpawnPositionApplied = true;
+			LegacyMachineNetworkAnchor.Begin(machineController_0);
+			Log("INITIALIZE_POSITION root=" + Quote(machineController_0 ? machineController_0.gameObject.name : null)
+				+ " requested=" + FormatPosition(requestedPosition)
+				+ " target=" + FormatPosition(vector3_0));
+		}
+
+		private static void InitializeMachinePostfix(MachineController machineController_0)
+		{
+			if (HNJDDKJLHMM.FHLGOMHPDLN != HNJDDKJLHMM.HKGAACMIPIH.Legacy || !directSpawnPositionValid)
+				return;
+
+			// Initialize merges meshes and destroys BlockControllers after SyncStructure.
+			// Preserve the complete pre-cleanup anchor; a post-cleanup scan may be empty.
+			if (networkAnchorRepaired) return;
+			throw new InvalidOperationException("Network anchor was not captured before native structure serialization.");
+		}
+
+		private static void BeforeSyncStructure(MachineSerializer __instance)
+		{
+			if (HNJDDKJLHMM.FHLGOMHPDLN != HNJDDKJLHMM.HKGAACMIPIH.Legacy || !directSpawnPositionValid) return;
+			CaptureNetworkAnchor(__instance.GetComponent<MachineController>(), "before-structure");
+			if (!networkAnchorRepaired)
+				throw new InvalidOperationException("Native network anchor is unavailable; replacement structure was not sent.");
+		}
+
+		private static void CaptureNetworkAnchor(MachineController machineController_0, string phase)
+		{
+			MachineSerializer serializer = machineController_0 ? machineController_0.GetComponent<MachineSerializer>() : null;
+			Vector3 previous = serializer ? serializer.JJMDFCDDJBA : Vector3.zero;
+			int blocks;
+			Vector3 anchor;
+			networkAnchorRepaired = LegacyMachineNetworkAnchor.TryCapture(machineController_0, out blocks, out anchor);
+			repairedNetworkAnchorBlocks = blocks;
+			repairedNetworkAnchor = anchor;
+			NetworkView view = machineController_0 ? machineController_0.GetComponent<NetworkView>() : null;
+			Log("NETWORK_ANCHOR result=" + (networkAnchorRepaired ? "CAPTURED" : "FAILED")
+				+ " phase=" + phase
+				+ " root=" + Quote(machineController_0 ? machineController_0.gameObject.name : null)
+				+ " view=" + (view ? view.viewID.ToString() : "<none>")
+				+ " blocks=" + blocks
+				+ " previousAnchor=" + FormatPosition(previous)
+				+ " anchor=" + FormatPosition(anchor));
+		}
+
+		private static bool ShowDebugMessagePrefix(string msg)
+		{
+			if (suppressDebugMessageFrame < 0)
+				return true;
+
+			int frame = suppressDebugMessageFrame;
+			suppressDebugMessageFrame = -1;
+			if (frame != Time.frameCount)
+				return true;
+
+			Log("MESSAGE suppressed reason=deferred-dispatch text=" + Quote(msg));
 			return false;
 		}
 

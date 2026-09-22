@@ -510,7 +510,10 @@ namespace MPatcherFork.CustomPatches
             if (last != 0 && unchecked(now - last) < 10000) return;
             last = now;
             SetupPrecision.Log(name + " samples=" + count + " view=" + owner.GetComponent<NetworkView>().viewID
-                + " rotationStep=0.001 positionStep=0.00001 protocol=SETUP-v" + protocol);
+                + " rotationStep=0.001 positionStep=0.00001 protocol=SETUP-v" + protocol
+                + " root=" + owner.transform.position + " anchor=" + owner.JJMDFCDDJBA
+                + " transmittedRoot=" + owner.transform.TransformPoint(owner.JJMDFCDDJBA)
+                + " isMine=" + owner.GetComponent<NetworkView>().isMine);
         }
 
         private static List<CodeInstruction> Clone(IEnumerable<CodeInstruction> instructions)

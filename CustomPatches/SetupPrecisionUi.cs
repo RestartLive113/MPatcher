@@ -78,6 +78,9 @@ namespace MPatcherFork.CustomPatches
             internal bool ResetFractionOnSliderCallback;
             internal int SliderPrecisionHeldDirection;
             internal float SliderPrecisionNextRepeat;
+            internal bool SliderDragActive;
+            internal int SliderDragRawAnchor;
+            internal int SliderDragValueAnchor;
             internal int InputFontCeiling;
             internal GameObject[] NativeSliderParts;
             internal bool[] NativeSliderPartStates;
@@ -162,6 +165,17 @@ namespace MPatcherFork.CustomPatches
                 BeginEdit(Row);
                 pointer.Use();
             }
+        }
+
+        private sealed class SliderDragModifier : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IPointerUpHandler
+        {
+            internal Row Row;
+
+            public void OnBeginDrag(PointerEventData pointer) { BeginSliderDrag(Row); }
+            public void OnEndDrag(PointerEventData pointer) { EndSliderDrag(Row); }
+            public void OnPointerUp(PointerEventData pointer) { EndSliderDrag(Row); }
+
+            private void OnDisable() { EndSliderDrag(Row); }
         }
 
         private sealed class InputSelectionDriver : MonoBehaviour
@@ -623,13 +637,14 @@ namespace MPatcherFork.CustomPatches
             row.InputSelection = inputSelection;
             inputRoot.SetActive(false);
             slider.gameObject.AddComponent<SliderDoubleClick>().Row = row;
+            slider.gameObject.AddComponent<SliderDragModifier>().Row = row;
             SetupPrecision.Log("UI_DIGITS group=" + group + " slot=" + slot
                 + " widget=digit-spinner cells=000,000 cellSize=24x20 cellColor=154,154,154 cellSprite="
                 + (nativeBackgroundImage.overrideSprite == null ? nativeBackgroundImage.sprite == null ? "null" : nativeBackgroundImage.sprite.name : nativeBackgroundImage.overrideSprite.name)
                 + " cellImageType=" + nativeBackgroundImage.type
                 + " cellTexture=normalized-214-to-255 hover=245,245,245/fade-" + slider.transition
                 + " focus=pointer-only/root-raycast+bounds width=+16 offsetY=-7 idleTint=white-base/absolute"
-                + " sign=17/white-outline arrows=native-sprite/14x8/gap3 keys=A/D,S/Shift=center,W=signed-negate/unsigned-mirror sizeHotkeys=logical-0..250 safeMin=0.001 floatBounds=normalized wheel=setting alt=x10 ctrl=.100 ctrl+alt=.001 ctrlScope=A/D+wheel/all-editors carry=enabled input=vanilla-only/double-click/handle-contained/fixed-3/auto-comma nativeUi=mode-dependent panel=transparent hybridFractionWidth=82"
+                + " sign=17/white-outline arrows=native-sprite/14x8/gap3 keys=A/D,S/Shift=center,W=signed-negate/unsigned-mirror sizeHotkeys=logical-0..250 safeMin=0.001 floatBounds=normalized wheel=setting alt=x10/drag-step10 ctrl=.100 ctrl+alt=.001 ctrlScope=A/D+wheel/all-editors carry=enabled input=vanilla-only/double-click/handle-contained/fixed-3/auto-comma nativeUi=mode-dependent panel=transparent hybridFractionWidth=82"
                 + " vanillaTextWidth=" + row.VanillaTextWidth.ToString("0.##", CultureInfo.InvariantCulture)
                 + " nativeTextSize=" + row.NativeTextSize.x.ToString("0.##", CultureInfo.InvariantCulture) + "x"
                 + row.NativeTextSize.y.ToString("0.##", CultureInfo.InvariantCulture)
@@ -1082,6 +1097,35 @@ namespace MPatcherFork.CustomPatches
             return RectTransformUtility.RectangleContainsScreenPoint(rect, Input.mousePosition, camera);
         }
 
+        private static void BeginSliderDrag(Row row)
+        {
+            if (row == null || !row.Enabled || !row.Interactable) return;
+            try
+            {
+                BlockData block = Selected.GetValue(row.Build) as BlockData;
+                if (row.Group != Group(block) || !SetupPrecisionData.Supports(block, row.Slot)) return;
+                int minimum, maximum;
+                NumericLimits(row, out minimum, out maximum);
+                int minimumWhole = (int)Math.Ceiling(minimum / (double)SetupPrecisionData.Scale);
+                int maximumWhole = (int)Math.Floor(maximum / (double)SetupPrecisionData.Scale);
+                row.SliderDragRawAnchor = Mathf.RoundToInt(row.Slider.value);
+                float current = SetupPrecisionData.Read(block, row.Slot);
+                int currentWhole = IsSpecial(row, current) ? row.SliderDragRawAnchor : Mathf.RoundToInt(current);
+                row.SliderDragValueAnchor = Mathf.Clamp(currentWhole, minimumWhole, maximumWhole);
+                row.SliderDragActive = true;
+                if (AltDown())
+                    SetupPrecision.Log("ALT_DRAG_BEGIN group=" + row.Group + " slot=" + row.Slot
+                        + " raw=" + row.SliderDragRawAnchor + " value=" + row.SliderDragValueAnchor + " step=10");
+            }
+            catch (Exception error) { Report(error); }
+        }
+
+        private static void EndSliderDrag(Row row)
+        {
+            if (row == null) return;
+            row.SliderDragActive = false;
+        }
+
         private static void Paint(Row row, bool instant = false)
         {
             if (row == null) return;
@@ -1146,14 +1190,19 @@ namespace MPatcherFork.CustomPatches
 
         private static bool IsSpecial(Row row, float value)
         {
-            return value == row.Slider.minValue && row.Controller.GJDAJCALLPF == -12345f
-                || value == row.Slider.maxValue && row.Controller.PPFPKBJFNEH == 12345f
+            return IsNativeEndpoint(row, value)
                 || float.IsNaN(value) || float.IsInfinity(value) || Math.Abs(value) > SetupPrecisionData.Maximum;
+        }
+
+        private static bool IsNativeEndpoint(Row row, float value)
+        {
+            return value == row.Slider.minValue && row.Controller.GJDAJCALLPF == -12345f
+                || value == row.Slider.maxValue && row.Controller.PPFPKBJFNEH == 12345f;
         }
 
         private static void SetDigits(Row row, float value)
         {
-            string special = IsSpecial(row, value) ? Display(row, value) : null;
+            string special = IsSpecial(row, value) || UsesDigitOverlay(value) ? Display(row, value) : null;
             string specialDigits = row.Group == "Param" ? DigitsForSpecial(special) : null;
             bool distributed = specialDigits != null;
             row.Special.gameObject.SetActive(special != null && !distributed);
@@ -1186,6 +1235,11 @@ namespace MPatcherFork.CustomPatches
         internal static string DigitsForSpecial(string special)
         {
             return special == "STOP" || special == "FREE" ? " " + special + " " : null;
+        }
+
+        internal static bool UsesDigitOverlay(float value)
+        {
+            return Math.Abs(value) >= 1000f;
         }
 
         internal static string DigitsForScaled(int scaled)
@@ -1662,7 +1716,7 @@ namespace MPatcherFork.CustomPatches
                 if (!TryParseInput(text, out value))
                 {
                     SetupPrecision.Log("INPUT_REJECTED group=" + row.Group + " slot=" + row.Slot
-                        + " reason=format-or-range decimals=3 range=-500..500");
+                        + " reason=format-or-range decimals=3 range=-1000..1000/native-row");
                     Refresh(row.Build);
                     return;
                 }
@@ -1700,6 +1754,17 @@ namespace MPatcherFork.CustomPatches
             if (merged < minimum) return minimum;
             if (merged > maximum) return maximum;
             return (int)merged;
+        }
+
+        internal static int AltDragWholeValue(int rawWhole, int rawAnchor, int valueAnchor, int minimum, int maximum)
+        {
+            if (minimum > maximum) throw new ArgumentOutOfRangeException("minimum");
+            long rawDelta = (long)rawWhole - rawAnchor;
+            long steps = (long)Math.Round(rawDelta / 10.0, MidpointRounding.AwayFromZero);
+            long adjusted = valueAnchor + steps * 10;
+            if (adjusted < minimum) return minimum;
+            if (adjusted > maximum) return maximum;
+            return (int)adjusted;
         }
 
         internal static int ClearFractionScaled(int scaled)
@@ -1745,6 +1810,13 @@ namespace MPatcherFork.CustomPatches
             int minimum, maximum;
             NumericLimits(row, out minimum, out maximum);
             int whole = Mathf.RoundToInt(value);
+            if (row.SliderDragActive && AltDown())
+            {
+                int minimumWhole = (int)Math.Ceiling(minimum / (double)SetupPrecisionData.Scale);
+                int maximumWhole = (int)Math.Floor(maximum / (double)SetupPrecisionData.Scale);
+                whole = AltDragWholeValue(whole, row.SliderDragRawAnchor, row.SliderDragValueAnchor,
+                    minimumWhole, maximumWhole);
+            }
             if (row.ResetFractionOnSliderCallback)
                 return MergeWholeScaled(0, whole, minimum, maximum) / (float)SetupPrecisionData.Scale;
             BlockData block = Selected.GetValue(row.Build) as BlockData;
@@ -1759,7 +1831,11 @@ namespace MPatcherFork.CustomPatches
             Row row;
             if (!SetupPrecision.IsRegistered || !Rows.TryGetValue(__instance, out row) || !row.Enabled) return true;
             if (suppress != 0) return false;
-            try { Commit(row, EditedSliderValue(row, DOCDPKDOCKB), true, "slider-callback"); }
+            try
+            {
+                bool altDrag = row.SliderDragActive && AltDown();
+                Commit(row, EditedSliderValue(row, DOCDPKDOCKB), true, altDrag ? "slider-drag+Alt:step=10" : "slider-callback");
+            }
             catch (Exception error) { Report(error); }
             return false;
         }
@@ -1819,7 +1895,9 @@ namespace MPatcherFork.CustomPatches
             {
                 Undo.Invoke(build, new object[] { continuous, true });
                 block = (BlockData)Selected.GetValue(build);
-                SetupPrecisionData.Set(block, row.Slot, value);
+                if (IsNativeEndpoint(row, value))
+                    SetupPrecisionData.SetNativeEndpoint(block, row.Slot, Mathf.RoundToInt(value));
+                else SetupPrecisionData.Set(block, row.Slot, value);
                 if (coupler && !CouplerRotation.Enabled && value != 0)
                     for (int slot = 3; slot < 6; slot++) if (slot != row.Slot) SetupPrecisionData.Set(block, slot, 0);
                 if ((row.Group == "ParamBox" || row.Group == "ParamCap") && (row.Slot == 6 || row.Slot == 7)

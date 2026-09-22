@@ -886,6 +886,7 @@ internal class Class35 : Rw1gRBZINYqqUycQDAVzVUspDHxB9kBz2FYjLkqn6c5t8_00242gRBS
 			else
 			{
 				MPatchr._0024Ymloe9RVCTW7x1ASuQ3c68.indivFix = enabled;
+				MPatcherFork.CustomPatches.LegacyIndivFixBundle.SettingChanged(enabled);
 				a8zL_jLlMzZ_3qoyYFbFj64(enabled);
 			}
 		}
@@ -1027,8 +1028,13 @@ internal class Class35 : Rw1gRBZINYqqUycQDAVzVUspDHxB9kBz2FYjLkqn6c5t8_00242gRBS
 		smethod_39(global::_003CModule_003E.smethod_28<string>(133746674u), global::_003CModule_003E.smethod_29<string>(491665914u), gameObject.transform, global::_003CModule_003E.smethod_28<string>(2533534689u));
 		smethod_39(global::_003CModule_003E.smethod_25<string>(4040216117u), global::_003CModule_003E.smethod_26<string>(2383645847u), gameObject.transform, global::_003CModule_003E.smethod_25<string>(2201783737u));
 		smethod_39(global::_003CModule_003E.smethod_26<string>(54946713u), global::_003CModule_003E.smethod_26<string>(847530030u), gameObject.transform, global::_003CModule_003E.smethod_27<string>(29900804u));
+		LogSettingsUi("adding AutoReconect toggle on P1; initial=" + MPatchr._0024Ymloe9RVCTW7x1ASuQ3c68.autoReconnect
+			+ " crashRestore=" + (MPatchr._0024Ymloe9RVCTW7x1ASuQ3c68.autoReconnectCrashRestore ? "automatic" : "manual"));
+		MPatcherFork.CustomPatches.AutoReconnectSettingsUi.CreateRow(list_0[int_0], gameObject.transform,
+			new Vector3(oXDDyITkEuj8nDCyvcjtZDQ, om7X2R_aOZ08nmTyKqLRdgs));
 		N3ZzJUXduuCvN68K8J5pzSI();
 		LogSettingsUi("adding Compression toggle on P2; initial=" + MPatchr._0024Ymloe9RVCTW7x1ASuQ3c68.compression);
+		MPatcherFork.CustomPatches.LegacyZapret.CreateRow(gameObject.transform);
 		smethod_41("Toggle_Compression", "Compression", gameObject.transform, delegate(bool toggled)
 		{
 			MPatchr._0024Ymloe9RVCTW7x1ASuQ3c68.compression = toggled;

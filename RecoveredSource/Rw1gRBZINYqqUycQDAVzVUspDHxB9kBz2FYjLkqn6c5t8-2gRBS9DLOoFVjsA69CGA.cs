@@ -645,7 +645,7 @@ internal class Rw1gRBZINYqqUycQDAVzVUspDHxB9kBz2FYjLkqn6c5t8_00242gRBS9DLOoFVjsA
 
 	internal static void smethod_18(ListController listController_0, string string_0, string[] string_1)
 	{
-		listController_0.SetItemsAndSelect(string_0, string_1);
+		MPatcherFork.CustomPatches.SettingsListIsolation.SetItemsAndSelect(listController_0, string_0, string_1);
 	}
 
 	internal static GameObject smethod_19(GameObject gameObject_0)

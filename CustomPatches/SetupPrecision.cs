@@ -29,7 +29,7 @@ namespace MPatcherFork.CustomPatches
             Harmony patcher = new Harmony(PatchId);
             try
             {
-                Log("STARTUP_TIMING_BEGIN version=34");
+                Log("STARTUP_TIMING_BEGIN version=36");
                 FloatReads(patcher, typeof(BoxGenController), "MakeBox");
                 FloatReads(patcher, typeof(BoxGenController), "AdjustBox");
                 FloatReads(patcher, typeof(CapGenController), "MakeCapsule");
@@ -59,8 +59,8 @@ namespace MPatcherFork.CustomPatches
                 LogStartupTiming(startup, "network-hooks", ref checkpoint);
                 IsRegistered = true;
                 LogStartupTiming(startup, "complete", ref checkpoint);
-                Log("REGISTERED version=35 enabled=" + Enabled + " toggle=Settings-P2/default-on gear=adjacent/generated-sprite settingsPage=reusable editor=" + EditorModeName
-                    + " editorModes=vanilla-handle-input,digit-spinner,slider+digit-spinner selection=exclusive-toggle-group decimals=3 range=-500..500 scope=SETUP parts=Box,Capsule,Coupler,Rotator,Hinge,Piston sizes=Box/Capsule storage=props-v2 network=SETUP-v2 motion=owner-relay keys=A/D,S/Shift=center,W=signed-negate/unsigned-mirror sizeHotkeys=logical-0..250 safeMin=0.001 floatBounds=normalized wheel=setting alt=x10 ctrl=.100 ctrl+alt=.001 ctrlScope=A/D+wheel/all-editors carry=enabled preview=only-when-open buildUpdate=postfix+mapped-mode-key-guard arrows=native-sprite/14x8/gap3/current-native-row paste=world-no-panel-reopen cells=24x20/154,154,154/white-base/absolute-tint/no-reactivation hover=245,245,245/native-fade focus=pointer-only/root-raycast+bounds specials=ST,OP/FR,EE width=+16 offsetY=-7 hybrid=slider100/sameY/fraction-inset8/native-side-arrows24/no-direct-input vanillaInput=double-click/handle-contained/rendered-font-minus-one+preferred-width/no-wrap/fixed-3/comma/fraction-selected-post-activation/selection-replace/S-clears-fraction sign=17/white-outline");
+                Log("REGISTERED version=36 enabled=" + Enabled + " toggle=Settings-P2/default-on gear=adjacent/generated-sprite settingsPage=reusable editor=" + EditorModeName
+                    + " editorModes=vanilla-handle-input,digit-spinner,slider+digit-spinner selection=exclusive-toggle-group decimals=3 range=-1000..1000/PistonL=1000+STOP scope=SETUP parts=Box,Capsule,Coupler,Rotator,Hinge,Piston sizes=Box/Capsule storage=props-v2 network=SETUP-v2 motion=owner-relay keys=A/D,S/Shift=center,W=signed-negate/unsigned-mirror sizeHotkeys=logical-0..250 safeMin=0.001 floatBounds=normalized wheel=setting alt=x10/drag-step10 ctrl=.100 ctrl+alt=.001 ctrlScope=A/D+wheel/all-editors carry=enabled preview=only-when-open buildUpdate=postfix+mapped-mode-key-guard arrows=native-sprite/14x8/gap3/current-native-row paste=world-no-panel-reopen cells=24x20/154,154,154/white-base/absolute-tint/no-reactivation hover=245,245,245/native-fade focus=pointer-only/root-raycast+bounds specials=ST,OP/FR,EE/1000-overlay width=+16 offsetY=-7 hybrid=slider100/sameY/fraction-inset8/native-side-arrows24/no-direct-input vanillaInput=double-click/handle-contained/rendered-font-minus-one+preferred-width/no-wrap/fixed-3/comma/fraction-selected-post-activation/selection-replace/S-clears-fraction sign=17/white-outline");
             }
             catch (Exception error)
             {

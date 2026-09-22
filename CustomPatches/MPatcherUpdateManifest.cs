@@ -4,18 +4,27 @@ using System.Globalization;
 
 namespace MPatcherFork.CustomPatches
 {
+	internal enum MPatcherReleaseChannel
+	{
+		Stable,
+		Alpha
+	}
+
 	internal sealed class MPatcherUpdateManifest
 	{
 		internal const int FormatVersion = 1;
 		internal const int MaximumManifestCharacters = 32768;
 		internal const long MaximumInstallerLength = 64L * 1024L * 1024L;
 		internal const string ProductionRepositoryPath = "/RestartLive113/MPatcher/releases/download/";
+		internal const string StableManifestPath = "/RestartLive113/MPatcher/releases/latest/download/MPatcherUpdate.ini";
+		internal const string AlphaManifestPath = "/RestartLive113/MPatcher/releases/download/alpha/MPatcherUpdate.ini";
 
 		internal string VersionText;
 		internal Version Version;
 		internal Uri InstallerUri;
 		internal string InstallerSha256;
 		internal long InstallerLength;
+		internal MPatcherReleaseChannel Channel;
 
 		internal bool IsNewerThan(string currentVersion)
 		{
@@ -23,12 +32,29 @@ namespace MPatcherFork.CustomPatches
 			return TryParseVersion(currentVersion, out current) && Version.CompareTo(current) > 0;
 		}
 
+		internal bool ShouldInstall(string currentVersion, MPatcherReleaseChannel currentChannel)
+		{
+			return Channel != currentChannel || IsNewerThan(currentVersion);
+		}
+
 		internal static bool TryParse(string text, Uri sourceUri, out MPatcherUpdateManifest manifest, out string error)
+		{
+			MPatcherReleaseChannel channel;
+			if (!TryGetProductionChannel(sourceUri, out channel))
+				channel = MPatcherReleaseChannel.Stable;
+			return TryParse(text, sourceUri, channel, out manifest, out error);
+		}
+
+		internal static bool TryParse(string text, Uri sourceUri, MPatcherReleaseChannel expectedChannel,
+			out MPatcherUpdateManifest manifest, out string error)
 		{
 			manifest = null;
 			error = string.Empty;
 			if (!IsManifestSourceAllowed(sourceUri))
 				return Fail("manifest source is not allowed", out error);
+			MPatcherReleaseChannel productionChannel;
+			if (TryGetProductionChannel(sourceUri, out productionChannel) && productionChannel != expectedChannel)
+				return Fail("manifest channel does not match source", out error);
 			if (IsBlank(text))
 				return Fail("manifest is empty", out error);
 			if (text.Length > MaximumManifestCharacters)
@@ -89,7 +115,8 @@ namespace MPatcherFork.CustomPatches
 				Version = parsedVersion,
 				InstallerUri = installerUri,
 				InstallerSha256 = sha256.ToUpperInvariant(),
-				InstallerLength = installerLength
+				InstallerLength = installerLength,
+				Channel = expectedChannel
 			};
 			return true;
 		}
@@ -100,11 +127,26 @@ namespace MPatcherFork.CustomPatches
 				return false;
 			if (IsLoopbackTestUri(uri))
 				return true;
-			return string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
-				&& string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase)
-				&& string.Equals(uri.AbsolutePath,
-					"/RestartLive113/MPatcher/releases/latest/download/MPatcherUpdate.ini",
-					StringComparison.OrdinalIgnoreCase);
+			MPatcherReleaseChannel channel;
+			return TryGetProductionChannel(uri, out channel);
+		}
+
+		internal static bool TryGetProductionChannel(Uri uri, out MPatcherReleaseChannel channel)
+		{
+			channel = MPatcherReleaseChannel.Stable;
+			if (uri == null
+				|| !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+				|| !string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase)
+				|| !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment))
+				return false;
+			if (string.Equals(uri.AbsolutePath, StableManifestPath, StringComparison.OrdinalIgnoreCase))
+				return true;
+			if (string.Equals(uri.AbsolutePath, AlphaManifestPath, StringComparison.OrdinalIgnoreCase))
+			{
+				channel = MPatcherReleaseChannel.Alpha;
+				return true;
+			}
+			return false;
 		}
 
 		internal static bool IsLoopbackTestUri(Uri uri)
@@ -124,7 +166,7 @@ namespace MPatcherFork.CustomPatches
 			if (IsBlank(text))
 				return false;
 			string[] pieces = text.Split('.');
-			if (pieces.Length != 3)
+			if (pieces.Length != 3 && pieces.Length != 4)
 				return false;
 			for (int i = 0; i < pieces.Length; i++)
 			{
@@ -150,7 +192,12 @@ namespace MPatcherFork.CustomPatches
 			if (!string.Equals(installerUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
 				|| !string.Equals(installerUri.Host, "github.com", StringComparison.OrdinalIgnoreCase))
 				return false;
-			string expectedPath = ProductionRepositoryPath + "v" + versionText + "/MPatcherPackage.exe";
+			MPatcherReleaseChannel channel;
+			if (!TryGetProductionChannel(sourceUri, out channel))
+				return false;
+			string expectedPath = ProductionRepositoryPath
+				+ (channel == MPatcherReleaseChannel.Alpha ? "alpha" : "v" + versionText)
+				+ "/MPatcherPackage.exe";
 			return string.Equals(installerUri.AbsolutePath, expectedPath, StringComparison.OrdinalIgnoreCase)
 				&& string.IsNullOrEmpty(installerUri.Query) && string.IsNullOrEmpty(installerUri.Fragment);
 		}

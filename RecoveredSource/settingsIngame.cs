@@ -38,6 +38,15 @@ public class settingsIngame
 
 	public bool indivFix;
 
+	public bool autoReconnect = true;
+
+	public bool autoReconnectCrashRestore;
+
+	public bool legacyZapret;
+
+	public bool legacyHostAutoPort = true;
+	public bool legacyHostMigration = true;
+
 	public bool discordRPC;
 
 	public bool extraCommands;

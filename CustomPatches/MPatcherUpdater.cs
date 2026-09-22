@@ -28,7 +28,8 @@ namespace MPatcherFork.CustomPatches
 
 	internal static class MPatcherUpdater
 	{
-		internal const string DefaultManifestUrl = "https://github.com/RestartLive113/MPatcher/releases/latest/download/MPatcherUpdate.ini";
+		internal const string StableManifestUrl = "https://github.com/RestartLive113/MPatcher/releases/latest/download/MPatcherUpdate.ini";
+		internal const string AlphaManifestUrl = "https://github.com/RestartLive113/MPatcher/releases/download/alpha/MPatcherUpdate.ini";
 		private const float NetworkTimeoutSeconds = 30f;
 		private const string ResultFileName = "MPatcherUpdate.result.ini";
 
@@ -37,7 +38,10 @@ namespace MPatcherFork.CustomPatches
 		private static MPatcherUpdateManifest availableManifest;
 		private static bool started;
 		private static bool automaticTestApply;
+		private static int checkGeneration;
 		private static string currentVersion = "0.0.0";
+		private static MPatcherReleaseChannel currentBuildChannel = MPatcherReleaseChannel.Stable;
+		private static MPatcherReleaseChannel selectedChannel = MPatcherReleaseChannel.Stable;
 		private static string lastInstalledVersion = string.Empty;
 		private static string statusDetail = string.Empty;
 		private static float downloadProgress;
@@ -49,6 +53,7 @@ namespace MPatcherFork.CustomPatches
 		internal static string LastInstalledVersion { get { return lastInstalledVersion; } }
 		internal static string StatusDetail { get { return statusDetail; } }
 		internal static float DownloadProgress { get { return downloadProgress; } }
+		internal static MPatcherReleaseChannel SelectedChannel { get { return selectedChannel; } }
 
 		internal static void TryStart(MPatchr owner)
 		{
@@ -63,11 +68,14 @@ namespace MPatcherFork.CustomPatches
 				if (!MPatcherUpdateManifest.TryParseVersion(currentVersion, out parsedCurrent))
 					throw new InvalidOperationException("assembly release version is missing or invalid");
 
-				manifestUri = ResolveManifestUri();
+				currentBuildChannel = GetBuildChannel(currentVersion);
+				selectedChannel = ReadSelectedChannel();
+				manifestUri = ResolveManifestUri(selectedChannel);
 				automaticTestApply = HasArgument("--mpatcher-auto-apply")
 					&& MPatcherUpdateManifest.IsLoopbackTestUri(manifestUri);
 				TryEnableTls12();
-				Log("REGISTERED version=" + currentVersion + " manifest=" + manifestUri
+				Log("REGISTERED version=" + currentVersion + " buildChannel=" + currentBuildChannel
+					+ " selectedChannel=" + selectedChannel + " manifest=" + manifestUri
 					+ " testOverride=" + MPatcherUpdateManifest.IsLoopbackTestUri(manifestUri)
 					+ " autoApply=" + automaticTestApply);
 				ReadPreviousResult();
@@ -77,6 +85,33 @@ namespace MPatcherFork.CustomPatches
 			{
 				SetState(MPatcherUpdaterState.Failed, "startup: " + error.Message, 0f);
 				Log("REGISTER_FAILED type=" + error.GetType().Name + " message=" + error.Message);
+			}
+		}
+
+		internal static void ChangeChannel(MPatcherReleaseChannel channel)
+		{
+			if (selectedChannel == channel || runner == null)
+				return;
+			if (state == MPatcherUpdaterState.Downloading || state == MPatcherUpdaterState.Launching)
+			{
+				Log("CHANNEL_CHANGE_SKIPPED reason=update-in-progress requested=" + channel);
+				MPatcherUpdaterUi.Refresh();
+				return;
+			}
+			selectedChannel = channel;
+			checkGeneration++;
+			availableManifest = null;
+			try
+			{
+				manifestUri = ResolveManifestUri(channel);
+				Log("CHANNEL_CHANGED selected=" + channel + " manifest=" + manifestUri);
+				SetState(MPatcherUpdaterState.Idle, string.Empty, 0f);
+				runner.StartCoroutine(CheckCoroutine(false));
+			}
+			catch (Exception error)
+			{
+				Fail("CHANNEL_CHANGE_FAILED type=" + error.GetType().Name + " message=" + error.Message,
+					error.Message);
 			}
 		}
 
@@ -105,16 +140,27 @@ namespace MPatcherFork.CustomPatches
 		{
 			if (manifestUri == null)
 				yield break;
+			int generation = ++checkGeneration;
+			Uri requestManifestUri = manifestUri;
+			MPatcherReleaseChannel requestChannel = selectedChannel;
 			if (startupCheck)
 				yield return new WaitForSecondsRealtime(2f);
+			if (generation != checkGeneration)
+				yield break;
 
 			availableManifest = null;
 			SetState(MPatcherUpdaterState.Checking, string.Empty, 0f);
-			Log("CHECK_BEGIN url=" + manifestUri);
-			WWW request = CreateRequest(manifestUri.AbsoluteUri);
+			Log("CHECK_BEGIN channel=" + requestChannel + " url=" + requestManifestUri);
+			WWW request = CreateRequest(requestManifestUri.AbsoluteUri);
 			float startedAt = Time.realtimeSinceStartup;
 			while (!request.isDone && Time.realtimeSinceStartup - startedAt < NetworkTimeoutSeconds)
 				yield return null;
+			if (generation != checkGeneration)
+			{
+				request.Dispose();
+				Log("CHECK_CANCELLED generation=" + generation + " channel=" + requestChannel);
+				yield break;
+			}
 
 			if (!request.isDone)
 			{
@@ -134,17 +180,19 @@ namespace MPatcherFork.CustomPatches
 			request.Dispose();
 			MPatcherUpdateManifest parsed;
 			string parseError;
-			if (!MPatcherUpdateManifest.TryParse(text, manifestUri, out parsed, out parseError))
+			if (!MPatcherUpdateManifest.TryParse(text, requestManifestUri, requestChannel,
+				out parsed, out parseError))
 			{
 				Fail("CHECK_FAILED reason=manifest error=" + parseError, parseError);
 				yield break;
 			}
 
 			availableManifest = parsed;
-			if (parsed.IsNewerThan(currentVersion))
+			if (parsed.ShouldInstall(currentVersion, currentBuildChannel))
 			{
 				SetState(MPatcherUpdaterState.Available, string.Empty, 0f);
-				Log("UPDATE_AVAILABLE current=" + currentVersion + " latest=" + parsed.VersionText
+				Log("UPDATE_AVAILABLE current=" + currentVersion + " currentChannel=" + currentBuildChannel
+					+ " latest=" + parsed.VersionText + " targetChannel=" + parsed.Channel
 					+ " bytes=" + parsed.InstallerLength + " sha256=" + parsed.InstallerSha256);
 				if (automaticTestApply)
 				{
@@ -156,14 +204,15 @@ namespace MPatcherFork.CustomPatches
 			else
 			{
 				SetState(MPatcherUpdaterState.UpToDate, string.Empty, 0f);
-				Log("UP_TO_DATE current=" + currentVersion + " latest=" + parsed.VersionText);
+				Log("UP_TO_DATE current=" + currentVersion + " channel=" + currentBuildChannel
+					+ " latest=" + parsed.VersionText + " selectedChannel=" + requestChannel);
 			}
 		}
 
 		private static IEnumerator DownloadAndApplyCoroutine()
 		{
 			MPatcherUpdateManifest target = availableManifest;
-			if (target == null || !target.IsNewerThan(currentVersion))
+			if (target == null || !target.ShouldInstall(currentVersion, currentBuildChannel))
 				yield break;
 
 			SetState(MPatcherUpdaterState.Downloading, string.Empty, 0f);
@@ -319,15 +368,40 @@ namespace MPatcherFork.CustomPatches
 			return ((AssemblyInformationalVersionAttribute)attributes[0]).InformationalVersion;
 		}
 
-		private static Uri ResolveManifestUri()
+		private static Uri ResolveManifestUri(MPatcherReleaseChannel channel)
 		{
 			string value = GetArgumentValue("--mpatcher-update-manifest");
 			if (value == null || value.Trim().Length == 0)
-				value = DefaultManifestUrl;
+				value = channel == MPatcherReleaseChannel.Alpha ? AlphaManifestUrl : StableManifestUrl;
 			Uri uri;
 			if (!Uri.TryCreate(value, UriKind.Absolute, out uri) || !MPatcherUpdateManifest.IsManifestSourceAllowed(uri))
 				throw new InvalidOperationException("update manifest URL is not allowed");
+			MPatcherReleaseChannel productionChannel;
+			if (MPatcherUpdateManifest.TryGetProductionChannel(uri, out productionChannel)
+				&& productionChannel != channel)
+				throw new InvalidOperationException("update manifest channel does not match selected channel");
 			return uri;
+		}
+
+		private static MPatcherReleaseChannel ReadSelectedChannel()
+		{
+			settingsIngame settings = MPatchr._0024Ymloe9RVCTW7x1ASuQ3c68;
+			if (settings != null && settings.updateChannel == settingsIngame.updateChannels.alpha)
+				return MPatcherReleaseChannel.Alpha;
+			if (settings != null && settings.updateChannel != settingsIngame.updateChannels.stable)
+			{
+				Log("CHANNEL_NORMALIZED old=" + settings.updateChannel + " new=stable");
+				settings.updateChannel = settingsIngame.updateChannels.stable;
+				settings.UUiRNMwxRbfk_Fs4cDErRoM();
+			}
+			return MPatcherReleaseChannel.Stable;
+		}
+
+		private static MPatcherReleaseChannel GetBuildChannel(string version)
+		{
+			return version != null && version.Split('.').Length == 4
+				? MPatcherReleaseChannel.Alpha
+				: MPatcherReleaseChannel.Stable;
 		}
 
 		private static string GetArgumentValue(string option)

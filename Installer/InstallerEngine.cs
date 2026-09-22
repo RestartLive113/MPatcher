@@ -54,6 +54,12 @@ namespace MachineCraftMPatcherInstaller
 		internal bool Committed;
 	}
 
+	internal sealed class BackupRelocation
+	{
+		internal string Source;
+		internal string Destination;
+	}
+
 	internal static class InstallerEngine
 	{
 		private const string ManifestFileName = "MPatcherFork.install.ini";
@@ -217,6 +223,7 @@ namespace MachineCraftMPatcherInstaller
 				InstallManifest manifest = null;
 				if (File.Exists(manifestPath))
 					manifest = ReadManifest(manifestPath);
+				SortedDictionary<string, string> knownBackups = ReadKnownBackups(root, manifest);
 
 				string currentHash = File.Exists(loaderPath) ? ComputeSha256(loaderPath) : string.Empty;
 				if (manifest == null)
@@ -282,6 +289,9 @@ namespace MachineCraftMPatcherInstaller
 					bool previousManifestExisted = File.Exists(manifestPath);
 					bool loaderMovedToRollback = false;
 					bool newLoaderInstalled = false;
+					List<BackupRelocation> archivedBackups = new List<BackupRelocation>();
+					string workDirectory = Path.Combine(root, "Work");
+					bool workDirectoryCreated = false;
 					try
 					{
 						if (previousManifestExisted)
@@ -308,11 +318,28 @@ namespace MachineCraftMPatcherInstaller
 						string installedWatchdogHash = ComputeSha256(watchdogPath);
 						if (!string.Equals(installedWatchdogHash, PayloadInfo.WatchdogSha256, StringComparison.OrdinalIgnoreCase))
 							throw new InvalidDataException(InstallerText.InstalledHashMismatch(installedWatchdogHash));
+						ArchiveKnownBackups(root, backupDirectory, manifest.BackupFileName,
+							knownBackups, archivedBackups, progress);
+						if (!Directory.Exists(workDirectory))
+						{
+							Directory.CreateDirectory(workDirectory);
+							workDirectoryCreated = true;
+							Report(root, progress, "SCRIPT_WORK_CREATED directory=Work");
+						}
+
+#if MPATCHER_ZAPRET_PACKAGE
+						NetworkAssistSetup.Install(root);
+						Report(root, progress, "NETWORK_ASSIST_INSTALLED defaultEnabled=false profile=Legacy-services-only");
+#endif
 						DeleteIfExists(rollbackPath);
 						DeleteIfExists(manifestRollbackPath);
 					}
 					catch
 					{
+						RollbackBackupArchive(root, archivedBackups, progress);
+						if (workDirectoryCreated && Directory.Exists(workDirectory)
+							&& Directory.GetFileSystemEntries(workDirectory).Length == 0)
+							Directory.Delete(workDirectory, false);
 						if (newLoaderInstalled)
 							DeleteIfExists(loaderPath);
 						if (loaderMovedToRollback && File.Exists(rollbackPath))
@@ -552,6 +579,10 @@ namespace MachineCraftMPatcherInstaller
 						? PayloadInfo.WatchdogSha256 : manifest.InstalledWatchdogSha256,
 					progress);
 
+#if MPATCHER_ZAPRET_PACKAGE
+				NetworkAssistSetup.Uninstall(root);
+				Report(root, progress, "NETWORK_ASSIST_UNREGISTERED otherGamesPreserved=true");
+#endif
 				DeleteIfExists(manifestPath);
 				Report(root, progress, "UNINSTALL_OK");
 				result.Success = true;
@@ -585,16 +616,113 @@ namespace MachineCraftMPatcherInstaller
 			{
 				try
 				{
-					string executable = watchdogs[i].MainModule.FileName;
+					if (watchdogs[i].HasExited) continue;
+					ProcessModule module = watchdogs[i].MainModule;
+					if (module == null)
+					{
+						if (watchdogs[i].HasExited) continue;
+						throw new InvalidOperationException(InstallerText.CrashWatchdogBusy);
+					}
+					string executable = module.FileName;
 					if (!string.Equals(Path.GetFullPath(executable), Path.GetFullPath(watchdogPath),
 						StringComparison.OrdinalIgnoreCase))
 						continue;
 					if (!watchdogs[i].WaitForExit(20000))
 						throw new InvalidOperationException(InstallerText.CrashWatchdogBusy);
 				}
+				catch (System.ComponentModel.Win32Exception)
+				{
+					if (!watchdogs[i].HasExited) throw;
+				}
+				catch (InvalidOperationException)
+				{
+					if (!watchdogs[i].HasExited) throw;
+				}
 				finally
 				{
 					watchdogs[i].Dispose();
+				}
+			}
+		}
+
+		private static SortedDictionary<string, string> ReadKnownBackups(string root, InstallManifest manifest)
+		{
+			SortedDictionary<string, string> known = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+			string log = GetInstallerLogPath(root);
+			if (File.Exists(log))
+			{
+				Regex record = new Regex(@" (?:BACKUP_CREATED|EXTERNAL_LOADER_BACKUP_CREATED) sha256=([0-9A-Fa-f]{64}) file=([^\r\n]+)$");
+				using (StreamReader reader = new StreamReader(new FileStream(log, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
+				{
+					string line;
+					while ((line = reader.ReadLine()) != null)
+					{
+						Match match = record.Match(line);
+						if (match.Success) RememberBackup(known, match.Groups[2].Value, match.Groups[1].Value);
+					}
+				}
+			}
+			if (manifest != null && manifest.OriginalExisted)
+				RememberBackup(known, manifest.BackupFileName, manifest.OriginalSha256);
+			return known;
+		}
+
+		private static void RememberBackup(SortedDictionary<string, string> known, string name, string hash)
+		{
+			// The archive is limited to exact installer records and verified bytes.
+			// Filename shape alone never authorizes moving a DLL out of validation.
+			if (string.IsNullOrEmpty(name) || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
+				|| name.IndexOfAny(new char[] { '/', '\\', ':' }) >= 0
+				|| !name.StartsWith("__Internal.", StringComparison.OrdinalIgnoreCase)
+				|| !name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
+				|| string.IsNullOrEmpty(hash) || !Regex.IsMatch(hash, @"\A[0-9A-Fa-f]{64}\z")) return;
+			string previous;
+			if (known.TryGetValue(name, out previous) && !string.Equals(previous, hash, StringComparison.OrdinalIgnoreCase))
+				known[name] = string.Empty;
+			else known[name] = hash;
+		}
+
+		private static void ArchiveKnownBackups(string root, string backupDirectory, string currentBackup,
+			SortedDictionary<string, string> known, List<BackupRelocation> moved, Action<string> progress)
+		{
+			foreach (KeyValuePair<string, string> item in known)
+			{
+				if (string.Equals(item.Key, currentBackup, StringComparison.OrdinalIgnoreCase) || item.Value.Length == 0) continue;
+				string source = Path.Combine(backupDirectory, item.Key);
+				if (!File.Exists(source)) continue;
+				string hash = ComputeSha256(source);
+				if (!string.Equals(hash, item.Value, StringComparison.OrdinalIgnoreCase))
+				{
+					Report(root, progress, "BACKUP_HISTORY_RETAINED reason=hash-mismatch file=" + item.Key);
+					continue;
+				}
+				string archive = Path.Combine(root, "MPatcherBackupHistory");
+				Directory.CreateDirectory(archive);
+				string destination = Path.Combine(archive, item.Key);
+				int suffix = 2;
+				while (File.Exists(destination) || Directory.Exists(destination))
+					destination = Path.Combine(archive, Path.GetFileNameWithoutExtension(item.Key) + "."
+						+ (suffix++).ToString(CultureInfo.InvariantCulture) + ".dll");
+				File.Move(source, destination);
+				moved.Add(new BackupRelocation { Source = source, Destination = destination });
+				Report(root, progress, "BACKUP_HISTORY_ARCHIVED sha256=" + hash + " file=" + item.Key
+					+ " destination=" + destination);
+			}
+		}
+
+		private static void RollbackBackupArchive(string root, List<BackupRelocation> moved, Action<string> progress)
+		{
+			for (int index = moved.Count - 1; index >= 0; index--)
+			{
+				BackupRelocation item = moved[index];
+				try
+				{
+					File.Move(item.Destination, item.Source);
+					SafeReport(root, progress, "BACKUP_HISTORY_ROLLBACK file=" + Path.GetFileName(item.Source));
+				}
+				catch (Exception error)
+				{
+					SafeReport(root, progress, "BACKUP_HISTORY_ROLLBACK_FAILED archive=" + item.Destination + " message=" + error.Message);
 				}
 			}
 		}

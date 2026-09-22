@@ -38,6 +38,11 @@ namespace MPatcherFork.CustomPatches
 		private static void OnPlayerDisconnectedPostfix(NetworkPlayer __0)
 		{
 			NetworkPlayer player = __0;
+			if (LegacyTransientReconnect.IsRetained(player))
+			{
+				Log("LEAVE_SKIPPED guid=" + player.guid + " reason=transient-reconnect-retained");
+				return;
+			}
 			if (HNJDDKJLHMM.FHLGOMHPDLN != HNJDDKJLHMM.HKGAACMIPIH.Legacy
 				|| !HNJDDKJLHMM.NIKEKIIPJFI)
 			{

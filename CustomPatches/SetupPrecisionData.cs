@@ -12,7 +12,7 @@ namespace MPatcherFork.CustomPatches
     {
         internal const string PropertyName = "setupPrecision";
         internal const int Scale = 1000;
-        internal const int Maximum = 500;
+        internal const int Maximum = 1000;
         internal const int MaxScaled = Maximum * Scale;
         private const int CurrentVersion = 2;
 
@@ -160,6 +160,19 @@ namespace MPatcherFork.CustomPatches
             values[slot] = scaled % Scale == 0 ? int.MinValue : scaled;
             Write(block, values);
             return previous != scaled;
+        }
+
+        internal static bool SetNativeEndpoint(BlockData block, int slot, int value)
+        {
+            if (!Supports(block, slot)) return false;
+            int[] values = Decode(block);
+            int previous = Native(block, slot);
+            bool hadPrecision = values[slot] != int.MinValue;
+            if (slot == 8) block.actionID[7] = value;
+            else block.actionParam[slot] = value;
+            values[slot] = int.MinValue;
+            Write(block, values);
+            return previous != value || hadPrecision;
         }
 
         private static string Encode(BlockData block, int[] values) { return Encode(block, values, CurrentVersion); }

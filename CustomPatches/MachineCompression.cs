@@ -257,6 +257,82 @@ namespace MPatcherFork.CustomPatches
 			}
 		}
 
+		// A Magnification slider change is saved after a short debounce. Keep an
+		// actively compressed machine compressed instead of letting the native save
+		// create a second .mcbd file and remove its .mzbd counterpart.
+		internal static bool TryGetSelectedBuildFile(out string path, out long writeTicks)
+		{
+			path = null;
+			writeTicks = 0L;
+			string machine = GetSelectedMachineName();
+			if (string.IsNullOrEmpty(machine)) return false;
+
+			string selectedFolder = GetSelectedFolderName();
+			string activeFolder = JKGKJLLFMLE.AEOGMEAKNOL ?? string.Empty;
+			string[] folders = string.Equals(selectedFolder, activeFolder, StringComparison.OrdinalIgnoreCase)
+				? new[] { selectedFolder } : new[] { selectedFolder, activeFolder };
+			for (int i = 0; i < folders.Length; i++)
+			{
+				string buildPath = GetPath(folders[i], machine, BuildExtension);
+				if (File.Exists(buildPath))
+				{
+					path = buildPath;
+					writeTicks = File.GetLastWriteTimeUtc(buildPath).Ticks;
+					return true;
+				}
+				string compressedPath = GetPath(folders[i], machine, CompressedExtension);
+				if (File.Exists(compressedPath))
+				{
+					path = compressedPath;
+					writeTicks = File.GetLastWriteTimeUtc(compressedPath).Ticks;
+					return true;
+				}
+			}
+			return false;
+		}
+
+		internal static bool TryReadBuild(string path, out BuildData build)
+		{
+			build = null;
+			if (string.IsNullOrEmpty(path) || !File.Exists(path)) return false;
+			if (string.Equals(Path.GetExtension(path), CompressedExtension, StringComparison.OrdinalIgnoreCase))
+				build = Decode(File.ReadAllBytes(path));
+			else if (string.Equals(Path.GetExtension(path), BuildExtension, StringComparison.OrdinalIgnoreCase))
+				build = LNGKNOGOIKL.FMAGAEMFION<BuildData>(File.ReadAllText(path));
+			return build != null;
+		}
+
+		internal static bool TryPersistCurrentCompressed(BuildData build, out string savedPath)
+		{
+			savedPath = null;
+			if (!IsEnabled || build == null) return false;
+			string compressedPath = GetSelectedPath(CompressedExtension, true);
+			string buildPath = GetSelectedPath(BuildExtension, true);
+			if (compressedPath == null || buildPath == null || !File.Exists(compressedPath) || File.Exists(buildPath)) return false;
+
+			string tempPath = compressedPath + ".magnification.tmp";
+			string backupPath = compressedPath + ".magnification.bak";
+			DeleteTemp(tempPath);
+			DeleteTemp(backupPath);
+			try
+			{
+				byte[] bytes = Encode(build);
+				File.WriteAllBytes(tempPath, bytes);
+				BuildData verified = Decode(File.ReadAllBytes(tempPath));
+				VerifyEquivalent(build, verified);
+				File.Replace(tempPath, compressedPath, backupPath);
+				DeleteTemp(backupPath);
+				savedPath = compressedPath;
+				Log("SAVE_COMPRESSED_OK path=" + compressedPath + " bytes=" + bytes.Length);
+				return true;
+			}
+			catch
+			{
+				DeleteTemp(tempPath);
+				throw;
+			}
+		}
+
 		private static bool MachineExistsPrefix(string CBNCLLHJONG, bool KOEKDPFICBJ, ref bool __result)
 		{
 			if (!IsEnabled || string.IsNullOrEmpty(CBNCLLHJONG))

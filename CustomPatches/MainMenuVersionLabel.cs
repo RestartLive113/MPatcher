@@ -39,6 +39,7 @@ namespace MPatcherFork.CustomPatches
 		{
 			try
 			{
+				MPatcherUpdaterUi.BindMainMenu(__instance);
 				Text gameVersionText = FindGameVersionText(__instance);
 				if (gameVersionText == null)
 				{
