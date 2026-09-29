@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -16,6 +16,14 @@ namespace MPatcherFork.CustomPatches
 		internal static void Register(Harmony harmony)
 		{
 			MagnificationInertiaBoundary.Register(harmony);
+			MagnificationMassBoundary.Register(harmony);
+			MagnificationForceUnits.Register(harmony);
+			MagnificationWheelSpeed.Register(harmony);
+			MagnificationLengthUnits.Register(harmony);
+			MagnificationVelocityUnits.Register(harmony);
+			MagnificationSpeedLimitUnits.Register(harmony);
+			MagnificationEnvironmentUnits.Register(harmony);
+			MagnificationContactProbe.Register(harmony);
 			foreach (Type type in typeof(UDIRjB3VSmwHpVmUxcnHH66kk6ThWzbxmySWu7OngspoKs_47sbCTTGVAxk9y7DBfQ).GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic))
 			{
 				MethodInfo found = type.GetMethod("C8DNZpzKjPK7v0b5djavXno", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
@@ -29,7 +37,7 @@ namespace MPatcherFork.CustomPatches
 					new HarmonyMethod(AccessTools.Method(typeof(MagnificationCraftModelProbe), "OtherUnits")), null);
 			harmony.Patch(AccessTools.Method(typeof(WheelController), "FixedUpdate"), null, null,
 				new HarmonyMethod(AccessTools.Method(typeof(MagnificationCraftModelProbe), "Wheel")), null);
-			foreach (string name in new[] { "SetJoint", "FixedUpdate" })
+			foreach (string name in new[] { "SetJoint", "FixedUpdate", "Reset" })
 				harmony.Patch(AccessTools.DeclaredMethod(typeof(JointController), name), null, null,
 					new HarmonyMethod(AccessTools.Method(typeof(MagnificationCraftModelProbe), "Angular")), null);
 		}
@@ -40,9 +48,9 @@ namespace MPatcherFork.CustomPatches
 			float s = OtherScale(machine);
 			// These 50/100 arms are artificial recovery/stabilizer force couples,
 			// not attachment geometry. Match the I*s*s boundary to retain angular gain.
-			// Proximity padding is a world-space safety margin at native world
-			// speeds; changing it would delay activation around other machines.
-			return Mathf.Abs(value) < 50f ? value : value * s * (MagnificationCraftProbe.Model != 9 ? s : 1f);
+			// Same-time motion scales world speed, including proximity padding.
+			// Older diagnostic models retain their original world-space margins.
+			return Mathf.Abs(value) < 50f && !MagnificationScalePolicy.SameTime ? value : value * s * (MagnificationCraftProbe.Model != 9 && !MagnificationScalePolicy.Enabled ? s : 1f);
 		}
 		private static float ScaleBodyLength(float value, BodyController body) { return value * OtherScale(body.CIPOPAGDJDE); }
 		private static float UnscaleBodyLength(float value, BodyController body) { return value / OtherScale(body.CIPOPAGDJDE); }
@@ -55,7 +63,7 @@ namespace MPatcherFork.CustomPatches
 				foreach (CodeInstruction code in original)
 					if (Equals(code.operand, legacyWater))
 					{
-						MagnificationDownscale.Log("CRAFT_BODY_WATER_ROUTE helper=recovered-MPatcher nativeBlock=replaced conversion=not-tested-dry-fixture");
+						MagnificationDownscale.Log("CRAFT_BODY_WATER_ROUTE helper=recovered-MPatcher nativeBlock=replaced conversion=research-generated-source wetRuntime=pending");
 						return original;
 					}
 			return OtherUnitsConverted(original, __originalMethod);
@@ -92,7 +100,7 @@ namespace MPatcherFork.CustomPatches
 		}
 		private static float Length(float value, WheelController wheel) { return value * Scale(wheel.FPEBEEJGFPI); }
 		private static float CraftLength(float value, WheelController wheel) { return value / Scale(wheel.FPEBEEJGFPI); }
-		private static Vector3 ContactVelocity(Vector3 normal, Vector3 angular, WheelController wheel) { return Vector3.Cross(normal, angular) * Scale(wheel.FPEBEEJGFPI); }
+		private static Vector3 ContactVelocity(Vector3 normal, Vector3 angular, WheelController wheel) { return Vector3.Cross(normal, angular) * (MagnificationScalePolicy.SameTime ? 1f : Scale(wheel.FPEBEEJGFPI)); }
 		private static IEnumerable<CodeInstruction> Wheel(IEnumerable<CodeInstruction> instructions)
 		{
 			List<CodeInstruction> codes = new List<CodeInstruction>(MagnificationPhysicsNormalization.WheelFixedUpdateTranspiler(instructions));
@@ -118,20 +126,29 @@ namespace MPatcherFork.CustomPatches
 		private static void SetSpring(HingeJoint joint, JointSpring value, JointController owner)
 		{
 			float scale = Scale(owner.FPEBEEJGFPI);
-			if (MagnificationCraftProbe.Model >= 3)
-			{
-				value.spring *= scale;
-				value.damper *= MagnificationCraftProbe.Model == 3 || MagnificationCraftProbe.Model == 9 ? scale : scale * Mathf.Sqrt(scale);
-			}
-			joint.spring = value;
+			joint.spring = MagnificationRotorIsolationProbe.FilterSpring(joint, RotorDrive(value, scale, MagnificationCraftProbe.Model), false);
+		}
+		internal static JointSpring RotorDrive(JointSpring value, float scale, int model)
+		{
+			if (model == 20 || model == 21 || model == 22) return MagnificationScalePolicy.AngularSpring(value, scale, true);
+			if (model < 3) return value;
+			// 14 preserves the native angular natural frequency and damping ratio
+			// with I*s*s. 15 isolates spring strength (20x model 13 at 5%).
+			// Both are controlled comparisons, not a release policy.
+			value.spring *= model == 14 || model >= 17 ? scale * scale : model == 15 ? 1f : scale;
+			value.damper *= model == 14 || model >= 17 ? scale * scale : model == 3 || model == 9 ? scale : scale * (float)Math.Sqrt(scale);
+			return value;
 		}
 		private static void WheelTorque(Rigidbody body, Vector3 value, ForceMode mode, JointController owner)
 		{
-			if (MagnificationCraftProbe.Model >= 3 && owner.OMBBGKNHGEF != null) value /= Scale(owner.FPEBEEJGFPI);
+			if (MagnificationCraftProbe.Model >= 3 && MagnificationCraftProbe.Model < 16 && owner.OMBBGKNHGEF != null) value /= Scale(owner.FPEBEEJGFPI);
+			if (MagnificationRotorIsolationProbe.SuppressTorque(owner, value, mode)) { MagnificationRotorProbe.RecordTorque(owner, Vector3.zero, mode); return; }
+			MagnificationRotorProbe.RecordTorque(owner, value, mode);
 			body.AddTorque(value, mode);
 		}
 		private static IEnumerable<CodeInstruction> Angular(IEnumerable<CodeInstruction> instructions)
 		{
+			int springs = 0;
 			foreach (CodeInstruction source in instructions)
 			{
 				CodeInstruction code = new CodeInstruction(source);
@@ -140,20 +157,51 @@ namespace MPatcherFork.CustomPatches
 					: method != null && method.DeclaringType == typeof(Rigidbody) && method.Name == "AddTorque" && method.GetParameters().Length == 2 ? "WheelTorque" : null;
 				if (replacement != null)
 				{
+					if (replacement == "SetSpring") springs++;
 					CodeInstruction arg = new CodeInstruction(OpCodes.Ldarg_0); arg.labels.AddRange(code.labels); code.labels.Clear(); arg.blocks.AddRange(code.blocks); code.blocks.Clear();
 					yield return arg; code.opcode = OpCodes.Call; code.operand = AccessTools.Method(typeof(MagnificationCraftModelProbe), replacement);
 				}
 				yield return code;
 			}
+			if (springs == 0) throw new InvalidOperationException("missing native angular spring setter");
 		}
 		internal static void ApplyInertia(MachineController machine)
 		{
 			if (MagnificationCraftProbe.Model < 3) return;
 			float scale = Scale(machine);
-			float factor = MagnificationCraftProbe.Model == 3 || MagnificationCraftProbe.Model == 9 ? scale : scale * scale;
+			if (MagnificationScalePolicy.Bypass(scale)) { MagnificationDownscale.Log("SIMILARITY_BASELINE scale=1 extraMassWrites=0 extraInertiaWrites=0 conditioning=false"); return; }
+			MagnificationConstraintUnits.Apply(machine);
+			float factor = MagnificationScalePolicy.Enabled ? MagnificationScalePolicy.Inertia(scale) : MagnificationCraftProbe.Model == 3 || MagnificationCraftProbe.Model == 9 ? scale : scale * scale;
 			HashSet<int> seen = new HashSet<int>();
 			List<GameObject> roots = new List<GameObject> { machine.gameObject };
 			roots.AddRange(machine.KBLANAFAJFP);
+			// MakeBlur clones a tire, then schedules its Rigidbody/Joint for Destroy.
+			// They remain enumerable until end of frame and already carry physical
+			// values. Only structural bodies and the wheel's live tire are owners.
+			HashSet<int> physical = new HashSet<int>();
+			HashSet<int> sledBodies = new HashSet<int>();
+			foreach (GameObject root in roots) if (root != null)
+			{
+				foreach (BodyController owner in root.GetComponentsInChildren<BodyController>())
+					if (owner.NFMPBACKJOJ != null) physical.Add(owner.NFMPBACKJOJ.GetInstanceID());
+				foreach (WheelController wheel in root.GetComponentsInChildren<WheelController>())
+					if (wheel.EKHOCFCEGCB != null) physical.Add(wheel.EKHOCFCEGCB.GetInstanceID());
+				// The native event helper has a real FixedJoint and contributes
+				// inertia. It is not one of MakeBlur's disposable visual copies.
+				foreach (FixedJoint joint in root.GetComponentsInChildren<FixedJoint>())
+					if (joint.connectedBody != null && joint.GetComponent<Rigidbody>() != null)
+						physical.Add(joint.GetComponent<Rigidbody>().GetInstanceID());
+				foreach (SledController sled in root.GetComponentsInChildren<SledController>())
+				{
+					Rigidbody roller = MagnificationMassBoundary.SledBody(sled);
+					if (roller != null) { physical.Add(roller.GetInstanceID()); sledBodies.Add(roller.GetInstanceID()); }
+				}
+			}
+			if (MagnificationCraftProbe.Model == 18 || MagnificationCraftProbe.Model == 19 || MagnificationCraftProbe.Model == 20 || MagnificationCraftProbe.Model == 22)
+			{
+				if (machine.GetComponent<MagnificationJointMassBalance>() != null) throw new InvalidOperationException("native-joint-model-has-mass-conditioning");
+				MagnificationDownscale.Log("CRAFT_MODEL_CONDITIONING ratio=native installed=false nativeMassBridge=unused");
+			}
 			if (MagnificationCraftProbe.Model == 10)
 			{
 				MagnificationJointMassBalance balance = machine.GetComponent<MagnificationJointMassBalance>();
@@ -169,8 +217,15 @@ namespace MPatcherFork.CustomPatches
 			foreach (GameObject root in roots) if (root != null) foreach (Rigidbody body in root.GetComponentsInChildren<Rigidbody>())
 			{
 				if (!seen.Add(body.GetInstanceID())) continue;
-				MagnificationInertiaBoundary.Track(body, factor);
-				MagnificationInertiaBoundary.CheckRoundtrip(body);
+				if (MagnificationScalePolicy.Enabled && sledBodies.Contains(body.GetInstanceID())) continue;
+				if (MagnificationScalePolicy.Enabled && !physical.Contains(body.GetInstanceID()))
+				{
+					MagnificationDownscale.Log("MASS_UNITS_AUXILIARY body=" + body.name + " kinematic=" + body.isKinematic + " reason=not-structural-body-or-live-tire");
+					continue;
+				}
+				if (MagnificationScalePolicy.Enabled) MagnificationMassBoundary.TrackPhysics(body, scale);
+				else MagnificationInertiaBoundary.Track(body, factor);
+				if (!MagnificationScalePolicy.SameTime) MagnificationInertiaBoundary.CheckRoundtrip(body);
 				if (MagnificationCraftProbe.Model == 6 || MagnificationCraftProbe.Model == 8) { body.solverIterations = Math.Max(body.solverIterations, 50); body.solverVelocityIterations = Math.Max(body.solverVelocityIterations, 20); }
 			}
 			if (MagnificationCraftProbe.Model == 5 || MagnificationCraftProbe.Model == 6 || MagnificationCraftProbe.Model == 8)
@@ -184,7 +239,7 @@ namespace MPatcherFork.CustomPatches
 						if (changed.Add(joint.GetInstanceID())) joint.projectionDistance *= scale;
 				}
 			}
-			MagnificationDownscale.Log("CRAFT_MODEL_INERTIA model=" + MagnificationCraftProbe.Model + " bodies=" + seen.Count + " factor=" + factor + " exposed=" + MagnificationInertiaBoundary.Read(machine.NFMPBACKJOJ).ToString("R") + " physical=" + MagnificationInertiaBoundary.Physical(machine.NFMPBACKJOJ).ToString("R") + " repeatedWrites=pass");
+			MagnificationDownscale.Log("CRAFT_MODEL_INERTIA model=" + MagnificationCraftProbe.Model + " bodies=" + seen.Count + " factor=" + factor + " exposed=" + MagnificationInertiaBoundary.Read(machine.NFMPBACKJOJ).ToString("R") + " physical=" + MagnificationInertiaBoundary.Physical(machine.NFMPBACKJOJ).ToString("R") + (MagnificationScalePolicy.SameTime ? " repeatedWrites=disabled-in-live-probe" : " repeatedWrites=pass"));
 		}
 	}
 }

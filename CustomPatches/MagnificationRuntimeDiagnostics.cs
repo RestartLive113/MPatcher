@@ -334,7 +334,7 @@ namespace MPatcherFork.CustomPatches
 				if (!pairs.TryGetValue(key, out edge))
 				{
 					edge = new MassEdge { Own = own, Other = other,
-						Ratio = Mathf.Max(own.mass, other.mass) / Mathf.Max(0.0000001f, Mathf.Min(own.mass, other.mass)) };
+						Ratio = MassRatio(own.mass, other.mass) };
 					pairs.Add(key, edge);
 				}
 				edge.Joints++;
@@ -348,6 +348,10 @@ namespace MPatcherFork.CustomPatches
 					+ " ratio=" + F(edge.Ratio) + " joints=" + edge.Joints + " uniquePairs=" + ordered.Count
 					+ " own=" + BodyState(edge.Own) + " connected=" + BodyState(edge.Other));
 			}
+		}
+		internal static float MassRatio(float first, float second)
+		{
+			return first > 0f && second > 0f ? Mathf.Max(first, second) / Mathf.Min(first, second) : float.PositiveInfinity;
 		}
 		private sealed class MassEdge
 		{

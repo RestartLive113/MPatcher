@@ -226,6 +226,7 @@ namespace MPatcherFork.CustomPatches
 		private static void MenuUpdatePostfix()
 		{
 			EnsurePersistenceRunner();
+			MagnificationResearchBootstrap.TryStartPublicAlpha();
 		}
 
 		internal static void TickPersistence(bool force)

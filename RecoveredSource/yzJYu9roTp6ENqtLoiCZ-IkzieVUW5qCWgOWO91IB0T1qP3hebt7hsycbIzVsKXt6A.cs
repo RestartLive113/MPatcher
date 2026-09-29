@@ -63,7 +63,7 @@ internal static class yzJYu9roTp6ENqtLoiCZ_0024IkzieVUW5qCWgOWO91IB0T1qP3hebt7hs
 				float num = MPatchr.JrTT7_0024xMFXTIRLPMXXUOnw4.recoilMult;
 				num /= 100f;
 				vector6 *= num;
-				nFMPBACKJOJ.AddForceAtPosition(vector6 * (Mathf.Sqrt(__instance.FPEBEEJGFPI.CCFPDFAMGKC) * 0.002f + 0.02f), __instance.transform.position);
+				MPatcherFork.CustomPatches.MagnificationForceUnits.AtPosition(nFMPBACKJOJ, vector6 * (Mathf.Sqrt(__instance.FPEBEEJGFPI.CCFPDFAMGKC) * 0.002f + 0.02f), __instance.transform.position, __instance);
 			}
 			Game game = Arena.OEDCBNHNGMJ as Game;
 			if (___KFDIPGJIMID != 0)

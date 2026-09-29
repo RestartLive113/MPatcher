@@ -29,7 +29,7 @@ namespace MPatcherFork.CustomPatches
 		}
 		private static float Factor(PistonController piston)
 		{
-			return piston.FPEBEEJGFPI == null ? 1f : DownscaleFactor(piston.FPEBEEJGFPI.DJCDFLDHPHK);
+			return MagnificationScalePolicy.SameTime ? MagnificationPhysicsNormalization.MachineScale(piston.FPEBEEJGFPI) : piston.FPEBEEJGFPI == null ? 1f : DownscaleFactor(piston.FPEBEEJGFPI.DJCDFLDHPHK);
 		}
 		private static float ToWorldLength(float value, PistonController piston) { return value * Factor(piston); }
 		private static float ToCraftLength(float value, PistonController piston) { return value / Factor(piston); }

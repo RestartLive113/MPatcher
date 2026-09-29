@@ -114,6 +114,7 @@ internal static class UDIRjB3VSmwHpVmUxcnHH66kk6ThWzbxmySWu7OngspoKs_47sbCTTGVAx
 
 		internal static void C8DNZpzKjPK7v0b5djavXno(BodyController __instance)
 		{
+			float craftScale = MPatcherFork.CustomPatches.MagnificationEnvironmentUnits.Scale(__instance);
 			int num = 0;
 			float num2 = 0f;
 			Vector3 zero = Vector3.zero;
@@ -138,13 +139,13 @@ internal static class UDIRjB3VSmwHpVmUxcnHH66kk6ThWzbxmySWu7OngspoKs_47sbCTTGVAx
 					plane.Value.Raycast(new Ray(vector2, Vector3.up), out var enter);
 					num4 = vector2.y + enter;
 				}
-				if (vector2.y < num4 + 0.5f)
+				if (vector2.y < num4 + 0.5f * craftScale)
 				{
-					float num5 = Mathf.Min(num4 + 0.5f - vector2.y, 1f);
+					float num5 = Mathf.Min((num4 + 0.5f * craftScale - vector2.y) / craftScale, 1f);
 					num2 += num5;
 					zero += vector2 * num5;
-					__instance.NFMPBACKJOJ.AddForceAtPosition(vector * num5 * __instance.BHGEHEHDDHN[num3], vector2);
-					if (vector2.y > 0f - (num4 + 0.5f))
+					MPatcherFork.CustomPatches.MagnificationForceUnits.AtPosition(__instance.NFMPBACKJOJ, vector * num5 * __instance.BHGEHEHDDHN[num3], vector2, __instance);
+					if (vector2.y > 0f - (num4 + 0.5f * craftScale))
 					{
 						num++;
 					}
@@ -153,10 +154,10 @@ internal static class UDIRjB3VSmwHpVmUxcnHH66kk6ThWzbxmySWu7OngspoKs_47sbCTTGVAx
 			if (num2 > 0f)
 			{
 				Vector3 vector3 = zero / num2;
-				Vector3 pointVelocity = __instance.NFMPBACKJOJ.GetPointVelocity(vector3);
+				Vector3 pointVelocity = __instance.NFMPBACKJOJ.GetPointVelocity(vector3) / craftScale;
 				pointVelocity.y *= 2f;
 				float num6 = Mathf.Sqrt(num2);
-				__instance.NFMPBACKJOJ.AddForceAtPosition(pointVelocity * (0f - num6) * 0.001f * (pointVelocity.magnitude + 1f), vector3);
+				MPatcherFork.CustomPatches.MagnificationForceUnits.AtPosition(__instance.NFMPBACKJOJ, pointVelocity * (0f - num6) * 0.001f * (pointVelocity.magnitude + 1f), vector3, __instance);
 				float magnitude = __instance.NFMPBACKJOJ.angularVelocity.magnitude;
 				__instance.NFMPBACKJOJ.angularVelocity /= num6 * magnitude * 0.002f + 1f;
 				if (Class17.iEGZnC5Qz9aAS5QbiOmfb_0024sNSSdkec6eJqnSdaVbVgmO<int>(global::_003CModule_003E.smethod_25<string>(1775215293u), __instance) > 0)

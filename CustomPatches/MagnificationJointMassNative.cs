@@ -23,6 +23,25 @@ namespace MPatcherFork.CustomPatches
 		private delegate void SetScale(IntPtr self, float value);
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		private delegate void GetActors(IntPtr self, out IntPtr first, out IntPtr second);
+		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+		private delegate void SetTensor(IntPtr self, ref Vector3 value);
+		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+		private delegate void UpdateMassProperties(IntPtr self);
+		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+		private delegate void AddActorForce(IntPtr self, ref Vector3 value, int mode, int autoWake);
+		[StructLayout(LayoutKind.Explicit)]
+		private struct FloatBits
+		{
+			[FieldOffset(0)] internal int Bits;
+			[FieldOffset(0)] internal float Value;
+		}
+		private static SetTensor setTensor;
+		private static bool loggedTensor;
+		private static SetScale setMass;
+		private static UpdateMassProperties updateMassProperties;
+		private static bool loggedSmallMass;
+		private static AddActorForce addActorForce;
+		private static bool loggedGravityForce;
 		private static readonly Dictionary<int, IntPtr> stubs = new Dictionary<int, IntPtr>();
 		[DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr VirtualAlloc(IntPtr p, UIntPtr n, uint type, uint protect);
 		[DllImport("kernel32.dll", SetLastError = true)] private static extern bool VirtualProtect(IntPtr p, UIntPtr n, uint protect, out uint oldProtect);
@@ -53,6 +72,10 @@ namespace MPatcherFork.CustomPatches
 		{
 			foreach (IntPtr stub in stubs.Values) VirtualFree(stub, UIntPtr.Zero, 0x8000);
 			stubs.Clear();
+			setTensor = null;
+			setMass = null;
+			updateMassProperties = null;
+			addActorForce = null;
 		}
 		private static ModuleIdentity VerifyModule()
 		{
@@ -96,6 +119,153 @@ namespace MPatcherFork.CustomPatches
 			IntPtr native = Native(joint);
 			return native == IntPtr.Zero ? IntPtr.Zero : Marshal.ReadIntPtr(native, 0x20);
 		}
+		internal static void InspectInertia(Rigidbody body)
+		{
+			ModuleIdentity module = VerifyModule();
+			IntPtr actor = Marshal.ReadIntPtr(Native(body), 0x34), table = Marshal.ReadIntPtr(actor);
+			IntPtr setter = Marshal.ReadIntPtr(table, 0x88);
+			byte[] bytes = new byte[32]; Marshal.Copy(setter, bytes, 0, bytes.Length);
+			MagnificationDownscale.Log("INERTIA_NATIVE_PROFILE tableVA=" + (table.ToInt64() - module.BaseAddress.ToInt64() + 0x400000).ToString("X8")
+				+ " setterVA=" + (setter.ToInt64() - module.BaseAddress.ToInt64() + 0x400000).ToString("X8") + " bytes=" + BitConverter.ToString(bytes));
+		}
+		internal static void WriteSmallInertia(Rigidbody body, Vector3 value)
+		{
+			if (!(value.x > 0f && value.y > 0f && value.z > 0f)
+				|| float.IsInfinity(value.x + value.y + value.z) || float.IsInfinity(1f / value.x + 1f / value.y + 1f / value.z))
+				throw new ArgumentOutOfRangeException("value", "positive finite tensor and inverse required");
+			ModuleIdentity module = VerifyModule();
+			IntPtr native = Native(body);
+			if (native == IntPtr.Zero) throw new InvalidOperationException("no-native-rigidbody");
+			IntPtr actor = Marshal.ReadIntPtr(native, 0x34);
+			if (actor == IntPtr.Zero) throw new InvalidOperationException("no-physx-actor");
+			IntPtr table = Marshal.ReadIntPtr(actor);
+			if (table.ToInt64() - module.BaseAddress.ToInt64() + 0x400000 != 0x01355d58)
+				throw new InvalidOperationException("unexpected-inertia-actor-type");
+			IntPtr function = Function(table, 0x88, 0x00dd0f70);
+			if (setTensor == null)
+			{
+				byte[] expected = { 0x55, 0x8b, 0xec, 0x8b, 0x55, 0x08, 0xf3, 0x0f, 0x10, 0x4a, 0x08, 0x0f, 0x57, 0xd2 };
+				for (int i = 0; i < expected.Length; i++) if (Marshal.ReadByte(function, i) != expected[i]) throw new InvalidOperationException("inertia-setter-code-mismatch");
+				setTensor = (SetTensor)Marshal.GetDelegateForFunctionPointer(CdeclStub(function, 1), typeof(SetTensor));
+			}
+			// Unity 00635a00 does exactly these two operations, but rejects values
+			// <= float epsilon. Keep its manual-tensor flag and call the same PhysX
+			// setter, whose checked assembly accepts nonzero finite components.
+			byte implicitTensor = Marshal.ReadByte(native, 0x51);
+			if (implicitTensor > 1) throw new InvalidOperationException("inertia-automatic-flag-layout");
+			Marshal.WriteByte(native, 0x51, 0);
+			setTensor(actor, ref value);
+			if (!MagnificationInertiaBoundary.RelativeEqual(body.inertiaTensor, value))
+				throw new InvalidOperationException("native-inertia-readback requested=" + value.ToString("R") + " actual=" + body.inertiaTensor.ToString("R"));
+			if (!loggedTensor)
+			{
+				loggedTensor = true;
+				MagnificationDownscale.Log("INERTIA_SMALL_NATIVE_ACTIVE profile=Unity-5.6.2f1-x86 setterVA=00DD0F70 positivity=checked units=unchanged readback=match exeFile=unchanged");
+			}
+		}
+		internal static void WriteSmallMass(Rigidbody body, float value)
+		{
+			// Unity's cache clamps mass to 1e-7, but PhysX accepts smaller positive
+			// masses. Reproduce Unity's original auto/manual update path with the
+			// requested cache value. This is intentionally not a general mass setter.
+			if (!(value > 0f && value < 1e-7f) || float.IsInfinity(1f / value))
+				throw new ArgumentOutOfRangeException("value", "mass below Unity floor and finite positive inverse required");
+			ModuleIdentity module = VerifyModule();
+			if (body == null) throw new ArgumentNullException("body");
+			IntPtr native = Native(body);
+			if (native == IntPtr.Zero) throw new InvalidOperationException("no-native-rigidbody");
+			IntPtr actor = Marshal.ReadIntPtr(native, 0x34);
+			if (actor == IntPtr.Zero) throw new InvalidOperationException("no-physx-actor");
+			IntPtr table = Marshal.ReadIntPtr(actor);
+			if (table.ToInt64() - module.BaseAddress.ToInt64() + 0x400000 != 0x01355d58)
+				throw new InvalidOperationException("unexpected-mass-actor-type");
+			IntPtr massSetter = Function(table, 0x7c, 0x00dd0ec0);
+			Function(table, 0x80, 0x00dd0ef0); // Rigidbody.mass returns the true PhysX mass.
+			byte automaticTensor = Marshal.ReadByte(native, 0x51);
+			byte automaticCenter = Marshal.ReadByte(native, 0x52);
+			byte deferredMass = Marshal.ReadByte(native, 0x54);
+			if (automaticTensor > 1 || automaticCenter > 1 || deferredMass > 1)
+				throw new InvalidOperationException("mass-property-flag-layout");
+			// The optional linked-object callback at +0x38 has not been profiled.
+			// Fail before any write rather than leave that consumer inconsistent.
+			if (Marshal.ReadIntPtr(native, 0x38) != IntPtr.Zero)
+				throw new InvalidOperationException("small-mass-linked-object-unsupported");
+			if (setMass == null || updateMassProperties == null)
+			{
+				byte[] setterPrefix = { 0x55, 0x8b, 0xec, 0xf3, 0x0f, 0x10, 0x4d, 0x08, 0x0f, 0x57, 0xc0, 0x0f, 0x2f, 0xc8, 0x76, 0x0c };
+				for (int i = 0; i < setterPrefix.Length; i++)
+					if (Marshal.ReadByte(massSetter, i) != setterPrefix[i]) throw new InvalidOperationException("mass-setter-code-mismatch");
+				IntPtr updater = new IntPtr(module.BaseAddress.ToInt64() + 0x00640f30 - 0x400000);
+				byte[] updaterPrefix = { 0x55, 0x8b, 0xec, 0x83, 0xec, 0x54, 0x53, 0x56, 0x8b, 0xf1, 0x80, 0x7e, 0x54, 0x00, 0x57, 0x74, 0x1f };
+				for (int i = 0; i < updaterPrefix.Length; i++)
+					if (Marshal.ReadByte(updater, i) != updaterPrefix[i]) throw new InvalidOperationException("mass-properties-updater-code-mismatch");
+				setMass = (SetScale)Marshal.GetDelegateForFunctionPointer(CdeclStub(massSetter, 1), typeof(SetScale));
+				updateMassProperties = (UpdateMassProperties)Marshal.GetDelegateForFunctionPointer(CdeclStub(updater, 0), typeof(UpdateMassProperties));
+			}
+			// 00641210 writes native+44, then calls 00640F30 if auto-inertia is on;
+			// otherwise it calls actor vtable+7C. Preserve the inertia/COM mode flags.
+			Marshal.WriteInt32(native, 0x44, BitConverter.ToInt32(BitConverter.GetBytes(value), 0));
+			if (automaticTensor != 0) updateMassProperties(native);
+			else setMass(actor, value);
+			float actual = body.mass;
+			if (!(actual > 0f) || float.IsInfinity(actual) || Math.Abs((double)actual - value) > (double)value * 1e-5)
+				throw new InvalidOperationException("native-mass-readback requested=" + value.ToString("R") + " actual=" + actual.ToString("R"));
+			if (Marshal.ReadInt32(native, 0x44) != BitConverter.ToInt32(BitConverter.GetBytes(value), 0)
+				|| Marshal.ReadByte(native, 0x51) != automaticTensor || Marshal.ReadByte(native, 0x52) != automaticCenter
+				|| Marshal.ReadByte(native, 0x54) != deferredMass)
+				throw new InvalidOperationException("native-mass-cache-or-flags-readback");
+			if (!loggedSmallMass)
+			{
+				loggedSmallMass = true;
+				MagnificationDownscale.Log("MASS_SMALL_NATIVE_ACTIVE profile=Unity-5.6.2f1-x86 setterVA=00DD0EC0 autoUpdaterVA=00640F30 cacheOffset=44 positivity=checked inverse=finite units=unchanged readback=physx-match flags=preserved exeFile=unchanged");
+			}
+		}
+		internal static void AddAccelerationWithoutWake(Rigidbody body, Vector3 acceleration)
+		{
+			// Internal gravity does not reset an awake body's sleep timer. Unity's
+			// public AddForce always requests autowake, so use the same PhysX entry
+			// with only that flag changed. Call on Unity's physics/main thread.
+			if (body == null || body.isKinematic || body.IsSleeping()) return;
+			if (acceleration.x == 0f && acceleration.y == 0f && acceleration.z == 0f) return;
+			if (float.IsNaN(acceleration.x) || float.IsNaN(acceleration.y) || float.IsNaN(acceleration.z)
+				|| float.IsInfinity(acceleration.x) || float.IsInfinity(acceleration.y) || float.IsInfinity(acceleration.z))
+				throw new ArgumentOutOfRangeException("acceleration", "finite acceleration required");
+			ModuleIdentity module = VerifyModule();
+			IntPtr native = Native(body);
+			if (native == IntPtr.Zero) throw new InvalidOperationException("no-native-rigidbody");
+			// Unity00637F60 rejects bodies outside active simulation before calling
+			// PhysX. Keep that gate: the PhysX force entry requires a valid scene.
+			byte activeSimulation = Marshal.ReadByte(native, 0x50);
+			if (activeSimulation == 0) return;
+			if (activeSimulation != 1) throw new InvalidOperationException("gravity-active-flag-layout");
+			IntPtr actor = Marshal.ReadIntPtr(native, 0x34);
+			if (actor == IntPtr.Zero) throw new InvalidOperationException("no-physx-actor");
+			IntPtr table = Marshal.ReadIntPtr(actor);
+			if (table.ToInt64() - module.BaseAddress.ToInt64() + 0x400000 != 0x01355d58)
+				throw new InvalidOperationException("unexpected-gravity-actor-type");
+			IntPtr function = Function(table, 0xa4, 0x00dd25d0);
+			if (addActorForce == null)
+			{
+				byte[] expected = { 0x55, 0x8b, 0xec, 0x8b, 0x45, 0x0c, 0x53, 0x56, 0x57, 0x8b, 0x7d, 0x08, 0x50, 0x6a, 0x00, 0x57, 0x8b, 0xf1 };
+				for (int i = 0; i < expected.Length; i++)
+					if (Marshal.ReadByte(function, i) != expected[i]) throw new InvalidOperationException("gravity-force-code-mismatch");
+				addActorForce = (AddActorForce)Marshal.GetDelegateForFunctionPointer(CdeclStub(function, 3), typeof(AddActorForce));
+			}
+			// Verified Unity00635E10: Acceleration(5) multiplies each component by
+			// the Unity mass cache, then invokes PhysX eFORCE(0). FloatBits avoids
+			// allocating BitConverter arrays for every body on every physics step.
+			float mass = new FloatBits { Bits = Marshal.ReadInt32(native, 0x44) }.Value;
+			if (!(mass > 0f) || float.IsInfinity(mass)) throw new InvalidOperationException("invalid-gravity-mass-cache");
+			Vector3 force = new Vector3((float)((double)acceleration.x * mass), (float)((double)acceleration.y * mass), (float)((double)acceleration.z * mass));
+			if (float.IsInfinity(force.x) || float.IsInfinity(force.y) || float.IsInfinity(force.z))
+				throw new ArgumentOutOfRangeException("acceleration", "finite converted force required");
+			addActorForce(actor, ref force, 0, 0);
+			if (!loggedGravityForce)
+			{
+				loggedGravityForce = true;
+				MagnificationDownscale.Log("GRAVITY_NATIVE_FORCE_ACTIVE profile=Unity-5.6.2f1-x86 entryVA=00DD25D0 conversion=unity-cache-mass pxMode=Force autowake=false sleepGuard=true globals=unchanged exeFile=unchanged");
+			}
+		}
 		private static IntPtr Function(IntPtr table, int slot, int expectedVA)
 		{
 			IntPtr pointer = Marshal.ReadIntPtr(table, slot);
@@ -103,6 +273,37 @@ namespace MPatcherFork.CustomPatches
 				throw new InvalidOperationException("unexpected-vtable-slot-" + slot.ToString("X"));
 			return pointer;
 		}
+        // Same physical equations, differently scaled solver rows. Diagnostic D6-only entry.
+        internal static void UniformD6Unit(ConfigurableJoint joint, float unit, bool apply, bool expectOriginal)
+        {
+            if (!MagnificationJointUnitProbe.Requested || MagnificationCraftProbe.RunIndex != 2 || unit != 1000000f)
+                throw new InvalidOperationException("uniform-unit-not-authorized-probe");
+            ModuleIdentity module = VerifyModule();
+            IntPtr px = Marshal.ReadIntPtr(Native(joint), 0x20);
+            if (px == IntPtr.Zero) throw new InvalidOperationException("uniform-unit-no-px");
+            IntPtr table = Marshal.ReadIntPtr(px);
+            if (table.ToInt64() - module.BaseAddress.ToInt64() + 0x400000 != 0x0134ec30) throw new InvalidOperationException("uniform-unit-not-D6");
+            int[] slots = { 0x44, 0x4c, 0x54, 0x5c }, expected = { 0x00d99d70, 0x00d99d90, 0x00d93720, 0x00d93740 };
+            IntPtr[] functions = new IntPtr[4];
+            for (int i = 0; i < 4; i++) functions[i] = Function(table, slots[i], expected[i]);
+            IntPtr data = Marshal.ReadIntPtr(px, 0x50);
+            if (data == IntPtr.Zero) throw new InvalidOperationException("uniform-unit-no-data");
+            float[] values = new float[4]; Marshal.Copy(new IntPtr(data.ToInt64() + 0x38), values, 0, 4);
+            const float inverseUnit = 0.000001f;
+            int wantedBits = expectOriginal ? 0x3f800000 : 0x358637bd;
+            for (int i = 0; i < 4; i++) if (new FloatBits { Value = values[i] }.Bits != wantedBits) throw new InvalidOperationException("uniform-unit-before-or-persistence-mismatch index=" + i + " actualBits=" + new FloatBits { Value = values[i] }.Bits.ToString("X8") + " expectedBits=" + wantedBits.ToString("X8"));
+            if (!apply) return;
+            Rigidbody own = joint.GetComponent<Rigidbody>(), other = joint.connectedBody;
+            float m0 = own.mass, m1 = other.mass; Vector3 i0 = own.inertiaTensor, i1 = other.inertiaTensor;
+            for (int i = 0; i < 4; i++)
+            {
+                SetScale setter = (SetScale)Marshal.GetDelegateForFunctionPointer(CdeclStub(functions[i], 1), typeof(SetScale));
+                setter(px, inverseUnit);
+            }
+            Marshal.Copy(new IntPtr(data.ToInt64() + 0x38), values, 0, 4);
+            for (int i = 0; i < 4; i++) if (new FloatBits { Value = values[i] }.Bits != 0x358637bd) throw new InvalidOperationException("uniform-unit-write-readback index=" + i + " actualBits=" + new FloatBits { Value = values[i] }.Bits.ToString("X8") + " expectedBits=358637BD");
+            if (own.mass != m0 || other.mass != m1 || own.inertiaTensor != i0 || other.inertiaTensor != i1) throw new InvalidOperationException("uniform-unit-body-changed");
+        }
 		internal static bool Balance(Joint joint, float ratio, bool inertia, bool quiet = false)
 		{
 			try

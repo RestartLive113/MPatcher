@@ -16,6 +16,9 @@ namespace MPatcherFork.CustomPatches
 	{
 		private sealed class Entry { internal Rigidbody Body; internal float Factor; }
 		private static readonly Dictionary<int, Entry> entries = new Dictionary<int, Entry>();
+		private sealed class Requested { internal Rigidbody Body; internal Vector3 Value; }
+		private static readonly Dictionary<int, Requested> requested = new Dictionary<int, Requested>();
+		private static readonly HashSet<int> invalidWriters = new HashSet<int>();
 		private static readonly HashSet<MethodBase> patched = new HashSet<MethodBase>();
 		// Canonical closure from hash-matched Assembly-CSharp, not obfuscator decoys.
 		private static readonly HashSet<int> gameCallsites = new HashSet<int> { 0x0600260F, 0x06002613, 0x06002641, 0x0600266C, 0x0600268F,
@@ -34,6 +37,11 @@ namespace MPatcherFork.CustomPatches
 			harmony = value;
 			foreach (Type type in new[] { typeof(BodyController), typeof(MachineController), typeof(MachineSerializer), typeof(WheelController), typeof(ShaftController), typeof(SledController) }) PatchType(type);
 			if (patched.Count != gameCallsites.Count) throw new InvalidOperationException("inertia-native-callsite-count " + patched.Count);
+			RegisterCompiler(value);
+		}
+		internal static void RegisterCompiler(Harmony value)
+		{
+			harmony = value;
 			Type iterator = AccessTools.Inner(typeof(AutoPilot), "<StartMCS>c__Iterator0");
 			MethodInfo factory = iterator == null ? null : AccessTools.Method(iterator, "FLHFABLHLNJ", new[] { typeof(Type) });
 			if (factory == null) throw new MissingMethodException("AutoPilot script factory");
@@ -47,7 +55,11 @@ namespace MPatcherFork.CustomPatches
 		{
 			string directory = Path.GetFullPath(Path.Combine(Application.dataPath, "../Work/MPatcherCraftProbe"));
 			Directory.CreateDirectory(directory);
-			__state = new Compilation { Path = Path.Combine(directory, "ProbeScript_" + Guid.NewGuid().ToString("N") + ".dll"), OriginalPath = __0.OutputAssembly, InMemory = __0.GenerateInMemory };
+			// Native KNMBANDPIPK skips assembly references whose FullName starts
+			// "Dynamic". The compiler retains its AssemblyBuilder (Location throws)
+			// and our byte-loaded image has no Location. Both identities must keep
+			// that native prefix for the next compilation in this process.
+			__state = new Compilation { Path = Path.Combine(directory, "Dynamic_ProbeScript_" + Guid.NewGuid().ToString("N") + ".dll"), OriginalPath = __0.OutputAssembly, InMemory = __0.GenerateInMemory };
 			__0.OutputAssembly = __state.Path;
 			__0.GenerateInMemory = false;
 		}
@@ -57,7 +69,7 @@ namespace MPatcherFork.CustomPatches
 			if (__result == null || __result.Errors.HasErrors || !File.Exists(__state.Path)) return;
 			// Mono 2.x crashes in GetMethodBody on live AssemblyBuilder methods.
 			// Reload the same emitted image before any script instance is created.
-			byte[] image = MagnificationScriptImage.Rewrite(__state.Path, true);
+			byte[] image = MagnificationCraftProbe.NativeControl ? MagnificationScriptImage.RewriteInputOnly(__state.Path) : MagnificationScriptImage.Rewrite(__state.Path, !MagnificationResearchBootstrap.Manual);
 			File.WriteAllBytes(__state.Path + ".rewritten", image);
 			__result.CompiledAssembly = Assembly.Load(image);
 			MagnificationDownscale.Log("CRAFT_SCRIPT_IMAGE_RELOADED file=" + Path.GetFileName(__state.Path) + " sourceFiles=unchanged");
@@ -134,7 +146,7 @@ namespace MPatcherFork.CustomPatches
 		}
 		private static string InputReplacement(MethodBase call)
 		{
-			if (call.DeclaringType != typeof(Input) || call.GetParameters().Length != 1) return null;
+			if (MagnificationResearchBootstrap.Manual || call.DeclaringType != typeof(Input) || call.GetParameters().Length != 1) return null;
 			if ((call.Name == "GetAxis" || call.Name == "GetAxisRaw") && call.GetParameters()[0].ParameterType == typeof(string)) return "ScriptReadAxis";
 			if (call.GetParameters()[0].ParameterType != typeof(KeyCode)) return null;
 			return call.Name == "GetKey" ? "ScriptReadKey" : call.Name == "GetKeyDown" || call.Name == "GetKeyUp" ? "ScriptReadKeyEdge" : null;
@@ -142,14 +154,47 @@ namespace MPatcherFork.CustomPatches
 		private static float Factor(Rigidbody body)
 		{
 			Entry entry;
-			return entries.TryGetValue(body.GetInstanceID(), out entry) && ReferenceEquals(entry.Body, body) ? entry.Factor : 1f;
+			return entries.TryGetValue(body.GetInstanceID(), out entry) && ReferenceEquals(entry.Body, body) ? entry.Factor
+				: MagnificationScalePolicy.Enabled && MagnificationMassBoundary.IsTracked(body)
+					? MagnificationScalePolicy.Inertia(MagnificationMassBoundary.Scale(body)) : 1f;
 		}
-		internal static Vector3 Read(Rigidbody body) { return body.inertiaTensor / Factor(body); }
-		internal static void Write(Rigidbody body, Vector3 value) { body.inertiaTensor = value * Factor(body); }
+		internal static Vector3 Read(Rigidbody body)
+		{
+			if (MagnificationMassBoundary.Bypass(body)) return body.inertiaTensor;
+			return body.inertiaTensor / Factor(body);
+		}
+		internal static void Write(Rigidbody body, Vector3 value)
+		{
+			// Exact 100% semantics include Unity's own validation and automatic
+			// inertia lifecycle: no native bridge or requested-value cache here.
+			if (MagnificationMassBoundary.Bypass(body)) { body.inertiaTensor = value; return; }
+			float factor = Factor(body);
+			if (!(value.x > 0f && value.y > 0f && value.z > 0f) && invalidWriters.Add(body.GetInstanceID()))
+				MagnificationDownscale.Log("CRAFT_INERTIA_INVALID_WRITE body=" + body.name + " raw=" + value.ToString("R") + " factor=" + factor
+					+ " stack=" + new System.Diagnostics.StackTrace(1, false).ToString().Replace('\r', ' ').Replace('\n', '|'));
+			Vector3 physical = value * factor;
+			if (MagnificationScalePolicy.Enabled && physical.x > 0f && physical.y > 0f && physical.z > 0f
+				&& (physical.x <= 1.1920928955078125e-7f || physical.y <= 1.1920928955078125e-7f || physical.z <= 1.1920928955078125e-7f))
+				MagnificationJointMassNative.WriteSmallInertia(body, physical);
+			else body.inertiaTensor = physical;
+			if (MagnificationScalePolicy.Enabled) requested[body.GetInstanceID()] = new Requested { Body = body, Value = value };
+		}
+		internal static Vector3 LastRequested(Rigidbody body)
+		{
+			if (MagnificationMassBoundary.Bypass(body)) return body.inertiaTensor;
+			Requested value;
+			return requested.TryGetValue(body.GetInstanceID(), out value) && ReferenceEquals(value.Body, body) ? value.Value : Read(body);
+		}
 		internal static Vector3 Physical(Rigidbody body) { return body.inertiaTensor; }
 		internal static void Track(Rigidbody body, float factor)
 		{
+			if (MagnificationMassBoundary.Bypass(body)) return;
 			Vector3 source = Read(body);
+			TrackSource(body, factor, source);
+		}
+		internal static void TrackSource(Rigidbody body, float factor, Vector3 source)
+		{
+			if (MagnificationMassBoundary.Bypass(body)) return;
 			if (!(source.x > 0f && source.y > 0f && source.z > 0f) || float.IsInfinity(source.sqrMagnitude))
 			{
 				MagnificationDownscale.Log("CRAFT_INERTIA_NOT_TRACKED body=" + body.name + " source=" + source.ToString("R") + " reason=no-positive-finite-tensor");
@@ -157,18 +202,25 @@ namespace MPatcherFork.CustomPatches
 			}
 			entries[body.GetInstanceID()] = new Entry { Body = body, Factor = factor };
 			Write(body, source);
+			if (!RelativeEqual(body.inertiaTensor, source * factor))
+				throw new InvalidOperationException("Unity-inertia-write " + body.name + " requested=" + (source * factor).ToString("R") + " actual=" + body.inertiaTensor.ToString("R"));
 			CheckRoundtrip(body);
 		}
-		internal static void Clear() { entries.Clear(); }
+		internal static void Clear() { entries.Clear(); requested.Clear(); invalidWriters.Clear(); MagnificationMassBoundary.Clear(); MagnificationForceUnits.Clear(); MagnificationConstraintUnits.Clear(); }
 		internal static void CheckRoundtrip(Rigidbody body)
 		{
+			if (MagnificationScalePolicy.SameTime) return;
 			Vector3 source = Read(body);
 			// Helper bodies without colliders can report an automatic zero tensor.
 			// Merely testing such a body must not write that invalid value back.
 			if (!(source.x > 0f && source.y > 0f && source.z > 0f) || float.IsInfinity(source.sqrMagnitude)) return;
 			for (int i = 0; i < 10; i++) Write(body, Read(body));
-			if ((source - Read(body)).sqrMagnitude > 1e-7f || (Physical(body) - source * Factor(body)).sqrMagnitude > 1e-10f)
+			if (!RelativeEqual(source, Read(body)) || !RelativeEqual(Physical(body), source * Factor(body)))
 				throw new InvalidOperationException("inertia-boundary-repeat " + body.name);
+		}
+		internal static bool RelativeEqual(Vector3 a, Vector3 b)
+		{
+			return Math.Abs(a.x - b.x) <= Math.Abs(b.x) * .0001f && Math.Abs(a.y - b.y) <= Math.Abs(b.y) * .0001f && Math.Abs(a.z - b.z) <= Math.Abs(b.z) * .0001f;
 		}
 	}
 }

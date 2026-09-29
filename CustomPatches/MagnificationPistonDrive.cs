@@ -18,7 +18,7 @@ namespace MPatcherFork.CustomPatches
 				MethodInfo target = AccessTools.Method(typeof(PistonController), name);
 				if (target == null || target.DeclaringType != typeof(PistonController)) throw new MissingMethodException("PistonController", name);
 				harmony.Patch(target, null, null, new HarmonyMethod(AccessTools.Method(typeof(MagnificationPistonDrive), "Transpiler")), null);
-				MagnificationDownscale.Log("HOOK target=PistonController." + name + " drive=spring-inverse-scale+damper-inverse-sqrt-scale maxForce=native scope=downscale");
+				MagnificationDownscale.Log("HOOK target=PistonController." + name + " similarityDrive=K*s^3,C*s^3,Fmax*s^4 densityDrive=K*s^2,C*s^2.5,Fmax*s^3 legacyDrive=K/s,C/sqrt(s) cache=source-units");
 			}
 		}
 		internal static JointDrive NormalizeDrive(JointDrive value, float scale)
@@ -30,6 +30,7 @@ namespace MPatcherFork.CustomPatches
 		}
 		private static JointDrive ToWorld(JointDrive value, PistonController piston)
 		{
+			if (MagnificationScalePolicy.Enabled) return MagnificationJointUnitProbe.Convert(MagnificationScalePolicy.LinearDrive(value, MagnificationPhysicsNormalization.MachineScale(piston.FPEBEEJGFPI)), piston);
 			return NormalizeDrive(value, MagnificationPhysicsNormalization.MachineScale(piston.FPEBEEJGFPI));
 		}
 		internal static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
