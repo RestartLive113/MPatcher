@@ -21,7 +21,7 @@ namespace MPatcherFork.CustomPatches
 			if (!craftProbe && !suspensionProbe && !stressProbe && !dynamicProbe && Array.IndexOf(Environment.GetCommandLineArgs(), "--mpatcher-magnification-scale-probe") < 0) return;
 			string root = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
 			string expected = Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE") ?? string.Empty, "Downloads\\MachineCraftMPatcherTest");
-			if (!string.Equals(root.TrimEnd('\\', '/'), expected, StringComparison.OrdinalIgnoreCase))
+			if (!MagnificationInuProbe.IsTestRoot(root))
 			{
 				MagnificationDownscale.Log("SCALE_PROBE_REFUSED reason=not-isolated-test-root");
 				return;

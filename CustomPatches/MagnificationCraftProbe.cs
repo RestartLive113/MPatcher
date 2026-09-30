@@ -63,7 +63,7 @@ namespace MPatcherFork.CustomPatches
 			sourceStart = Array.IndexOf(Environment.GetCommandLineArgs(), "--mpatcher-craft-source-start") >= 0;
 			string root = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
 			string expected = Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE") ?? "", "Downloads\\MachineCraftMPatcherTest");
-			if (!string.Equals(root.TrimEnd('\\', '/'), expected, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("not-test-root");
+			if (!MagnificationInuProbe.IsTestRoot(root)) throw new InvalidOperationException("not-test-root");
 			foreach (string arg in Environment.GetCommandLineArgs())
 			{
 				if (arg.StartsWith("--mpatcher-craft-solver="))
@@ -90,8 +90,8 @@ namespace MPatcherFork.CustomPatches
 				{
 					craft = arg.Substring("--mpatcher-craft=".Length);
 					if (craft == "AyraSled") craft = "Ayra\u00b3        ";
-					if (craft.Trim() != "Ayra\u00b3" && craft != "Car" && craft != "JZZ30_Special2" && craft != "Q_7101" && craft != "Test_DummyAll" && craft != "Test_DummyEnds") throw new ArgumentException("unknown-probe-craft");
-					folder = craft == "Car" ? "_samples" : craft.Trim() == "Ayra\u00b3" ? "Catoniger" : "";
+					if (craft.Trim() != "Ayra\u00b3" && craft != "Car" && craft != "JZZ30_Special2" && craft != "Q_7101" && craft != "Test_DummyAll" && craft != "Test_DummyEnds" && craft != "Inu-Sangue") throw new ArgumentException("unknown-probe-craft");
+					folder = craft == "Inu-Sangue" ? "_gifts" : craft == "Car" ? "_samples" : craft.Trim() == "Ayra\u00b3" ? "Catoniger" : "";
 				}
 				if (arg == "--mpatcher-craft-short") { scales = new[] { 100, 5, 5 }; models = new[] { 0, 1, 7 }; }
 				if (arg == "--mpatcher-craft-linear") { scales = new[] { 100, 5, 5, 5 }; models = new[] { 0, 1, 7, 9 }; }
@@ -121,6 +121,7 @@ namespace MPatcherFork.CustomPatches
 			MagnificationCraftPassiveProbe.Configure(craft, nativeControl, massUnit, ref scales, ref models);
 			MagnificationD6LimitProbe.Configure(craft, nativeControl, massUnit, ref scales, ref models);
 			MagnificationAuxiliaryProbe.Configure(craft, nativeControl, ref scales, ref models);
+            MagnificationInuProbe.Configure(craft, nativeControl, ref scales, ref models, ref massUnit);
 			string path = Path.Combine(Path.Combine(root, "UserData"), folder);
 			sourceBuild = File.ReadAllText(Path.Combine(path, craft + ".mcbd"));
 			sourceAssign = File.ReadAllText(Path.Combine(path, craft + ".mcad"));
@@ -135,6 +136,7 @@ namespace MPatcherFork.CustomPatches
 			}
 			else MagnificationCraftModelProbe.Register(trace);
 			MagnificationSafetyObserver.Register(trace);
+            MagnificationInuProbe.Register(trace);
 			trace.Patch(AccessTools.Method(typeof(JKGKJLLFMLE), "GPNHJDMLHOK"),
 				new HarmonyMethod(AccessTools.Method(typeof(MagnificationCraftProbe), "BlockSave")), null, null, null);
 			foreach (MethodInfo method in typeof(HOCGCCAIPFF).GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
@@ -187,6 +189,7 @@ namespace MPatcherFork.CustomPatches
 			MagnificationRotorIsolationProbe.Reset();
 			straightLine.Reset();
 			percent = scales[run];
+            MagnificationInuProbe.EnergySettings();
 			ready = false; machine = null; pistons.Clear(); hinges.Clear(); wheels.Clear(); contactProbes.Clear(); frame = 0;
 			elapsed = 0f;
 			JKGKJLLFMLE.IGOBPLOLHEP.folderName = folder;
@@ -256,7 +259,7 @@ namespace MPatcherFork.CustomPatches
 		private void PrepareFlatGround()
 		{
 			groundY = 0f;
-            if (MagnificationAuxiliaryProbe.NativeGround)
+            if (MagnificationAuxiliaryProbe.NativeGround || MagnificationInuProbe.Requested)
             {
                 float closest = float.PositiveInfinity; Collider support = null;
                 foreach (RaycastHit hit in Physics.RaycastAll(machine.transform.position + Vector3.up * 1000f, Vector3.down, 2000f))
@@ -336,6 +339,7 @@ namespace MPatcherFork.CustomPatches
 				if (frame == 1 || frame == 5 || frame == 100) MagnificationJointPoseProbe.SampleMachine(machine, "craft-" + frame);
                 MagnificationPhysicalGraph.Capture(machine, craft, frame);
                 MagnificationAuxiliaryProbe.Sample(machine, frame);
+                MagnificationInuProbe.Sample(machine, frame);
                 MagnificationJointUnitProbe.Sample(frame);
 				if (frame == 1 || frame == 5 || frame == 100 || frame == 1000 || frame == 1500 || frame == 2300 || frame == 3200) MagnificationD6LimitProbe.Sample(machine, "craft-" + frame);
 				if (frame % 100 == 0) foreach (MagnificationSuspensionContacts observer in contactProbes) observer.Snapshot(frame, machine.DJCDFLDHPHK);
@@ -422,7 +426,7 @@ namespace MPatcherFork.CustomPatches
 						+ " mainAngular=" + rootBody.angularVelocity.ToString("R") + " mainPhysicalI=" + rootBody.inertiaTensor.ToString("R") + " mainCraftI=" + MagnificationInertiaBoundary.Read(rootBody).ToString("R"));
 				}
 				if (frame % 100 == 0 && Model >= 3 && !MagnificationScalePolicy.SameTime) MagnificationInertiaBoundary.CheckRoundtrip(rootBody);
-				if (frame >= (MagnificationAuxiliaryProbe.SledGeometry ? 1000 : (MagnificationAuxiliaryProbe.StraightComparison || MagnificationAuxiliaryProbe.ToleranceComparison || MagnificationJointUnitProbe.Requested) ? (MagnificationAuxiliaryProbe.LongRest ? 2500 : 1500) : 3200))
+				if (frame >= (MagnificationInuProbe.Requested ? 3600 : MagnificationAuxiliaryProbe.SledGeometry ? 1000 : (MagnificationAuxiliaryProbe.StraightComparison || MagnificationAuxiliaryProbe.ToleranceComparison || MagnificationJointUnitProbe.Requested) ? (MagnificationAuxiliaryProbe.LongRest ? 2500 : 1500) : 3200))
 				{
 					FlushPhase(); ready = false; run++;
 					if (run < scales.Length) LoadRun(); else Finish();
@@ -449,13 +453,13 @@ namespace MPatcherFork.CustomPatches
 			phaseSamples = 0; phaseSpeed = phaseYaw = phaseVertical = phasePiston = phasePeak = phaseAngular = phasePitch = 0f;
 			pistonMean = pistonM2 = 0.0;
 		}
-		private static string PhaseName(int index) { return MagnificationCraftPassiveProbe.Active ? "passive-window-" + index : index == 0 ? "idle" : index == 1 ? "forward" : index == 2 ? "coast" : index == 3 ? "reverse" : index == 4 ? "coast2" : "forward-left"; }
+		private static string PhaseName(int index) { return MagnificationCraftPassiveProbe.Active ? "passive-window-" + index : index == 0 ? "idle" : index == 1 ? "forward" : index == 2 ? "coast" : index == 3 ? "reverse" : index == 4 ? "coast2" : MagnificationInuProbe.Requested ? "sprint-shift-only" : "forward-left"; }
 		private static bool ReadKey(KeyCode key)
 		{
 			if (MagnificationCraftPassiveProbe.Active || MagnificationAuxiliaryProbe.SledGeometry) return false;
 			if (active == null || !active.ready || active.done) return false;
 			int phase = active.phaseIndex;
-			return (key == KeyCode.W && (phase == 1 || phase == 5)) || (key == KeyCode.S && phase == 3) || (key == KeyCode.A && phase == 5);
+			return (key == KeyCode.W && (phase == 1 || (!MagnificationInuProbe.Requested && phase == 5))) || (key == KeyCode.S && phase == 3) || (key == (MagnificationInuProbe.Requested ? KeyCode.LeftShift : KeyCode.A) && phase == 5);
 		}
 		private static bool ReadKeyDown(KeyCode key) { return false; }
 		internal static bool ScriptReadKey(KeyCode key) { return ReadKey(key); }
@@ -485,6 +489,7 @@ namespace MPatcherFork.CustomPatches
 		{
 			done = true;
 			MagnificationSafetyObserver.Flush();
+            MagnificationInuProbe.Flush();
 			if (originalFixedStep > 0f) Time.fixedDeltaTime = originalFixedStep;
 			for (int i = 0; i < methodNames.Count; i++) if (methodCounts[i] != 0) Log("CRAFT_PROBE_COVERAGE method=" + methodNames[i] + " calls=" + methodCounts[i]);
 			if (originalSystem != null) JKGKJLLFMLE.IGOBPLOLHEP = LNGKNOGOIKL.FMAGAEMFION<SystemData>(originalSystem);
@@ -496,3 +501,5 @@ namespace MPatcherFork.CustomPatches
 		private static void Log(string text) { MagnificationDownscale.Log(text + " model=" + Model); }
 	}
 }
+
+

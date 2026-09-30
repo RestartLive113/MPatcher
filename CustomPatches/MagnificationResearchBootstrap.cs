@@ -39,7 +39,7 @@ namespace MPatcherFork.CustomPatches
 			attempted = true;
 			string root = Path.GetFullPath(Path.Combine(Application.dataPath, "..")).TrimEnd('\\', '/');
 			string expected = Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE") ?? "", "Downloads\\MachineCraftMPatcherTest");
-			if (!string.Equals(root, expected, StringComparison.OrdinalIgnoreCase)
+			if (!MagnificationInuProbe.IsTestRoot(root)
 				|| (!Manual && Array.IndexOf(Environment.GetCommandLineArgs(), "--mpatcher-magnification-craft-probe") < 0))
 			{
 				MagnificationDownscale.Log("RESEARCH_REFUSED requires=isolated-test-root+manual-or-craft-probe-flag");
@@ -115,7 +115,7 @@ namespace MPatcherFork.CustomPatches
                 {
                     MagnificationCraftModelProbe.Register(harmony);
                     MagnificationSafetyObserver.Register(harmony);
-                    MagnificationDownscale.Log((publicAlpha ? "ALPHA_MAGNIFICATION_READY baseline=R66 model=22 massUnit=" : "RESEARCH_MANUAL_READY revision=R66 model=22 massUnit=") + ManualMassUnit.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + " percent100=bypass input=native automaticRuns=false automaticExit=false nativeLimitExperiment=false jointUnitExperiment=false sledVisualUnits=true acceptance=pending");
+                    MagnificationDownscale.Log((publicAlpha ? "ALPHA_MAGNIFICATION_READY revision=R68c baseline=R66 safetyUnits=true model=22 massUnit=" : "RESEARCH_MANUAL_READY revision=R68c baseline=R66 safetyUnits=true model=22 massUnit=") + ManualMassUnit.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + " percent100=bypass input=native automaticRuns=false automaticExit=false nativeLimitExperiment=false jointUnitExperiment=false sledVisualUnits=true acceptance=pending");
                     return;
                 }
 				MagnificationScaleProbe.TryStart();
@@ -141,3 +141,5 @@ namespace MPatcherFork.CustomPatches
 		}
 	}
 }
+
+

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -22,6 +22,7 @@ namespace MPatcherFork.CustomPatches
 			MagnificationLengthUnits.Register(harmony);
 			MagnificationVelocityUnits.Register(harmony);
 			MagnificationSpeedLimitUnits.Register(harmony);
+            MagnificationSafetyUnits.Register(harmony);
 			MagnificationEnvironmentUnits.Register(harmony);
 			MagnificationContactProbe.Register(harmony);
 			foreach (Type type in typeof(UDIRjB3VSmwHpVmUxcnHH66kk6ThWzbxmySWu7OngspoKs_47sbCTTGVAxk9y7DBfQ).GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic))
@@ -243,3 +244,4 @@ namespace MPatcherFork.CustomPatches
 		}
 	}
 }
+
