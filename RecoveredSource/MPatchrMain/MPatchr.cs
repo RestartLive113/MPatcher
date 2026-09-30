@@ -2395,6 +2395,7 @@ public class MPatchr : MonoBehaviour
 	public static void Load()
 	{
 		mK6lLU33ECSzxV4u22c7_0024ijC0MeyAkqA_PRIEl9WpAZK.YELeoCirSeVGf6u7nOIXkng("** MPATCHER " + globals.VERSION_NUM + globals.VERSION_POSTFIX + " (" + globals.VERSION_NUM_EXTRA + ") **");
+		MPatcherFork.CustomPatches.PrepatchCapture.Begin();
 		MPatcherFork.CustomPatches.CrashDiagnostics.TryRegister();
 		if (MPatcherFork.CustomPatches.LegacyServiceProbe.TryRegisterBaseline()) return;
 		metG733wDBlDhjB0MSUi_0024WZtiv2d5Ta15QUy66BHDFij5pgSnnkUUekfxHo4GGqdng.bl10qLgwUVVComuGzPN5IogJQnTiOUknRHmdHIbVuGoP();

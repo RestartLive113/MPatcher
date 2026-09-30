@@ -1,1 +1,1 @@
-using System.Reflection; [assembly: AssemblyInformationalVersion("0.3.9.2")]
+using System.Reflection; [assembly: AssemblyInformationalVersion("0.3.9.3")]

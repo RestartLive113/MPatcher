@@ -225,6 +225,7 @@ namespace MPatcherFork.CustomPatches
 
 		private static void MenuUpdatePostfix()
 		{
+            PrepatchCapture.Poll();
 			EnsurePersistenceRunner();
 			MagnificationResearchBootstrap.TryStartPublicAlpha();
 		}
