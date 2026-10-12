@@ -609,20 +609,21 @@ class ScaleModuleTests(unittest.TestCase):
         for old, new in ((b"HostApiVersion=1", b"HostApiVersion=2"),
                          (b"ModuleAssemblyName=MPatcher.ScaleRuntime", b"ModuleAssemblyName=Other"),
                          (b"PayloadSha256=", b"PayloadSha256=0"),
-                         (b"ProductVersion=0.3.9.12", b"ProductVersion=0.3.9.11")):
+                         (b"ProductVersion=" + MODULE_PAYLOAD[0].encode("ascii"), b"ProductVersion=0.0.0.1")):
             with self.subTest(replacement=new), self.assertRaises(m.Failure):
-                m.validate_scale_payload(MODULE_PAYLOAD[3], MODULE_PAYLOAD[4].replace(old, new), "0.3.9.12")
+                self.assertNotEqual(MODULE_PAYLOAD[4].replace(old, new), MODULE_PAYLOAD[4])
+                m.validate_scale_payload(MODULE_PAYLOAD[3], MODULE_PAYLOAD[4].replace(old, new), MODULE_PAYLOAD[0])
 
     def test_module_payload_partial_and_unknown_resources_rejected(self):
         resources = {m.LOADER_RESOURCE: MODULE_PAYLOAD[1], m.WATCHDOG_RESOURCE: MODULE_PAYLOAD[2],
                      m.SCALE_MODULE_RESOURCE: MODULE_PAYLOAD[3], m.SCALE_MANIFEST_RESOURCE: MODULE_PAYLOAD[4]}
-        self.assertEqual(m.payload_from_resources("0.3.9.12", resources), MODULE_PAYLOAD)
+        self.assertEqual(m.payload_from_resources(MODULE_PAYLOAD[0], resources), MODULE_PAYLOAD)
         for omitted in (m.SCALE_MODULE_RESOURCE, m.SCALE_MANIFEST_RESOURCE):
             with self.assertRaises(m.Failure):
-                m.payload_from_resources("0.3.9.12", {name: data for name, data in resources.items() if name != omitted})
+                m.payload_from_resources(MODULE_PAYLOAD[0], {name: data for name, data in resources.items() if name != omitted})
         resources[m.RESOURCE_PREFIX + "Unknown.dll"] = b"unknown"
         with self.assertRaises(m.Failure):
-            m.payload_from_resources("0.3.9.12", resources)
+            m.payload_from_resources(MODULE_PAYLOAD[0], resources)
 
     def test_module_actual_assembly_name_checked(self):
         # A different valid managed PE cannot masquerade behind the sidecar name.
@@ -630,7 +631,7 @@ class ScaleModuleTests(unittest.TestCase):
         original_hash = m.sha256(MODULE_PAYLOAD[3]).encode("ascii")
         sidecar = MODULE_PAYLOAD[4].replace(original_hash, m.sha256(wrong).encode("ascii"))
         with self.assertRaises(m.Failure):
-            m.validate_scale_payload(wrong, sidecar, "0.3.9.12")
+            m.validate_scale_payload(wrong, sidecar, MODULE_PAYLOAD[0])
 
     def test_incomplete_authoritative_ownership_refused(self):
         self.install_module()
