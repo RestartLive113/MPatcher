@@ -1,5 +1,5 @@
 {
-  "ProductVersion": "0.3.9.12",
+  "ProductVersion": "0.3.9.13",
   "HostApiVersion": 1,
   "CoreDefines": [
     "MPATCHER_EXCLUDE_PLAYER_PRESENCE"
@@ -7,7 +7,7 @@
   "CoreSources": [
     {
       "path": "CustomPatches/AlphaReleaseVersion.cs",
-      "sha256": "E73D2DB8C2CF3ABC672009FD469748859784F9930245F8E6774CCC90C101657F"
+      "sha256": "C9877FA1571247B654F5D1A854B43AE49F6F2E12B42837B4480A8A26E919D361"
     },
     {
       "path": "CustomPatches/AutoReconnect.cs",
@@ -695,7 +695,7 @@
     },
     {
       "path": "CustomPatches/UnusedMpatcherLauncher.cs",
-      "sha256": "F7B840ABEB977C61CC9730F2B509FF89D45780CB729D515ECE6B81DA821E4A90"
+      "sha256": "EA191AB9C8042300E2FA30D511FB5D37BC9866D3D7CC5883A32A75CC4EAEC8F8"
     },
     {
       "path": "RecoveredSource/-ICGGEmuSHiS4yKkMRFcT8e35reXck3MpVcnhLf251m9XytrQcHGzwATCnZLORd7rQ.cs",

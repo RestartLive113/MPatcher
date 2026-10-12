@@ -2,9 +2,9 @@ using UnityEngine;
 
 namespace MPatcherFork.CustomPatches
 {
-    // Class35 creates the MPATCHER launcher for both Build/Misc and Option tabs,
-    // then hands the exact Control0 to MPatcherUpdaterUi.BindLauncher. Hide that
-    // object there instead of patching the obfuscated creation helper.
+    // Class35 reuses the scene's toggle template for this launcher. The native
+    // Option scene owns a working settings tab; foreign scenes use a Build/Misc
+    // template and do not own the native Key/KeyEx settings groups.
     internal static class UnusedMpatcherLauncher
     {
         private static bool registered;
@@ -15,7 +15,7 @@ namespace MPatcherFork.CustomPatches
                 return;
 
             registered = true;
-            Log("REGISTERED source=MPatcherUpdaterUi.BindLauncher");
+            Log("REGISTERED source=MPatcherUpdaterUi.BindLauncher preserve=Option-settings-tab");
         }
 
         internal static void Hide(Control0 launcher)
@@ -24,9 +24,15 @@ namespace MPatcherFork.CustomPatches
                 return;
 
             GameObject button = launcher.gameObject;
+            string scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            if (scene == "Option" && SceneMan.JFAOKFIDAGK is Option)
+            {
+                button.SetActive(true);
+                Log("OPTIONS_TAB_VISIBLE object=" + button.name + " scene=" + scene);
+                return;
+            }
             button.SetActive(false);
-            Log("HIDDEN object=" + button.name + " scene="
-                + UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+            Log("HIDDEN object=" + button.name + " scene=" + scene);
         }
 
         private static void Log(string message)

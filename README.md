@@ -1,4 +1,4 @@
-# MPatcher 0.3.9.12 Alpha
+# MPatcher 0.3.9.13 Alpha
 
 Community continuation of MPatcher for MachineCraft 0.248c.
 
@@ -6,9 +6,15 @@ Community continuation of MPatcher for MachineCraft 0.248c.
 
 ## Install and update
 
-Run `MPatcherInstaller.exe`, choose the MachineCraft folder and install. The installer downloads the Alpha package and verifies its size and SHA-256. It supports a clean game and an existing MPatcher installation and preserves UserData. Launch the game normally.
+**Missing the MPatcher tab in OPTIONS after installing 0.3.9.12?** Update without opening game settings:
 
-For later updates, select **Settings → MPatcher → Update Channel → Alpha**. To return to Stable 0.3.8 on Windows, first use **Remove patcher** in the new Alpha installer, then install Stable. The old Stable installer cannot clean up the external Scale module, so a direct in-game channel switch is not the supported rollback route. New Scale detail metadata requires this Alpha reader; keep backups of important crafts before trying older versions.
+1. Download [MPatcherInstaller.exe from Alpha](https://github.com/RestartLive113/MPatcher/releases/download/alpha/MPatcherInstaller.exe).
+2. Close MachineCraft, run the installer and choose the folder of your existing MachineCraft installation.
+3. Select **Install / Update**, then launch the game normally. There is no need to remove the previous patcher; the installer preserves UserData and machine files.
+
+The Windows bootstrap installer always retrieves the Alpha package and verifies its size and SHA-256. It supports both a clean game and an existing MPatcher installation. 0.3.9.13 restores **OPTIONS → MPatcher**; the unrelated Build/Misc entry keeps its previous behavior.
+
+Once the tab is restored, select **OPTIONS → MPatcher → Update Channel → Alpha** for later updates. To return to Stable 0.3.8 on Windows, first use **Remove patcher** in the new Alpha installer, then install Stable. The old Stable installer cannot clean up the external Scale module, so a direct in-game channel switch is not the supported rollback route. New Scale detail metadata requires this Alpha reader; keep backups of important crafts before trying older versions.
 
 The optional `MPatcherInstaller-Linux-0.1.2-Alpha.tar.gz` asset is TEST support for the updated package format. It uses native Python to install the Windows game package in a Steam/Proton or Wine directory; it is not a native Linux game build. Live Proton/Wine acceptance is still open. See the included language-specific README before using it.
 
@@ -40,4 +46,4 @@ The core files include the generated overrides actually passed to the tested com
 
 Original MPatcher: Dylan Grinberg (dylanpdx). Original installer credits also name Sanikku. This continuation and redistribution are made with permission from the original author. See [third-party notices](Installer/THIRD-PARTY-NOTICES.txt). Public signing uses recovered public-key metadata and is not an authentic signature by the original author.
 
-[Changes in 0.3.9.12](docs/CHANGELOG-0.3.9.12-ALPHA.md).
+[Changes in 0.3.9.13](docs/CHANGELOG-0.3.9.13-ALPHA.md). [Previous Alpha changes](docs/CHANGELOG-0.3.9.12-ALPHA.md).
