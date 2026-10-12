@@ -209,6 +209,7 @@ namespace MPatcherFork.CustomPatches
 		internal static void Clear() { entries.Clear(); requested.Clear(); invalidWriters.Clear(); MagnificationMassBoundary.Clear(); MagnificationForceUnits.Clear(); MagnificationConstraintUnits.Clear(); }
 		internal static void CheckRoundtrip(Rigidbody body)
 		{
+            if (MagnificationMassBoundary.IsVanilla(body)) return;
 			if (MagnificationScalePolicy.SameTime) return;
 			Vector3 source = Read(body);
 			// Helper bodies without colliders can report an automatic zero tensor.

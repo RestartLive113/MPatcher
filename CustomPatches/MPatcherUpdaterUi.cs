@@ -57,6 +57,7 @@ namespace MPatcherFork.CustomPatches
 			launcherText = settingsLauncher.GetComponentInChildren<Text>();
 			launcherBaseText = launcherText == null ? string.Empty : launcherText.text;
 			Refresh();
+			UnusedMpatcherLauncher.Hide(settingsLauncher);
 		}
 
 		internal static void BindMainMenu(Menu menu)

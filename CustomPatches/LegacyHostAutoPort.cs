@@ -162,6 +162,9 @@ namespace MPatcherFork.CustomPatches
             try
             {
                 if (Owner == null || !SameEndpoint()) { Cancel("owner or service endpoint changed"); return; }
+                // The publication driver yields while Current is non-null;
+                // service the same recovery owner during candidate verification.
+                LegacyHostFacilitatorRecovery.Update(OwnPeer(), "auto-port");
                 // Check peers before every action, including teardown, timeout and manual start.
                 if (Network.connections.Length > 0)
                 { LegacyHostAutoPort.Log("SAFETY_STOP peers-present migration=false"); if (OwnPeer()) Commit(false); else Cancel("foreign players"); return; }
@@ -202,7 +205,8 @@ namespace MPatcherFork.CustomPatches
                 throw new InvalidOperationException("Candidate open requires a disconnected peer");
             // Password closes even the synchronous InitializeServer/maxConnections window.
             Network.incomingPassword = Guid.NewGuid().ToString("N");
-            LegacyHostFacilitatorReconnectFix.ClearPending();
+            LegacyHostFacilitatorRecovery.Reset("auto-port opening new transport");
+            LegacyHostFacilitatorReconnectFix.ForgetHost();
             NetworkConnectionError result = Network.InitializeServer(Capacity, port, UseNat);
             owned = result == NetworkConnectionError.NoError && Network.isServer;
             ownedGuid = owned ? Network.player.guid : null;
@@ -262,6 +266,8 @@ namespace MPatcherFork.CustomPatches
                 MasterServer.UnregisterHost();
                 if (OwnPeer()) Network.Disconnect();
                 owned = false; ownedGuid = null;
+                LegacyHostFacilitatorRecovery.Reset("auto-port released owned peer");
+                if (Network.peerType == NetworkPeerType.Disconnected) LegacyHostFacilitatorReconnectFix.ForgetHost();
             }
             return Network.peerType == NetworkPeerType.Disconnected;
         }
@@ -289,7 +295,8 @@ namespace MPatcherFork.CustomPatches
             Network.incomingPassword = oldPassword; MasterServer.dedicatedServer = oldMasterDedicated;
             HNJDDKJLHMM.IOOILBCOFMF = oldServer; HNJDDKJLHMM.OLHPKFAKNOG = oldDedicated;
             HNJDDKJLHMM.NIKEKIIPJFI = oldRole; HNJDDKJLHMM.FHLGOMHPDLN = oldMode; HNJDDKJLHMM.JCOLMIBIGOP = oldName;
-            LegacyHostFacilitatorReconnectFix.ClearPending();
+            LegacyHostFacilitatorRecovery.Reset("auto-port restored disconnected state");
+            LegacyHostFacilitatorReconnectFix.ForgetHost();
         }
         private void Report()
         {

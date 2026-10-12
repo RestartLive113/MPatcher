@@ -104,6 +104,8 @@ namespace MPatcherFork.CustomPatches
 			Harmony harmony = new Harmony("local.mpatcher.magnification-research.039");
 			try
 			{
+				MagnificationPhysicsMode.Register(harmony);
+				MagnificationVisualFixes.Register(harmony);
 				MagnificationJointAnchors.Register(harmony);
 				MagnificationPistonDrive.Register(harmony);
 				harmony.Patch(AccessTools.Method(typeof(MachineController), "Initialize"), null,
@@ -115,6 +117,7 @@ namespace MPatcherFork.CustomPatches
                 {
                     MagnificationCraftModelProbe.Register(harmony);
                     MagnificationSafetyObserver.Register(harmony);
+                    MagnificationPhysicsModeUi.Start();
                     MagnificationDownscale.Log((publicAlpha ? "ALPHA_MAGNIFICATION_READY revision=R68c baseline=R66 safetyUnits=true model=22 massUnit=" : "RESEARCH_MANUAL_READY revision=R68c baseline=R66 safetyUnits=true model=22 massUnit=") + ManualMassUnit.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + " percent100=bypass input=native automaticRuns=false automaticExit=false nativeLimitExperiment=false jointUnitExperiment=false sledVisualUnits=true acceptance=pending");
                     return;
                 }

@@ -25,17 +25,17 @@ namespace MPatcherFork.CustomPatches
 		private static float MachineSpeed(float value, MachineController owner)
 		{
 			if (!MagnificationScalePolicy.SameTime) return value;
-			return ToCraftSpeed(value, MagnificationPhysicsNormalization.MachineScale(owner), true);
+			return ToCraftSpeed(value, MagnificationPhysicsMode.PhysicsScale(owner), true);
 		}
 		private static float PistonSpeed(float value, PistonController owner)
 		{
 			if (!MagnificationScalePolicy.SameTime) return value;
-			return ToCraftSpeed(value, MagnificationPhysicsNormalization.MachineScale(owner.FPEBEEJGFPI), true);
+			return ToCraftSpeed(value, MagnificationPhysicsMode.PhysicsScale(owner.FPEBEEJGFPI), true);
 		}
 		private static Vector3 ContactVelocity(Vector3 value, ContactSensor owner)
 		{
 			if (!MagnificationScalePolicy.SameTime || owner.DLMKKFCHFNC == null) return value;
-			return ToCraftVelocity(value, MagnificationPhysicsNormalization.MachineScale(owner.DLMKKFCHFNC.CIPOPAGDJDE), true);
+			return ToCraftVelocity(value, MagnificationPhysicsMode.PhysicsScale(owner.DLMKKFCHFNC.CIPOPAGDJDE), true);
 		}
 		internal static void Register(Harmony harmony)
 		{

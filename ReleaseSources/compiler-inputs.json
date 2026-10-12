@@ -1,0 +1,1940 @@
+{
+  "ProductVersion": "0.3.9.12",
+  "HostApiVersion": 1,
+  "CoreDefines": [
+    "MPATCHER_EXCLUDE_PLAYER_PRESENCE"
+  ],
+  "CoreSources": [
+    {
+      "path": "CustomPatches/AlphaReleaseVersion.cs",
+      "sha256": "E73D2DB8C2CF3ABC672009FD469748859784F9930245F8E6774CCC90C101657F"
+    },
+    {
+      "path": "CustomPatches/AutoReconnect.cs",
+      "sha256": "4079FF19DEE7C8D05FE88A2EF80310552C6ADEDF240BE7B134C23C9EDA81FA44"
+    },
+    {
+      "path": "CustomPatches/AutoReconnectSettingsUi.cs",
+      "sha256": "5209821A4A0FB1EB0E3C4BB063130F938AFFBC0E3C94F7CCC9A6DBA87F728AD1"
+    },
+    {
+      "path": "CustomPatches/ConnectedShapePoseScope.cs",
+      "sha256": "971620C202C046393EEA81BFA0570FC8AABCB885B56F043D53187BFDFB1E288F"
+    },
+    {
+      "path": "CustomPatches/ConnectedShapeScaleV2.cs",
+      "sha256": "7855E2CD3CACB55AC2FA9DBE6CFBC61E021EA335D93527D056F101BA2A414318"
+    },
+    {
+      "path": "CustomPatches/CouplerRotation.cs",
+      "sha256": "D2081157DBC0C97D0B8B5B58E1D6A35497E57D8EE290A3738DB8F66B9928CB88"
+    },
+    {
+      "path": "CustomPatches/CouplerRotationCodec.cs",
+      "sha256": "31CBA063055E26F17722EA201264D05DA58D49A97A995619E9381763877C2A6A"
+    },
+    {
+      "path": "CustomPatches/CouplerRotationCopy.cs",
+      "sha256": "E2E41C9BFA3456FE17753D5DC6A87B3B3FE0A32E2DC216144713CBF9AF8A58E4"
+    },
+    {
+      "path": "CustomPatches/CouplerRotationMath.cs",
+      "sha256": "2E96A6C6EC2B905FC86E6D352D5F056DBEA1D76ADD996D934B1EFF4877A39132"
+    },
+    {
+      "path": "CustomPatches/CouplerRotationNetwork.cs",
+      "sha256": "15F3E3CB87969F142C67D1E72CCDC52B7DBD351A01265F6338BEF8E6AE9F846E"
+    },
+    {
+      "path": "CustomPatches/CouplerRotationOrder.cs",
+      "sha256": "1EC003A2411B3BCA025D9987606CD03CC3AEC1109143B85AB10FFAEF90024885"
+    },
+    {
+      "path": "CustomPatches/CouplerRotationPreview.cs",
+      "sha256": "AE2E33EA00650D3D171A70BCC4E7129DE70E74D9E792AC1F2129A72D3CCC9E8E"
+    },
+    {
+      "path": "CustomPatches/CouplerRotationProfiles.cs",
+      "sha256": "FD2AB3C2F639E71FB1732BCBDCCDB707D54C4CA9CF5DC06D187ABC44E1C14E25"
+    },
+    {
+      "path": "CustomPatches/CouplerRotationUi.cs",
+      "sha256": "D4044628B27297DED916700E93D0E151919EB1AA974C0ED8C681A61820DF8BDA"
+    },
+    {
+      "path": "CustomPatches/CrashDiagnostics.cs",
+      "sha256": "B6CF60145DE794EBCCB22FAC6FB108396B5E22F4C8ED8D0469FDE24EECA9A773"
+    },
+    {
+      "path": "CustomPatches/HardKickFaultInjection.cs",
+      "sha256": "B4F96E04ACE5774F3CF003BC47EFE27CF86EA41A18789E7019E3937EF89202B1"
+    },
+    {
+      "path": "CustomPatches/IScaleRuntime.cs",
+      "sha256": "543BA5ECF5B7C9FFEC9FF91D11563D332878D7AF13903FF3A6D7DB95755A50EF"
+    },
+    {
+      "path": "CustomPatches/InstallerBackupDllPolicy.cs",
+      "sha256": "6F32090BC901C8F7CFB2486C19F733CEC63E20EC48933B03884D03359423FCAF"
+    },
+    {
+      "path": "CustomPatches/InstallerBackupScriptCompatibility.cs",
+      "sha256": "D2D67D4027ADAED7C15E10D7F206BC111422EBA1A6D4AABDF536F96047515979"
+    },
+    {
+      "path": "CustomPatches/LegacyCatalogueOrphanPolicy.cs",
+      "sha256": "D578F8426A150B8DE4A633267129D132B03CB3CCA1207454ED4B9793115F74BF"
+    },
+    {
+      "path": "CustomPatches/LegacyCatalogueQueryPeer.cs",
+      "sha256": "C754500FA4CB00328D775CC4777CE066A37991E07AB114A547FBE5C50A182E31"
+    },
+    {
+      "path": "CustomPatches/LegacyCatalogueRecovery.cs",
+      "sha256": "61075138BE906C407FFCCB262A0A832FD2B323DBB210C4101ACEDE6D2A3829BB"
+    },
+    {
+      "path": "CustomPatches/LegacyCatalogueRecoveryPolicy.cs",
+      "sha256": "4B38812C38CA380C8CB9ABDB0490539771254D5BC5385593D3AF6FAE4219E6BE"
+    },
+    {
+      "path": "CustomPatches/LegacyCatalogueRouteProbe.cs",
+      "sha256": "9E7DC74D08800788FE74DC6FD3BFAA3CC19A5B0765CE7E95A3E8A4AEC9C7EA4E"
+    },
+    {
+      "path": "CustomPatches/LegacyCatalogueSocketPolicy.cs",
+      "sha256": "DACD3822B5DF40881189BE987B59E1710AE6247B1A8C138B3D24AEE35DF795F7"
+    },
+    {
+      "path": "CustomPatches/LegacyCatalogueTabsProbe.cs",
+      "sha256": "9C7471638C3B7206E475365834A0DEF192B03EC24F8DE0E615ED2E79C2FB2DF4"
+    },
+    {
+      "path": "CustomPatches/LegacyConnectionDiagnostics.cs",
+      "sha256": "A11C4A4B9A3C91A2223FF1DA861EBB4FFB3509853D1CFFF750A0CF8FE80668E2"
+    },
+    {
+      "path": "CustomPatches/LegacyConnectionRetryFix.cs",
+      "sha256": "A34D3C29FCF66EBFBB23E605B515C9E805D7729541C7B2389A9C3ACD1D14CECE"
+    },
+    {
+      "path": "CustomPatches/LegacyCrashOwnerCheckpoint.cs",
+      "sha256": "AC7254C6D80540913F278CB112D6593A338F09BEA05F423447844F22052EA899"
+    },
+    {
+      "path": "CustomPatches/LegacyCrashResumeConsentUi.cs",
+      "sha256": "EFE5F4B11EAC9D83BAD0B9A23452640E5948459895DDF8C3C5AA701884F6DE08"
+    },
+    {
+      "path": "CustomPatches/LegacyCrashResumeMarker.cs",
+      "sha256": "A0E56CDF58729E9401DBDBBB88AF7F175145ADA16A0D545537A776F7CC7DA765"
+    },
+    {
+      "path": "CustomPatches/LegacyFacilitatorDisconnectFix.cs",
+      "sha256": "F5CDA1AF3191E4F7E3FA026CB5FAE398185A5212E20D4297E2C5E6C5BF21D511"
+    },
+    {
+      "path": "CustomPatches/LegacyGhostPoseSnapshotCodec.cs",
+      "sha256": "B4D16D751B32F84ED30BAD9FBA6B50E06ABF973DEC89F16C774BDA2C45A81532"
+    },
+    {
+      "path": "CustomPatches/LegacyGhostPoseTransportCodec.cs",
+      "sha256": "E49084F02A23F7520D1310FBB7859EEACE2EAD5E1583210D486F34E56AE1CD60"
+    },
+    {
+      "path": "CustomPatches/LegacyHostAutoPort.cs",
+      "sha256": "3C9B278BBFB15D17CBC5CB525052EDD296825D49F50267B5984DE790B3183196"
+    },
+    {
+      "path": "CustomPatches/LegacyHostAutoPortProbe.cs",
+      "sha256": "210CC6F361A065D0629E4AFE3246BDE0A496E32BC516325184127185168C4B2A"
+    },
+    {
+      "path": "CustomPatches/LegacyHostAutoPortUi.cs",
+      "sha256": "9D4C69258FAF5EB5B7C9D8CC9756BBC016DD9F950F7C4BA35E0C3E50A465529A"
+    },
+    {
+      "path": "CustomPatches/LegacyHostDirectoryPolicy.cs",
+      "sha256": "8619486A7C676BE217248A87A49F472C45CA1FE0A0647BC946F4D446FF56CDDB"
+    },
+    {
+      "path": "CustomPatches/LegacyHostFacilitatorHealthPolicy.cs",
+      "sha256": "6225538FBCE951C062FB088E7186A351027DAA7E11362E43BBD2C0FEFBDF9384"
+    },
+    {
+      "path": "CustomPatches/LegacyHostFacilitatorReconnectFix.cs",
+      "sha256": "31F635CB732D2907851503E1FEE3641B59B1B77086C1B9F129B49B0EA5E76FF9"
+    },
+    {
+      "path": "CustomPatches/LegacyHostFacilitatorRecovery.cs",
+      "sha256": "B68023F4044EF1BD84342E72198406B5BF11DC556EC8930C1650C9C6D9364BB1"
+    },
+    {
+      "path": "CustomPatches/LegacyHostFacilitatorRetryPolicy.cs",
+      "sha256": "6B327CA8081A05DD67057EF415010490CE0B197FFB4D0B5E8D23326FDA257058"
+    },
+    {
+      "path": "CustomPatches/LegacyHostMigration.cs",
+      "sha256": "BCA23D494B62421F5C79A0D29E4CDADC7638C32B362F15939E9B421AD2455213"
+    },
+    {
+      "path": "CustomPatches/LegacyHostMigrationNative.cs",
+      "sha256": "8E9003951AC5133BB8401865C1DFFA8E33413BCCE9E27A60AD242E06387C76EF"
+    },
+    {
+      "path": "CustomPatches/LegacyHostMigrationPolicy.cs",
+      "sha256": "76F4FBE667B24861E4EB820DD640E79217B7AD357F55B6916E2FB8E02E9EAB5D"
+    },
+    {
+      "path": "CustomPatches/LegacyHostMigrationProbe.cs",
+      "sha256": "B5E51BC1001B1AF511E242C708E3897E730A8723DEAC27F72D80DE467D8FA2F9"
+    },
+    {
+      "path": "CustomPatches/LegacyHostMigrationReconnect.cs",
+      "sha256": "77C1091723D95EEBE5A535F7650EA5BCEF9B9F505F5BC84AB226D7954BCD0991"
+    },
+    {
+      "path": "CustomPatches/LegacyHostNativePatchLayout.cs",
+      "sha256": "F690C5B5E66E4BD870E0E21DCA78673FCA37AD57BE7C9697311D31B270B3990C"
+    },
+    {
+      "path": "CustomPatches/LegacyHostNetworkState.cs",
+      "sha256": "6D932659E4464223FFC59C5DA990EDC928D6A5B27A2F9865FA26E2853234F6C7"
+    },
+    {
+      "path": "CustomPatches/LegacyHostPortPolicy.cs",
+      "sha256": "3A73C02E9F8E75733952D63CEA633979CD7D0FB6EF239D59E7407E6B34BDB48E"
+    },
+    {
+      "path": "CustomPatches/LegacyHostRoutePolicy.cs",
+      "sha256": "D41E25A5985066CC1D5B2D7544E6560DACAE739AD24CB5EDA21102CB3FEC4675"
+    },
+    {
+      "path": "CustomPatches/LegacyHostStability.cs",
+      "sha256": "746ECBE2433EEEFF1FE6F8FB44069D538967EDF77C1D28869C112AB4E1393D70"
+    },
+    {
+      "path": "CustomPatches/LegacyIndivFixBundle.cs",
+      "sha256": "BBE556822596BEC84A8A09D435EDE72CB7A132AF3B0040A1E386871E7A6A7A4C"
+    },
+    {
+      "path": "CustomPatches/LegacyInstantiatePacket.cs",
+      "sha256": "3F5B8122068DA6CEBF3B70BD2DE9DA52018A939ACA3840FA3FC5CAD89D65E2DD"
+    },
+    {
+      "path": "CustomPatches/LegacyMachineChangeIngame.cs",
+      "sha256": "2A90F18001A9DD78041B3C43BC06C7A6161015C792FFDBE3A6F5CB1942A3DEF4"
+    },
+    {
+      "path": "CustomPatches/LegacyMachineControlRecovery.cs",
+      "sha256": "25BEBEC8886680AB4FEBEB475DE4992B947C909784B006EBBDD96819FB7C33CE"
+    },
+    {
+      "path": "CustomPatches/LegacyMachineControlState.cs",
+      "sha256": "465F7EA0972E68DDF188AF8BCC15B062119FAE4BF2CD5F25A5D707637E7C5844"
+    },
+    {
+      "path": "CustomPatches/LegacyMachineNetworkAnchor.cs",
+      "sha256": "D779C9E9AA5060896CD90DF522F762613195BA1036FCD886C9E696A9075D24AB"
+    },
+    {
+      "path": "CustomPatches/LegacyMachineRecovery.cs",
+      "sha256": "166936F6FCC247C2BF28BAD368CA2426C3E0D9A81276227C569A6E0DA4DAB9CB"
+    },
+    {
+      "path": "CustomPatches/LegacyMachineRecoveryFingerprint.cs",
+      "sha256": "7B0C12590CE2E72F1EF0D35A256450699CF7E5D0352809D0F3E6BC301737CE3D"
+    },
+    {
+      "path": "CustomPatches/LegacyMachineRecoverySnapshotCodec.cs",
+      "sha256": "12B1CBE0890831120BC57622345788B956187FA9F35F39833CFDCFE518A51F92"
+    },
+    {
+      "path": "CustomPatches/LegacyMasterLifecycleFix.cs",
+      "sha256": "68B44B8D668ECD1B2C895AC139404E7B783FA3CFF968981EFF31D85C3D794E0F"
+    },
+    {
+      "path": "CustomPatches/LegacyMasterLifecycleLayout.cs",
+      "sha256": "3E56F43911B7CC37DE380960FF6D31E35B9BFDCC4D8FB51097CDCB1C140C90DF"
+    },
+    {
+      "path": "CustomPatches/LegacyMasterLifecycleProbe.cs",
+      "sha256": "937CA4AC70EFDD6586412FE142649E86494C1B48C06C048646D8D6983983EDB4"
+    },
+    {
+      "path": "CustomPatches/LegacyMasterNativeState.cs",
+      "sha256": "1585F75EEC47449CC97492B9A55B7DC7DF7E28C403D8AEE70B62337FBC54D9BF"
+    },
+    {
+      "path": "CustomPatches/LegacyMasterQueryFix.cs",
+      "sha256": "62B8BB262500F22BE7E754E6AE0EC8E2816142DD85CFDFE4FDEB76616EF0FE46"
+    },
+    {
+      "path": "CustomPatches/LegacyMasterQueryLayout.cs",
+      "sha256": "772B1841D8B4EF6CFDED0E1F394B7FCEBF5806BAEA55F84C268BBB9BC637D834"
+    },
+    {
+      "path": "CustomPatches/LegacyMasterQueryProbe.cs",
+      "sha256": "D12B3F1106D672E48B9C361982982342BFAF21BDEF23DC15F44DC9E13DF070A0"
+    },
+    {
+      "path": "CustomPatches/LegacyMigrationMachineReplay.cs",
+      "sha256": "FAD5631E2CB1588252478D7F2797C51DCA40ADFB7AD9211D1306B9316C848363"
+    },
+    {
+      "path": "CustomPatches/LegacyMoreViewDistance.cs",
+      "sha256": "2E234B37D97F627A86F2C3CE2F4559265C91F6054011786F6C04C5CE17A91355"
+    },
+    {
+      "path": "CustomPatches/LegacyMtuProbeFix.cs",
+      "sha256": "443D361569B18B9604646CF867D9907F5C501C6D9E62E452F8A04BA914E3E3E6"
+    },
+    {
+      "path": "CustomPatches/LegacyNativeConstructionTrash.cs",
+      "sha256": "56F8DBCDAA837B7AF96289B6D5FF878399B7D213E9FB8A3FF32336C64CE55403"
+    },
+    {
+      "path": "CustomPatches/LegacyPlayerList.cs",
+      "sha256": "5C225663F16C1528714C597AB258A34A6C64B053741DF1BC94B7E9DB86BA2CC9"
+    },
+    {
+      "path": "CustomPatches/LegacyPrivateRooms.cs",
+      "sha256": "4AE700F3E6885004A002A626861B10FDB0870774DE97FF5DF29A67F6242E75F2"
+    },
+    {
+      "path": "CustomPatches/LegacyReconnectDiscovery.cs",
+      "sha256": "A095E958031277152FDBAAEA88B2409985794B7F64362750852044CDB426F183"
+    },
+    {
+      "path": "CustomPatches/LegacyRestoreDeliveryLedger.cs",
+      "sha256": "C747E0E486F06934FAB5802136F039011C4441BBBD16820A05AEAB397FE4CD9E"
+    },
+    {
+      "path": "CustomPatches/LegacyServerScripts.cs",
+      "sha256": "7A89E3C3AEB534FF8DD0294FBEF20909F6AE27A5D5206402F44DA0F8623AB5F8"
+    },
+    {
+      "path": "CustomPatches/LegacyServiceProbe.cs",
+      "sha256": "220C2C934FAB58B3119625F123CFE74BD3203BDBD79221064B1D1E75FA310A94"
+    },
+    {
+      "path": "CustomPatches/LegacySessionDiagnostics.cs",
+      "sha256": "D7B3F150A6FDF721CC21C26394CBD3923EE2ABBE491C4662D30C5E68BAE5E31B"
+    },
+    {
+      "path": "CustomPatches/LegacySocketSelfTestFix.cs",
+      "sha256": "A90008934C6A4E3AC49A9895A3E454CB399817D68C8A6B4B51AAD96422D35E74"
+    },
+    {
+      "path": "CustomPatches/LegacySocketSelfTestLayout.cs",
+      "sha256": "BC9EB084274E5F93C068098AC6F808B99CDA89D2191F47BA1F101238925A799D"
+    },
+    {
+      "path": "CustomPatches/LegacySpawnFinalization.cs",
+      "sha256": "F6E8863CFFDC776AF6A8F9DB228D95047B8BEE548BF8A738F2BF74CF88510178"
+    },
+    {
+      "path": "CustomPatches/LegacyTransientReconnect.cs",
+      "sha256": "892A2580F79A3BFC252983ED81979B479E7B842C2813508084F4E2C59EEC6F83"
+    },
+    {
+      "path": "CustomPatches/LegacyZapret.cs",
+      "sha256": "312C74968A38CB16FFA1DA883E4D1B206AA838A4D8E991DDF56F0182362A493E"
+    },
+    {
+      "path": "CustomPatches/LegacyZapretProbe.cs",
+      "sha256": "13C0BCFC99A94E3729C43FE7D4DA20A902008407CABE752E0E372D74823AA5B5"
+    },
+    {
+      "path": "CustomPatches/MPatcherStartupGate.cs",
+      "sha256": "1F119DACCBDF4074B2F4FB6D3CF8154CB8830C559C88ACACA607849083EB98AB"
+    },
+    {
+      "path": "CustomPatches/MPatcherUpdateManifest.cs",
+      "sha256": "596326E28A0BC21B2C53D66F8234C321D54D3AC61C4B97D37CE419629EB5A981"
+    },
+    {
+      "path": "CustomPatches/MPatcherUpdater.cs",
+      "sha256": "C0F2E94264C4FB36CD43B83B823D1CCD75C5C1C1AC34CC2C8A4BF19D91F1F3EB"
+    },
+    {
+      "path": "CustomPatches/MPatcherUpdaterUi.cs",
+      "sha256": "CD7EBFFB2E5EDDB9FBC358FD4BEA932470069321025838C3653D4ACEAF70A786"
+    },
+    {
+      "path": "CustomPatches/MachineCompression.cs",
+      "sha256": "25710823EB44084340D11F0746467122B162BDB87CB48B397A0604D50498A215"
+    },
+    {
+      "path": "CustomPatches/MachineCompressionMetadata.cs",
+      "sha256": "0049BD06321B963A4F2F08F4BCFF9CCD7E42960E411528AFE35DA24CB589F586"
+    },
+    {
+      "path": "CustomPatches/MagnificationAngularSimilarityProbe.cs",
+      "sha256": "344FA5E57BB71906830BE184A5F98311060285F8FA55028436B17B441881FA09"
+    },
+    {
+      "path": "CustomPatches/MagnificationAuxiliaryProbe.cs",
+      "sha256": "C2C5ECB76E50AB63926441E4C53C5914A8060A8B9B901C7D16D1ED9334E9B2F6"
+    },
+    {
+      "path": "CustomPatches/MagnificationConstraintUnits.cs",
+      "sha256": "A74751EB5F5C44582A24E0B2E65FF2CCD7F4128F9B05DE3D659A022A37AC092B"
+    },
+    {
+      "path": "CustomPatches/MagnificationContactProbe.cs",
+      "sha256": "713AF58861CB064C0775E4042D16E28974A880AEBBB88A8787340EA46B8D5063"
+    },
+    {
+      "path": "CustomPatches/MagnificationContactSimilarityProbe.cs",
+      "sha256": "658532CCA4151A0D6929FC8AA225F9BE6211F8EB6B2BF9D9E0916370931A78F5"
+    },
+    {
+      "path": "CustomPatches/MagnificationCoupledDriveProbe.cs",
+      "sha256": "3DD98A94F8C7C4C9BE12C001C2CE3D2DCAD1418F6ED739AF62F05290FD065925"
+    },
+    {
+      "path": "CustomPatches/MagnificationCraftModelProbe.cs",
+      "sha256": "1F326C6AE9D2C3F2676D7E49771810767341D5D5951A8E2A845833AF07500BFD"
+    },
+    {
+      "path": "CustomPatches/MagnificationCraftPassiveProbe.cs",
+      "sha256": "F1027C693B3F5D0219513C642E124410B272D96C020539CD82940B51F2F97862"
+    },
+    {
+      "path": "CustomPatches/MagnificationCraftProbe.cs",
+      "sha256": "3F4361414B41540BAA18BFABD32E0437DCE6312537B6CD7A95BE897386DF2455"
+    },
+    {
+      "path": "CustomPatches/MagnificationD6LimitNative.cs",
+      "sha256": "4E3D8F5E10BCFC8EF93C6E03AE959DE6DE4C6236C68C8955DE23F277E54B25D4"
+    },
+    {
+      "path": "CustomPatches/MagnificationD6LimitProbe.cs",
+      "sha256": "74CEEB72D76EDA26B27FA7878BE9C781321D24F31D12ECB7F181512D2A5F6215"
+    },
+    {
+      "path": "CustomPatches/MagnificationDownscale.cs",
+      "sha256": "4DBC29E52537FDF8F27D8F7CE8F06010672CBBA0D5F341FCC04F1A508DA94FB1"
+    },
+    {
+      "path": "CustomPatches/MagnificationDownscalePistons.cs",
+      "sha256": "91BB8B7C740604C9BCBF4B6FAE87A1D6717C2EE71A3C7D88997049D5F714F7DE"
+    },
+    {
+      "path": "CustomPatches/MagnificationDynamicProbe.cs",
+      "sha256": "207C9533BE9540EFB73FB12424E097186B1E693E0BD7C9C07A1B516A8D90681F"
+    },
+    {
+      "path": "CustomPatches/MagnificationEnvironmentUnits.cs",
+      "sha256": "7F82E8CDC8FEAF931F4E3A052B72EAAAA7D1F2AA23367C59631C4B68098C86A1"
+    },
+    {
+      "path": "CustomPatches/MagnificationForceProbe.cs",
+      "sha256": "3EBFB560B8A15188A00BA512C1F58CB2D971CE50296F2272E3DFCF5333B19FAD"
+    },
+    {
+      "path": "CustomPatches/MagnificationForceUnits.cs",
+      "sha256": "78612794A31B9970F54E013300647A4AF15000ABBCF267BA684411462B686D79"
+    },
+    {
+      "path": "CustomPatches/MagnificationGravityNativeProbe.cs",
+      "sha256": "6C11CD2176DC4A039781C5A27320004EF30618850D53543518481A247779AFEB"
+    },
+    {
+      "path": "CustomPatches/MagnificationGravitySimilarity.cs",
+      "sha256": "482484A68EAE4252334B054373D35DFA8B75130671F4B96D4BE1E8C0B3F04FBF"
+    },
+    {
+      "path": "CustomPatches/MagnificationInertiaBoundary.cs",
+      "sha256": "980AB0F8120D644877EC68DA55681D0F42B98CACFAFA32572C9FE63DFDFE8797"
+    },
+    {
+      "path": "CustomPatches/MagnificationInertiaProbe.cs",
+      "sha256": "C3343BA54ABF149212ADAB4CA6DB9E142A90DCD0CD3F2A0453583AAABE63833A"
+    },
+    {
+      "path": "CustomPatches/MagnificationInuProbe.cs",
+      "sha256": "E7C233F53C4CC56D9860F73E41243254CD416F5DC1EB72254ABE27C7065FF611"
+    },
+    {
+      "path": "CustomPatches/MagnificationJointAnchors.cs",
+      "sha256": "97C7D63CB06142CB2E2F91973EC627F07649C725E1C96784A4B4196E65474DBC"
+    },
+    {
+      "path": "CustomPatches/MagnificationJointDriveProbe.cs",
+      "sha256": "E2CF102D27B2F69C250A9A5281885FEA60C020E6C9715E40918ACFFC583726FD"
+    },
+    {
+      "path": "CustomPatches/MagnificationJointMassBalance.cs",
+      "sha256": "FF8ACA1421A8CD23338E3EF2D513AAB38F1ABCCEAD328719A04B6B0722C25907"
+    },
+    {
+      "path": "CustomPatches/MagnificationJointMassNative.cs",
+      "sha256": "265DF770967CDE5F5F381FA028109F0A764478CEC593CDBFE3AD495B5C3E6D0D"
+    },
+    {
+      "path": "CustomPatches/MagnificationJointPoseNative.cs",
+      "sha256": "38CD796F221C9779B5041D62E6E215C5C43DA7FCEE6FB9954363DCBFFB240F5B"
+    },
+    {
+      "path": "CustomPatches/MagnificationJointPoseProbe.cs",
+      "sha256": "B2AFB0CC31E227DD54B90AF3EEA9FDD54156D8E45969FA53204FD52B8EFB405A"
+    },
+    {
+      "path": "CustomPatches/MagnificationJointUnitProbe.cs",
+      "sha256": "EEB9AC296124D6E097E8CB8B7F7D299781CEC66102BD2DFD30D994CA405044D3"
+    },
+    {
+      "path": "CustomPatches/MagnificationLatePhysics.cs",
+      "sha256": "79A5B3700C9EB3FF9F79D4FB7B2931F57CAD76EB8829CDF3EB1BC5AA5E5112DD"
+    },
+    {
+      "path": "CustomPatches/MagnificationLengthUnits.cs",
+      "sha256": "72C373DEDE3809747F020EC237FBF0087E4F87AF38014D7A1AC62AF29CF7C9CF"
+    },
+    {
+      "path": "CustomPatches/MagnificationMassBoundary.cs",
+      "sha256": "DAC89DB7818690F808ECA7BD999036F4E25D8188F01A5B7089E3CA388AB9067B"
+    },
+    {
+      "path": "CustomPatches/MagnificationMassCacheNative.cs",
+      "sha256": "A367038CB013218D412682F6C3B0E0D51302835CEA9ABFE2392DEAD3D4339793"
+    },
+    {
+      "path": "CustomPatches/MagnificationMassNativeProbe.cs",
+      "sha256": "A2DA254ADC35C2C552253C79A06632F219E01EE208C87AA18090F2BC79E1EBD8"
+    },
+    {
+      "path": "CustomPatches/MagnificationNativeJointProbe.cs",
+      "sha256": "816A118714F368AE3DBF877D82CD1BF0A032929149A7D568442F5C3BEF34AB50"
+    },
+    {
+      "path": "CustomPatches/MagnificationPhysicalGraph.cs",
+      "sha256": "7FF7AAB780E3954DBA0F8FBE9E75E78830E6CCE88D8596699A43901BA71BCDFF"
+    },
+    {
+      "path": "CustomPatches/MagnificationPhysicsMode.cs",
+      "sha256": "FD44F02B163680A7C954EBE0D42CBB107AB257B87375E484A8636F2E23A5A1DE"
+    },
+    {
+      "path": "CustomPatches/MagnificationPhysicsModeUi.cs",
+      "sha256": "C4386629DA7AC0F8C8B889B67C9A4DAE7C008E5E4638DA7A8548F620926C062D"
+    },
+    {
+      "path": "CustomPatches/MagnificationPhysicsNormalization.cs",
+      "sha256": "2E6360A65070E264E0C3C8212E2D9FC24B2123DF46E8340BA971B5B532686A0D"
+    },
+    {
+      "path": "CustomPatches/MagnificationPistonDrive.cs",
+      "sha256": "BBD6A42035CB1E4BEB666FE51932D5632166EB1F2CDA1FB7EF522BFA45E12581"
+    },
+    {
+      "path": "CustomPatches/MagnificationResearchBootstrap.cs",
+      "sha256": "6361C4E2D62B3D9F5B2E30BA5988261F354E667BC69D353961F15A7D44D55FF1"
+    },
+    {
+      "path": "CustomPatches/MagnificationRotorIsolationProbe.cs",
+      "sha256": "E78557B4A02AE6B40698C6FCE8181002B836202346B7F39CE883959771F194F7"
+    },
+    {
+      "path": "CustomPatches/MagnificationRotorProbe.cs",
+      "sha256": "0040AC6864C468B57CDEDABE18CD659BCC8E837FFE89AED5448D4B4380503A33"
+    },
+    {
+      "path": "CustomPatches/MagnificationRuntimeDiagnostics.cs",
+      "sha256": "57AFB2BCF8BD13A338284D6E33A70E8D8F5CE6A8BE627D079FE51286B6FF0080"
+    },
+    {
+      "path": "CustomPatches/MagnificationSafetyObserver.cs",
+      "sha256": "616A7A5C01278D274CCD90229D94E9BD99F177F7F3A382893C8A3F7ED79F15D0"
+    },
+    {
+      "path": "CustomPatches/MagnificationSafetyUnits.cs",
+      "sha256": "17331388A71F7072317A0726027B2777F64382CE815879FC01B7B1488F6B953C"
+    },
+    {
+      "path": "CustomPatches/MagnificationScalePolicy.cs",
+      "sha256": "1743416E219D2169602E6DF94CEDA941F6CFF37AC92977AC0226E31278EED8D4"
+    },
+    {
+      "path": "CustomPatches/MagnificationScaleProbe.cs",
+      "sha256": "6D8545D0113FF1092A1FCB21734AA2C77295C7422674E00016817B2CB79C2FD8"
+    },
+    {
+      "path": "CustomPatches/MagnificationScriptImage.cs",
+      "sha256": "1048D74EF13C8B67584DE9882947388CF8AEC4C395F6DE3CC99C492ABB3BB470"
+    },
+    {
+      "path": "CustomPatches/MagnificationScriptJointUnits.cs",
+      "sha256": "64968051B73082849FBCB9AF873F7FBAC9DF65F47BE146734825A9062E3B58EF"
+    },
+    {
+      "path": "CustomPatches/MagnificationSimilarityUnits.cs",
+      "sha256": "9CFEAAA819640B95959ED5EFBFD91A25A29D915371932B9AB397B5C4E8B00CF1"
+    },
+    {
+      "path": "CustomPatches/MagnificationSledJointUnits.cs",
+      "sha256": "16389FFEA8AF6C28AAF01F52AA7E9E1DC1C42924C3298F065B73CF56874B7BF6"
+    },
+    {
+      "path": "CustomPatches/MagnificationSledVisualUnits.cs",
+      "sha256": "E0A3D61DC69E2F3DF796D509BF09E75B107A24298BC3E43F6D0C56D9F22B9000"
+    },
+    {
+      "path": "CustomPatches/MagnificationSpeedLimitUnits.cs",
+      "sha256": "C03A0846170B1AE637B02E1D57693869F061A4FBBFA8688B9FEAC424D96A7169"
+    },
+    {
+      "path": "CustomPatches/MagnificationStraightLineProbe.cs",
+      "sha256": "582581DEC93ACE37C3FC4F0AD993F8AD2D524C63B496F95C8AA7A5FE797FA8E8"
+    },
+    {
+      "path": "CustomPatches/MagnificationStressProbe.cs",
+      "sha256": "4B445CD1B38F0FDE6AA68EF5A874C0F71D5C665EB9AEDE8650AB7B861BBEE282"
+    },
+    {
+      "path": "CustomPatches/MagnificationSuspensionContacts.cs",
+      "sha256": "9CA990A5C285F9E2DB498709A0B9F4F91377E0C15A8F3E3C86B7248E3E0E25C7"
+    },
+    {
+      "path": "CustomPatches/MagnificationSuspensionProbe.cs",
+      "sha256": "D885207152E22FCE48A5F0C8EEB0185001960F128D3212B57A3534BF90D885CF"
+    },
+    {
+      "path": "CustomPatches/MagnificationVelocityUnits.cs",
+      "sha256": "EA759287614D81D6721AFFBFEA1E5656000A129652E06803CD4755BE0036D357"
+    },
+    {
+      "path": "CustomPatches/MagnificationVisualFixes.cs",
+      "sha256": "E0010D83DB3BA2FD02FF1BAE6FF92208F51690BE0B438455C88A153E4C1D1D35"
+    },
+    {
+      "path": "CustomPatches/MagnificationWheelSpeed.cs",
+      "sha256": "E5F8270B0A5D419FA2A62354D8EBC69033950A776EA3CF4B2B0F2E68D2765C3B"
+    },
+    {
+      "path": "CustomPatches/MainMenuVersionLabel.cs",
+      "sha256": "BAB5A785BD41FAF0199D8AF0A8C037CBA43A9E3A3405A6F6A9467BAA7B725921"
+    },
+    {
+      "path": "CustomPatches/NormalMapStampOffsets.cs",
+      "sha256": "66006BDB424A7D865B4E18736F46E5C703EBA43E87C1051F11B41CD3A9A71060"
+    },
+    {
+      "path": "CustomPatches/PatchSettingsPage.cs",
+      "sha256": "B2CCBCF0C09AAAC78EC752555CE92A8003DC821FC0F5BECC52B09D00A20797CD"
+    },
+    {
+      "path": "CustomPatches/PrepatchCapture.cs",
+      "sha256": "194832A7815415BA18D3EB80D18EB6F8E978467C9CB3F5C645F74FDDEF356179"
+    },
+    {
+      "path": "CustomPatches/PrepatchRuntime.cs",
+      "sha256": "6B9B4C087D6E95A657F450242D338C75D470F6687E3BD63512A9D1FCB1D37F0F"
+    },
+    {
+      "path": "CustomPatches/ScaleRuntimeFriend.cs",
+      "sha256": "3EFDC9858F4AC0AC8A7C1D8DDEB8522CE2778313A84349F59CE41EDF4314C970"
+    },
+    {
+      "path": "CustomPatches/ScaleRuntimeHost.cs",
+      "sha256": "0F29E40552CB6590A21EAE3616348ECD67834D97EE897506BCDDAC602784B014"
+    },
+    {
+      "path": "CustomPatches/SculptScaleCamera.cs",
+      "sha256": "45344BC6D40929F7A69F419778C2EA0008578CC47F7914B8123C0F5674CC34BF"
+    },
+    {
+      "path": "CustomPatches/SculptScaleUi.cs",
+      "sha256": "F12B3BB7FD293518ACA507ADBD18C138A01E2427AD5D5DD211828E0B75E591A5"
+    },
+    {
+      "path": "CustomPatches/SettingsListIsolation.cs",
+      "sha256": "3766C3FF8FF66282E030A47134BDCE6B3B6B08CAD66B40525277455FE387B976"
+    },
+    {
+      "path": "CustomPatches/SetupPrecision.cs",
+      "sha256": "EB2929FE729DDE9AF01477352DF4A299930C6650C06508D05A4FF43235E4AFC8"
+    },
+    {
+      "path": "CustomPatches/SetupPrecisionCodec.cs",
+      "sha256": "F339A499CEC09075CFE6DA8F1940B64873E225EF718BEDB4DB51F93E7EBA2347"
+    },
+    {
+      "path": "CustomPatches/SetupPrecisionData.cs",
+      "sha256": "6D5BF5E83337F631C21C294EE9AB3B05A1DCC3F12049BE3DAD5238C5DA8DBF4E"
+    },
+    {
+      "path": "CustomPatches/SetupPrecisionLimits.cs",
+      "sha256": "223C1F93B2AD34A3B96A1B9B9294D143C2057BEDF38D9827DCB1D3B4E82C71C8"
+    },
+    {
+      "path": "CustomPatches/SetupPrecisionNetwork.cs",
+      "sha256": "46CB0145EA890A473F0B421C7DA33E014EC34026F33DDA9D7F538C17D90C6ED2"
+    },
+    {
+      "path": "CustomPatches/SetupPrecisionSettingsUi.cs",
+      "sha256": "83CEB4AEFBEE4B3FAF51981B6F6035BEA10FD19DA161905009F0337555353AAE"
+    },
+    {
+      "path": "CustomPatches/SetupPrecisionShapes.cs",
+      "sha256": "0258D36765ED4BDA7295764B3330749FC9D39DB1CAA954DA7F30F94BD3B2E70D"
+    },
+    {
+      "path": "CustomPatches/SetupPrecisionUi.cs",
+      "sha256": "D1E514E172A752E4CC17209EABAC1E97B1EE1980E0D4E56A766CC124DE8E1611"
+    },
+    {
+      "path": "CustomPatches/ShapeDetailRetention.cs",
+      "sha256": "2EB4A730791296648F0BE95E5A77BE95CB47B863653C811AD5EF55960062F8A4"
+    },
+    {
+      "path": "CustomPatches/StartupHarmonyBatch.cs",
+      "sha256": "1150A448B577DE956C18CF24AD4CA3FD2C8C5258F12C5AA7BD2C525D75E7349A"
+    },
+    {
+      "path": "CustomPatches/UnusedMpatcherLauncher.cs",
+      "sha256": "F7B840ABEB977C61CC9730F2B509FF89D45780CB729D515ECE6B81DA821E4A90"
+    },
+    {
+      "path": "RecoveredSource/-ICGGEmuSHiS4yKkMRFcT8e35reXck3MpVcnhLf251m9XytrQcHGzwATCnZLORd7rQ.cs",
+      "sha256": "9F03288DC03DF3D0E889C8CDB6BE1C29E72270F34E963BE33B87D3B08DAE507D"
+    },
+    {
+      "path": "RecoveredSource/-Module-.cs",
+      "sha256": "43E43A7E8BD174F236D54FD97484BFA5A0811C5F31781203784E937FA2A82F47"
+    },
+    {
+      "path": "RecoveredSource/AJ95PT5qH7SI3aQp44bnfe9rXdzyiYcVJnP8p242egZvaWA5f7vGynYUg9dQSkzYlA.cs",
+      "sha256": "788ABE7DDEE64B76930DD0C36DB5E47D2DA4CE9682326B4465F7AA0A7F4F6A50"
+    },
+    {
+      "path": "RecoveredSource/ATCyo-qpPFqNSISN7PgDzuPM7bZZWP2fcNoTkefIy5A2WLvcWT1w9UCw3Yq7lMwlug.cs",
+      "sha256": "3EA966E4D4C9FD630F8BB261FB2CAE266ACE51C82B69979F797EA80FB2D6FED5"
+    },
+    {
+      "path": "RecoveredSource/AmMqj0pgwIcDWbDrsUGYa8I3gS_ZpySz688dpxLmRv5F.cs",
+      "sha256": "75EFDF8779FBBF8AA8A659A47B38DDDE817731CEEC3D2058C82AC5D92BF3CAC4"
+    },
+    {
+      "path": "RecoveredSource/BDkfokxR71_dfvtXHNIeppLRPcz23oyvMspdw87a8wbKe3K5WnLuQqq4hNm5-cdlYA.cs",
+      "sha256": "A93913DA904210AFE904A15A828484B6FC71EB02F44D3AE510CF8D06A9D94E46"
+    },
+    {
+      "path": "RecoveredSource/BVzwUED_lI8LYZ1VYbVfpY8_XEX8q1mymRkkFvCM9QtF72TvSNrVMo20Z-7bZN8LUg.cs",
+      "sha256": "CEFDF00F743A46A4F4C5231B1C92F3130ACB9A042B4EB675778A9182E31F6813"
+    },
+    {
+      "path": "RecoveredSource/BWHIL5wdnR4xjEFCXwNroigNrxAykiqlFsHJMrMbU3pw.cs",
+      "sha256": "2B67A1F0BCFA47F1E6E05926F32F981DF787AD147F72029EA6B9C017CD35C943"
+    },
+    {
+      "path": "RecoveredSource/BkEYtCXOGBC5a3sGZc1baFBEZsix9sHaNV7UHBoeB8aKxFK0bpuW1JKVsL3eaRtFkQ.cs",
+      "sha256": "4ECB9C2660A2060C8028B95CB6316F7DDB22DFC409FA7A73253CA2063B5FC7E3"
+    },
+    {
+      "path": "RecoveredSource/BmX9fkX90Trh4MiCFQ9HUq4fs5QR-AcKSvsuQGsj1D98eu2yqZ_MR31lJY10Sbt5mA.cs",
+      "sha256": "B8785384091D37D5EB66A843215ABFEBC36780D1355A2B01E80784B0B26681C8"
+    },
+    {
+      "path": "RecoveredSource/BorderlessWindow.cs",
+      "sha256": "11BB1B524EC4AF14A6EDF4E97D48F873B324DE0128AB6E4CF73EC962FBA10AD4"
+    },
+    {
+      "path": "RecoveredSource/CK1GMyRHIE5KyvvFyrOx6VJPIKu5V0GvrNJUjmuLjN3d.cs",
+      "sha256": "E903890A1C0FAA93E686741D57178CC0C06CF94377C24D0768E17818DFB842CE"
+    },
+    {
+      "path": "RecoveredSource/CXvD5Q_rf1yzobpQsoR3lunTtkoYo7kvskTrWRN0B2LJ.cs",
+      "sha256": "36DB98CB4A193A1461BC45182042D75A496F7D1F15F4EE95DA863A9F0CA4DBE1"
+    },
+    {
+      "path": "RecoveredSource/CeGPiEeLcGa_jAqF8L8J7S5Vi4pPh-X8_GlojvQ92gul.cs",
+      "sha256": "31765B5F88832F350A8D9425C3F9AADC49CA8C8E47553DDE47DED2C20CE78A17"
+    },
+    {
+      "path": "RecoveredSource/CircularBuffer/CircularBuffer.cs",
+      "sha256": "16FC31FF03BA1BE70F90E6863BCA2F2864B5CEF1835A7D795B70CB65AC6146A6"
+    },
+    {
+      "path": "RecoveredSource/Class12.cs",
+      "sha256": "07839C72DF5D5066E528E9784A442F05CC9ED3524288FAE4A63030AF8E14EDB9"
+    },
+    {
+      "path": "RecoveredSource/Class15.cs",
+      "sha256": "E67D333F03B3F8BA65B1F460D3A7E9BB15BB5F84527BE6D0EB89D25266E62B5C"
+    },
+    {
+      "path": "RecoveredSource/Class16.cs",
+      "sha256": "0005171B057F51CD584AD1E5F0F6D672D7504CDA197601AF187E9D1F136A8E6B"
+    },
+    {
+      "path": "RecoveredSource/Class17.cs",
+      "sha256": "461DCA40B88D14E0A564E8A92A9A7F25DE3011B3FBFD66344A230CD65092B1DE"
+    },
+    {
+      "path": "RecoveredSource/Class20.cs",
+      "sha256": "59A60CDAE5D4365C267FCB3FBB8A36E4004C8C8415A2D0A3115B63E3339482BC"
+    },
+    {
+      "path": "RecoveredSource/Class21.cs",
+      "sha256": "DC4F6295CF38606654EDEE747643BF4574DFC38E13A0D1FAAED327B4B421EB35"
+    },
+    {
+      "path": "RecoveredSource/Class22.cs",
+      "sha256": "27A43A6438CFBD99745B0E8E72DD435D406E0CEEC883ED1836C3699313D185FC"
+    },
+    {
+      "path": "RecoveredSource/Class27.cs",
+      "sha256": "FD5C453E828555EAC5BA6B8197E3B5AC1A05280B6A11263CCCDBAF9D7F1ABA58"
+    },
+    {
+      "path": "RecoveredSource/Class30.cs",
+      "sha256": "14FA27E5E6E88581CFF3DFE89562AC94401B2886C6A6B76A41B2D065EB45D2F9"
+    },
+    {
+      "path": "RecoveredSource/Class34.cs",
+      "sha256": "33E039EA51B2D4240CF944B93FE790C368B5B0585632AFBA2AABA7AAFEC74FD7"
+    },
+    {
+      "path": "RecoveredSource/Class35.cs",
+      "sha256": "68C8C121451DCC5BAC0F9F177E4195F9A2C8E822166EC9832AACCFE98B6229D4"
+    },
+    {
+      "path": "RecoveredSource/Class36.cs",
+      "sha256": "5C04AFB8E693A2B99B5FA73E83E779D6EB50D087277A12B54F5F00D3B6E2C57F"
+    },
+    {
+      "path": "RecoveredSource/Class47.cs",
+      "sha256": "835837D4312A0736401DC8785FB34323BD287D03A7D0966DFDF07ACFA60239E2"
+    },
+    {
+      "path": "RecoveredSource/Class48.cs",
+      "sha256": "09A414E881ACD5E40D0F39BB9C55A4990D09A6B76BF8F9039DB9FE7252151DBD"
+    },
+    {
+      "path": "RecoveredSource/Class49.cs",
+      "sha256": "3C0B8D3E779DFAFC3EF67340BD20326E0D94EA1E4ED73C15FCE73A4EC91454B5"
+    },
+    {
+      "path": "RecoveredSource/Class53.cs",
+      "sha256": "97E9D9F911B9F44DB908A2A404F767C02F34885FD312D0B4EB5A8DC44BDCF238"
+    },
+    {
+      "path": "RecoveredSource/Class54.cs",
+      "sha256": "B2C5699E20F2ACDBF766CB17F764BA827E2E481AB306AF65D4B26BC6970F2E96"
+    },
+    {
+      "path": "RecoveredSource/Class55.cs",
+      "sha256": "8F3DE5DB5CE3A8100579DEF7B1F30FCB6ED66BF4D8A112D8F198F7D515E4B8B9"
+    },
+    {
+      "path": "RecoveredSource/Class56.cs",
+      "sha256": "BE6FEE35A35FD98F5C0D7FEA9936E099642B4C8E31502302480B70C53BA0B178"
+    },
+    {
+      "path": "RecoveredSource/Class58.cs",
+      "sha256": "5F4A6EF49931088397BD995D54EBED330F2E2AF5FD5BC3DA9A9F769320F392B4"
+    },
+    {
+      "path": "RecoveredSource/Class59.cs",
+      "sha256": "FEBD3402857011CF1833C9355196DF9402ADCC65B12E709D767E5FAFD0890CB1"
+    },
+    {
+      "path": "RecoveredSource/ConfusedByAttribute.cs",
+      "sha256": "EFB767AE91A87ACC2E28504B3258EFA244B3A68B56291F78C147970C0D0DDDBB"
+    },
+    {
+      "path": "RecoveredSource/Control0.cs",
+      "sha256": "4B569F0FFD6F6BDA6B63376A76ABCCB14F3F8094AC0EC1ED51C51644022559A5"
+    },
+    {
+      "path": "RecoveredSource/Converter.MeshFormat.Reader/IMeshFormatReader.cs",
+      "sha256": "8478A42CEB47AD3263E75AF65C73BB24918DECADF69706328B406D2C44AF5B34"
+    },
+    {
+      "path": "RecoveredSource/Converter.MeshFormat.Reader/ObjFormatReader.cs",
+      "sha256": "D046C7520E1668D3D64DCDF77CCCEBACD0D47AC8110D6ED36145982721D76A0B"
+    },
+    {
+      "path": "RecoveredSource/Converter.MeshFormat.Writer/IMeshFormatWriter.cs",
+      "sha256": "3326C176DF42A62914B7195456B20C4539B55DB88F16773FF69086B9B3FC8AA5"
+    },
+    {
+      "path": "RecoveredSource/Converter.MeshFormat.Writer/StlFormatWriter.cs",
+      "sha256": "91B1518F88BABA6E67106E2266FF5C4E8E7F0FEB22BF9F410FBF2DA78D4C901B"
+    },
+    {
+      "path": "RecoveredSource/Converter.MeshFormat/Mesh.cs",
+      "sha256": "CA7D13066AE6DA8B4C3CF3AA7536DE946B618ADB60CCF0148B80A7027504914C"
+    },
+    {
+      "path": "RecoveredSource/Converter.MeshFormat/ObjFormat.cs",
+      "sha256": "06932A03B83E3A3A1161ED471C7A6ADA770ABA56184C9D6AE3921B79CF430163"
+    },
+    {
+      "path": "RecoveredSource/Converter.MeshFormat/StlFormat.cs",
+      "sha256": "4BBBB89EFE24158D17326C35D0A0B04E124597875DD0C4D2FB38D05FCCC14362"
+    },
+    {
+      "path": "RecoveredSource/Converter.Utils/Extensions.cs",
+      "sha256": "2264F7B3F5553E72EF0A6F45AE9C8036BBA6D9367F8AC4B7C5ADFFD69AEE2843"
+    },
+    {
+      "path": "RecoveredSource/DMzITGEX1p2AB0rI-ovDSLzT_-uVzoSps7ls1trtUsMWTOpHT62N6w720Zz6soUMQg.cs",
+      "sha256": "D26B65B74A53AD4EA9C2B857A0EB9B67343009B666851BB957C42DC8E7EA0A2C"
+    },
+    {
+      "path": "RecoveredSource/DVoip/AudioUtils.cs",
+      "sha256": "FD8333D275A577A0D1E698A174E3A6F96CA3916681921125555424598D89FDDA"
+    },
+    {
+      "path": "RecoveredSource/DVoip/BandMode.cs",
+      "sha256": "3DCABD486E84FA6FA5437D5D905BB914CF743664E5B0A80D42E2D6DA35B79354"
+    },
+    {
+      "path": "RecoveredSource/DVoip/Codec.cs",
+      "sha256": "9A1C40DEDAD46D0190FEBBE973470B22A1AD8F55F22D5CFE8B8CE84587434D6E"
+    },
+    {
+      "path": "RecoveredSource/DVoip/IVoipCodex.cs",
+      "sha256": "3EADA8C1323903B7461CACF5AD304D7B0A7F348A3976B6002999E1F56F6BC532"
+    },
+    {
+      "path": "RecoveredSource/DVoip/VoipBehaviour.cs",
+      "sha256": "4731EBB1993A6CB1875E79B241FA063AF25DA61798531EBA3FF282CDC60381B1"
+    },
+    {
+      "path": "RecoveredSource/DVoip/VoipBuffer.cs",
+      "sha256": "3870EFC5A5ECD7406A61393EC510C56D54B36F82053B92C09678661BEE7BD81A"
+    },
+    {
+      "path": "RecoveredSource/DVoip/VoipFragment.cs",
+      "sha256": "8AF373650575A530B0B2CBB0C472F50CEE178A7FAEA90A858CB67A36485F88AF"
+    },
+    {
+      "path": "RecoveredSource/DxOr8dXQgyp-o0E2VKABsO6g-PrF2knfo4d1GUGKxa9zdULS9tvdaW7_KOsKIOGLZw.cs",
+      "sha256": "E0E59F886727D92B5BCEF59A1CCC233025AD218BB8C56D37B53F1E878690D631"
+    },
+    {
+      "path": "RecoveredSource/ED5WPQxYa_WFEJ8sZpYciyF71F7y6F6L9h2_xaanIs8prucXCT5rAhf6sMNx9KK4eg.cs",
+      "sha256": "AF6570DF9FD8B1E69179C7373AF60A0D8EFF9FFB404B45F747A30EC424D36C18"
+    },
+    {
+      "path": "RecoveredSource/ED5WPQxYa_WFEJ8sZpYciyFrTxXiqvRlKZY2ClLD7YL8d2_4VTlEKEqa_CnJ-LHCww.cs",
+      "sha256": "EF2D5C22149E6A01C412E549102FE4C3BB7EB6E6BEA2B2A185E536E00091C8C5"
+    },
+    {
+      "path": "RecoveredSource/ExPt-JMW8Hl4nzpohpXvahVyl7vQc0OWMdFPWvITtQMR.cs",
+      "sha256": "6F30A08BC7BE00004C82A2263E3B355EDEA55152262D1DB6D50A5546EED06BE0"
+    },
+    {
+      "path": "RecoveredSource/FMpPDgPqT-MlkjDbhXAGLgVbz45OJagoxMsHXXVw14C6.cs",
+      "sha256": "F2BB0220515D270C9909DA31CB31C254626562B000F912017DF58DB536ED7BC5"
+    },
+    {
+      "path": "RecoveredSource/Fo1SSdEf4pn7sb1x_spzI1uUnLmnqOCPtFez1DAdOhYdG3t65KgoHaTNsdM4GUqalQ.cs",
+      "sha256": "D4BD128E1367132CB97ED93F7F00A9C4A5AE6147DF21E8D015D78ACFFACA6A02"
+    },
+    {
+      "path": "RecoveredSource/GOXSJR8XXxmzrImPcK3VZJ81Hx__l3nItnVvDSQtAc23FYbfvMk7gPDWmMjAs9idsccXk_wGlMiqRF8xDlD5818.cs",
+      "sha256": "4CCE25FA41D6E585F05311F7545E6FDF87A417B43D4C35ABDA097CF46B023A89"
+    },
+    {
+      "path": "RecoveredSource/GgrMl0eHjkTKzAqKC9Taf8i2a4kabVFQXHtJQoLFRBUAsOCvMpzQHKVdH70BhjSZvQ.cs",
+      "sha256": "2EC1EE4AECA6E13D60A56FE8A21D9DE4AC07F6DAC278B9798BCF783C50B05AFF"
+    },
+    {
+      "path": "RecoveredSource/GgrMl0eHjkTKzAqKC9Taf8i6N22UmQUCQv5QJo1e9j3Jw-HppxtR0oIfLMckJcgWz3YAZmq1UkdrbzocepnYQnM.cs",
+      "sha256": "23A688E88824C2C548DBCB189FA6372C2DC810C85A85D5AD65F5D788A4B2C941"
+    },
+    {
+      "path": "RecoveredSource/GmjEo-yj1k9F_bUHLPR5A9DWruUMup0y1VwjrnA8iM95x8I4aXxKiBg9oVxAewFHPg.cs",
+      "sha256": "CFDBB57CAEEEBC26CE543098A64884CA1807DCF971618E8E54CB50C915A668C5"
+    },
+    {
+      "path": "RecoveredSource/H2eRtg3j8LQbRFA5W4lA82a14657bmCSdMuY9EVVSHvtldL3sQGBzRpyzLFv3s9gUTKmzMfVSxsgWxXtkcUqLFk.cs",
+      "sha256": "F7FA4CF5336D372397BD05B2BF23B02CC032D849D485B3695A3E5CBACA1F9B94"
+    },
+    {
+      "path": "RecoveredSource/H5hAiipRO8Ii4u-wHB8nsxWtutlMT_F22q5VOQTPXCdo.cs",
+      "sha256": "D9F9CFF7A0467F59EA54EFE783778B3868C0DA48BFA20AB7B6F349B6812EF446"
+    },
+    {
+      "path": "RecoveredSource/HSBColor.cs",
+      "sha256": "9B228BEEC22F4A9302672715B4F4EAD8A459A1739BD15EC374F1D2BEC628A1AD"
+    },
+    {
+      "path": "RecoveredSource/Hn0l0GNFrsPTtJLnYPdC5ktemJTCB1tOl3SdH45rF9OBAhL2qyryTi5LXdRLqzpTIg.cs",
+      "sha256": "20F686BEECF1049E60CC273F19A6FC22D1B611DCA3748163E8EC58AB89B393D3"
+    },
+    {
+      "path": "RecoveredSource/HostScript.cs",
+      "sha256": "DBCD37D7DEB610BDA4AA0A475F495632D4611C6F7098BE4E60A88B27EE615AC2"
+    },
+    {
+      "path": "RecoveredSource/IK5FoqU27QNYKBuS9GCG4jJmggiDoTvlnEzqfuzDeGITj4Y7Swt3U7EZtdklA6tU2RFesc0NlU-tEranc1z8GYk.cs",
+      "sha256": "8277100B9637B782AD779D30A908D15738CA39FC742B0E1F404D22D44FDB9FE3"
+    },
+    {
+      "path": "RecoveredSource/JQpZ6lP9aBgIeq1zc9f_eT6euqKTWcd_R1Xq7K0V0oLZ.cs",
+      "sha256": "5729F61C74C0776A1E05AD2672DA5FBD55E5B446259804C1D03A9B77DB31FD70"
+    },
+    {
+      "path": "RecoveredSource/KEjZwYcSzxf2DUM4tsmq7LTU5Rz8bWNX1Ud16EuZVShS.cs",
+      "sha256": "595B9ABC672F07202CE5456B33C48C314DB4140B4FAD3A23887C6D68953675A7"
+    },
+    {
+      "path": "RecoveredSource/KH64M3TewhA_Yw2TjbFeRV_kcghAaUSHXuDlWZpBfh_lhm-Y-No6GYBMPMIyT-M8ZQ.cs",
+      "sha256": "6E0DBF5BFDA13F16448A479425BA53DD3521DEA53A57ACE18F3DF4AED8071C90"
+    },
+    {
+      "path": "RecoveredSource/KZbrenNwyQeFd8vYuFmZ0yZL6QlMJyRo9S3weuHMQmmCAn93tQ65J-jO-aVHYQKhYg.cs",
+      "sha256": "44ABA5B2C1CFD7DBB165833E9C6F7768FE42C9F76D33A7C28B8BC63684A22334"
+    },
+    {
+      "path": "RecoveredSource/KjZ6k5EOvx8ehHa8KpN7D9CVL2r1svVmATmUt3PKPSEN2gwgw888a55kuCgtdRKS2Q.cs",
+      "sha256": "EEB5471B791423800BDFF3979D394B2F2275534A54A54DE6A17C4E7A6CA379E6"
+    },
+    {
+      "path": "RecoveredSource/LWySeHCFt-EXG-kEBP6D8LdsoKS-IozE_LXqo1KfGYHLzV507qRs_A_b1EHLxwhVAg.cs",
+      "sha256": "FFC04E66E600D413F58F922A502242E9499DEC71395EAA9F59EB72F8034F9F84"
+    },
+    {
+      "path": "RecoveredSource/LWySeHCFt-EXG-kEBP6D8Lf4OuiveYnYMQgKyaEfigZlCMrdZjWqJZ51CUaNI1q02Q.cs",
+      "sha256": "10A20E0E0428E7579BD09319A8CDF96FD8AE5A872F7CEB3BB3F06566E1C09F2E"
+    },
+    {
+      "path": "RecoveredSource/LanguageDetection/LanguageDetector.cs",
+      "sha256": "32131D546333EE3CCA07F9AD1FC7B3820B8B4B15284BA0469046F8751B86885F"
+    },
+    {
+      "path": "RecoveredSource/Lpl5cKlEdlmgwHo99bHllIQS-supw-emM0b0ne-dfzPvuuoUFZL-bIH77XLRKzmaXw.cs",
+      "sha256": "02E8BDAD35C6BB169860363A9BC643497FFB3E98D007E4CB690ABB0926CCB947"
+    },
+    {
+      "path": "RecoveredSource/MCNPlayer.cs",
+      "sha256": "62CB3BF5A7C2F14810A81C9015CD8F887DD122C310E955D11AAC6BB48A41058E"
+    },
+    {
+      "path": "RecoveredSource/MCNServer.cs",
+      "sha256": "275CA06155C3624B5792EEA08EF9586FE373DFD3404169042AA62F05EF76A1AA"
+    },
+    {
+      "path": "RecoveredSource/MLPOLjLeebDuY_VDPBvb03gHuMwQQUhnsZIxWNzeByM7YdTNTalpuudrVKdv_KQ7qg.cs",
+      "sha256": "01141E4DFF637C467225CF2A8A61186F3760A5BB581B5D8B9CA726064C2F3114"
+    },
+    {
+      "path": "RecoveredSource/MLPOLjLeebDuY_VDPBvb03j-WB7OWYG07MV3isC1kCg-.cs",
+      "sha256": "A67D19688A8252228695F68C5D250F1C37DA3F3ACF00DAC185E3E78F0C84F9E8"
+    },
+    {
+      "path": "RecoveredSource/MPatcherDecompileSupport.cs",
+      "sha256": "A5ED6A3CFFF14B14937E54A03B761C5632D3DE01F4069C31F817D0A2212C08F0"
+    },
+    {
+      "path": "RecoveredSource/MPatchrMain.Utils/RectTransformExtensions.cs",
+      "sha256": "815FA7E3DEB0A9DA66142D707F398FF8DA1631FB0FC7AE99D5F497EB673D16A0"
+    },
+    {
+      "path": "RecoveredSource/MPatchrMain.discordRPC/DiscordRpc.cs",
+      "sha256": "9ABF1DB7DFBAFECF4C382AAAAC8C6B92AC89E8A75BB43B2D57A7CA4E2467B9B0"
+    },
+    {
+      "path": "RecoveredSource/MPatchrMain.patching.patches/ExtraBlockActionsPatch.cs",
+      "sha256": "9C0E3E47D0187505325BD2C6C58000777576EDD211ACCC9D94F87A96B9D81739"
+    },
+    {
+      "path": "RecoveredSource/MPatchrMain.patching/Patch.cs",
+      "sha256": "1BD162E90362DC217C40CDF854E7BBCF5E6540884C4ACEFE105CB6BDB1EAA65F"
+    },
+    {
+      "path": "RecoveredSource/MPatchrMain/MPatchr.cs",
+      "sha256": "580A77D4E0BB199038A29E715781BD29E58BA208964F61DDACB161571547C2ED"
+    },
+    {
+      "path": "RecoveredSource/MPatchrMain/mcpd.cs",
+      "sha256": "9F8430123E23D9EFC8FE8D8278C6D42C6AEF01717F31141EF1456EB6183D82A4"
+    },
+    {
+      "path": "RecoveredSource/Nz27rvAh_TUCPsctJNzLiCjjTfZt7XFBnnDiA7F-B8yr6ll5sodkRaq-s3PhpIOSQA.cs",
+      "sha256": "DFC1759EA18313FE0E0268D49C97C2B37732A3DCE4B7C1AC331B014DC4F71D9A"
+    },
+    {
+      "path": "RecoveredSource/ObjExporter.cs",
+      "sha256": "39FF486872CA61F649C6B5E545B37393E7973CD142BB4D53227FC87E55558E9F"
+    },
+    {
+      "path": "RecoveredSource/OfE-j68E7zxEuQWFgCK-GXWLPnYPk7OOHHmMGkX8hA836ISheZcGxIKvxKXwLjw68g.cs",
+      "sha256": "8ACA93171A97BD6EDD1C215287108EE2390515002247F55300B7BD9B7D58BE68"
+    },
+    {
+      "path": "RecoveredSource/Ofhsw3hd7lkJyL8LAMHCL95GMOAyrDy8ijUL5kmF7dtY0GW_uxHBGnrJpEoInsDY9Q.cs",
+      "sha256": "4912DD6D8BA35F72747FDA6AB8272219F7AFA71BD0744C50CC0A3D069D88912F"
+    },
+    {
+      "path": "RecoveredSource/OhrvFPoRtmqzpOPJ_gdyp43sPzNUY8iJz48Anha3tAYq.cs",
+      "sha256": "CC8ECF49C89F44A8C6B43599BEE01BAA0827622D402E7BF3844C4B1021DD423F"
+    },
+    {
+      "path": "RecoveredSource/Ojep9_ywtLMuNK7LiDZuXM5KcDR4lqILg1rbr4yUAajWRwiGhSEu4QBjga6awpHdkA.cs",
+      "sha256": "88B1B430C496544D78EAE0DF1B4143558DDE6EBBF6A66AC760D5626E9DEDCC45"
+    },
+    {
+      "path": "RecoveredSource/Ojep9_ywtLMuNK7LiDZuXM7hMYHRARN0jK4l2Eu3p-Jx6MTX_qSNPCRKPRl_gGCzJA.cs",
+      "sha256": "41FC54C40F761349A334717906FA85224E81DD12F01C6829A34506D3996B361C"
+    },
+    {
+      "path": "RecoveredSource/Ox2iDlZ3c70-6RoQSfv0JsUA9Zr8fowUBRLdiyCjXAIPYXycTbHLX39SoZBma4Hq2A.cs",
+      "sha256": "29BE04F0A6FCDC07190E25CA0662E0DA2774A28938920702091906EDD1B83411"
+    },
+    {
+      "path": "RecoveredSource/Pa4llGHqMSftCyJgvSYar2Kz99tCfOuQ5mBxe1mM6E_j.cs",
+      "sha256": "0F946866F33B851BDA2F20341833C9F4729EEB3B6CA25D985C2D870EABBF3D8B"
+    },
+    {
+      "path": "RecoveredSource/Parabox.STL/STL_ImportScript.cs",
+      "sha256": "F560FA0661AC5B839757CB5A8A99345E799C09BD17704ED12A285914EC5DC9AB"
+    },
+    {
+      "path": "RecoveredSource/Properties/AssemblyInfo.cs",
+      "sha256": "6223C99FA9BBB66E96AE9F3D343327BEAF0777B22F434119DB55EE5E6024F18D"
+    },
+    {
+      "path": "RecoveredSource/Q8GK9vSf-VEM692w50G2d5SmUcj4PtKNzDGwgaTN75YKao1YzfuGvFueAht8oPEnuw.cs",
+      "sha256": "659E1CBB63A965823ED2829EFB9641C5C4E8C3373CA1B49F09AB586904DEBFE1"
+    },
+    {
+      "path": "RecoveredSource/QI4dAcq-lvENeJ7F01V8DuWkQJnCRizUrJtq6RNpvisSE_Uydj2n87LPMaxsusJ984nm1lOlMCvkx-i6x06n3gY.cs",
+      "sha256": "FADC13E8C52C07C2A3863DDA28081FC5AF7B693E9C2DD51076074823B163F74A"
+    },
+    {
+      "path": "RecoveredSource/RF3hUfOyLY1kfDwv1hf0PRkQC5xzGOKEdcXE2nfCjXWkSQMIXJh4VtWAWsodkC-2og.cs",
+      "sha256": "2753DDF0BA0B9C368E60EB8AE9AC07153C195C899BDC24F2CF2412333C97210D"
+    },
+    {
+      "path": "RecoveredSource/RestSharp.Contrib/HttpUtility.cs",
+      "sha256": "BC3BE9521770EEE64CEAC969A1CFA24DDDC4BB2EE6B5111FAB69001C3949EE45"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/ArrayField.cs",
+      "sha256": "A819CB439B910F180DA108A097B8D9B80A9C09231AAA157A85ACCF36D3EEDA41"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/BoolField.cs",
+      "sha256": "533CA476AA95D42BE93EA6CCBE7ED521A19206E05AC7DA53DDD226A169374C41"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/BoundInputField.cs",
+      "sha256": "15FBE9D1A02604A2EC68366CE9A1D983E14E69478DA5757D885E64327E947ADE"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/BoundSlider.cs",
+      "sha256": "B89D11244D126EEAED1D809D87B8C36E7197392F6F36900BD5BADDF10457AFFA"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/BoundsField.cs",
+      "sha256": "012F98F80F1AFBDE9DCEDC3FA2EC57BC53081B10414700CD86348F5AB45A3C31"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/ButtonVisibility.cs",
+      "sha256": "327FDFECDA973BC28D66574678BB48F90917F7A2347BD59FFC213C0D0829C255"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/ColorField.cs",
+      "sha256": "FAC8243ACB3C3D90C8426ABCF311FDA6B309E5582C0367CD065DC4968D5C350D"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/ColorPicker.cs",
+      "sha256": "F2AFF56BFF629E2CDFE3752FD4E060DB1AF8053794CAB3E38F1AB0A6088DA415"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/ColorPickerAlphaSlider.cs",
+      "sha256": "96915133734205954AFE261A80259E659ED6A491D56EA9FBEC391E970036BA91"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/ColorWheelControl.cs",
+      "sha256": "84CA6703D1773C9E2A5A6BD261E13102E69178C3F2ED4CEF58671E6085062D40"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/DraggedReferenceItem.cs",
+      "sha256": "2E483CA74062706FBA694D1947A7EC8D9981A0F63DDBF93D6754A0A2500B87A3"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/DraggedReferenceSourceCamera.cs",
+      "sha256": "4CEFD7104A557E1A4C54F3398073B8334F06C2099AF354D85875B835AFD5823D"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/DraggedReferenceSourceUI.cs",
+      "sha256": "38044C85016525EB5CD20D0ABE93A408E60AA167F781E386B948040F3F8779A8"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/EnumField.cs",
+      "sha256": "C12278BB37C57F507C3BF5BB594EFCBEDFA3182D8DC5D044A815A140273830F7"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/ExpandableInspectorField.cs",
+      "sha256": "AF4675B4578D47BACDAB4DB03A5E0004F31568799181C7E9E2151321653D934C"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/ExposedExtensionMethodHolder.cs",
+      "sha256": "3B50D830FDA8462BE5AF59AEE880B397122907D4EEEEF975BC77C975A26B5A8D"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/ExposedMethod.cs",
+      "sha256": "D2B264E2E52F28A5B411C14164B537EB72C6109ECD2137CFEC54FDF4F38CC7C9"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/ExposedMethodField.cs",
+      "sha256": "74025F5F7919BFE5244B13C7E7FA67FA5AE62E96ED1FB165B5D81ABF26D534C5"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/ExposedVariablesEnumerator.cs",
+      "sha256": "373C24F4A6DCDE0AB7398B31713EE2E61ACE7FDD7605CFD45B9E247B3EED67CB"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/GameObjectField.cs",
+      "sha256": "CEB0EFEF46374DD107D03609FEDB0869C54C6396AB790E6AE2544C6BA50BBB99"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/HierarchyData.cs",
+      "sha256": "14C5228D09992BBCE9D18A20B5715113C36BF39E50E41F63D8969B3C48E010EE"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/HierarchyDataRoot.cs",
+      "sha256": "2D4B409D567D90A2C188D3BCADE5EE1FDD89A07DE123459FEA7DC8F0F2930C0B"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/HierarchyDataRootPseudoScene.cs",
+      "sha256": "2A95E40258A947720394B67D64D321F9DB719178A5478C8C9E5BC4A72242522A"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/HierarchyDataRootScene.cs",
+      "sha256": "27EA9E9AF69E86EFB52A6DCB85C100F33B8A652D73C2E465FE300F4DF13CED59"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/HierarchyDataRootSearch.cs",
+      "sha256": "D44EC8C004A154C7F128C60496C7C94B79BC097A366D35088C6B8426E40A85F9"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/HierarchyDataTransform.cs",
+      "sha256": "3EECB8CFCE020FAB559573CB4716C09441A8C1A0EAAAEDDC28B9E4BA541FFFF2"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/HierarchyDragDropListener.cs",
+      "sha256": "692012B5EFCF1D9B554C48DE283F3366381D4750A38977F38FE56BE8D9C724DA"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/HierarchyField.cs",
+      "sha256": "4C32C02B57712B56538B324D34E02DF3D1131A7DAB4DEE44287B327A7F508136"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/IListViewAdapter.cs",
+      "sha256": "7089B52ECF26682E5111C5ABCE3CE165857D21C223A7B7E6E0554E4FE624D372"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/INumberHandler.cs",
+      "sha256": "DA9963818146EE942599788BE3B380F21B6FC9744DD4E675ABC426EC91B20604"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/InspectorField.cs",
+      "sha256": "09A87FA1D3961B5A338A098476AECEE7BD0A2784594BF758A25B10440CDC0135"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/NonDrawingGraphic.cs",
+      "sha256": "34B78A28912C0C6FD7470EC1A912032F792E518EAF324BA3937E1B194F6350D4"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/NonDrawingMaskableGraphic.cs",
+      "sha256": "4A6289E5205F43F5780ECF91FC104D7E2A78A819427F77AC5B69A445E41FF99D"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/NumberField.cs",
+      "sha256": "EE717EA0007DA7DA2FE5E7389A2A6750CBA8D7FE57AFC7F33546F394689A1DDC"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/NumberHandlers.cs",
+      "sha256": "7C3AA95A632C4A56AB2E67F9B8BF1CDD35FBD7E7596F43A252D09094DFD642CB"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/NumberRangeField.cs",
+      "sha256": "F5DC00AB02E7FC97931C77A5131B2A4BE449F8645074AB967AEE8D9A0C981588"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/ObjectField.cs",
+      "sha256": "89CB619023810D8DF9B8179BBB1D35C24E0A25E35D4DB2A8255CBAC2F7898FF3"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/ObjectReferenceField.cs",
+      "sha256": "8A70EC5D4D1FFC251DA3084CF852204C6F0F0B1666FD7B9D3F284D422466F39A"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/ObjectReferencePicker.cs",
+      "sha256": "E37D974871F64645CBD891695004722B6403BE8C5F522866409207B594B2C685"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/ObjectReferencePickerItem.cs",
+      "sha256": "43270CAB33F7FB8897DC6299A3C2CB2469BA109733A1A8052D4B31810C5F5D1D"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/PointerEventListener.cs",
+      "sha256": "A476BA6C5A7265E3208EB959E6BD8D505CC57F54175C5A69D163538CDB2F29B1"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/PopupBase.cs",
+      "sha256": "7F3CA511E67E284105066533C5E448974067EE3EB58CFEE39486054B3DB9102A"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/PseudoSceneSourceTransform.cs",
+      "sha256": "1CB381D905FBE84F14C7FF99641CAD1774F261E14AF95EACED377A894790A34F"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/RectField.cs",
+      "sha256": "E6DFB7F27FEEFAAE1E3062011E3832E0DBFE2FB32B6C8677C8BCBF4524000DFB"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/RecycledListItem.cs",
+      "sha256": "37CC2A701E3644B87AFF0BE3570369F73A76A0FC5135E878EF64BBAE22ED4E7D"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/RecycledListView.cs",
+      "sha256": "BBF8D7153BDC8314DC8619EF89961DE1A28A20DD77F35D18E28ED25688BDD31B"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/RuntimeHierarchy.cs",
+      "sha256": "8C26FEAAE23A5381232FA495CC935E5D553BA603FF8256B4BE8B2C148D1F6A36"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/RuntimeInspector.cs",
+      "sha256": "2C6D047F615EB06BF2ED0408213361FB1BCD228C76FBAB2C00DC21422BA69429"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/RuntimeInspectorButtonAttribute.cs",
+      "sha256": "9E443E6433EAE2F7328393E7B5C3463304AA6DF397C91128003F2CFDA5CE6A9F"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/RuntimeInspectorSettings.cs",
+      "sha256": "419455667900A06F109E8357806017DABC4F608E2B19D2AF1B9A18D56B8B98B8"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/RuntimeInspectorUtils.cs",
+      "sha256": "7AD4663827E9AF4287F37F8B8A8977A4E920E98495817EDFAB1CA3F1CD7B56C0"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/SkinUtils.cs",
+      "sha256": "6C0E368A9CB45D2E2FD5E2EFD6E4711BA9ECA4D6F6794638DD595DE3340492B2"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/SkinnedWindow.cs",
+      "sha256": "7E5EAC67D8F7AADD1B08AF1FDEDB4A6AA175517B29D12D48E8CE3C2DF5C129A7"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/StringField.cs",
+      "sha256": "E265779D527BCE1BB5D565DD65A7E8B3917892E108066D1E46F84A9201881C0D"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/TextureReferenceField.cs",
+      "sha256": "6D01EAADC05949942D2E9AEC36D97E2D4918F0C165387A9EA9984E7CEF8B3208"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/Tooltip.cs",
+      "sha256": "0BC372DF6C91749F7F516A147D8C0FF85CC2A2C87C90D3E5B824A239209F59EE"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/TooltipArea.cs",
+      "sha256": "861927B75717FF5D31C5CED63F801A29651F1BBD56940DB405777C8907C9E15E"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/TransformField.cs",
+      "sha256": "FC8B59F91B52155310686A66B4FF1C52B9CCCBCD23FADD917EFF4E3CB4AEF1BB"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/UISkin.cs",
+      "sha256": "801ECA6AE78E9E6E18AA31C887A8E7D4397702BBC935841073A5DF89F7ED8896"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/VariableSet.cs",
+      "sha256": "9F5FF42F62009F141B86E5AD882A79DF0290071456D81F2D6BBDA8175462409C"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/Vector2Field.cs",
+      "sha256": "1512E19B8B5BB476E3B3FFF770C1ACAA6D2C5E77EE8889DDA3FB4C6214C36E49"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/Vector3Field.cs",
+      "sha256": "5C67A6407DD9569E2C140A51F370F9FB5281BE29B397F673C68600DC1793CFDB"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/Vector4Field.cs",
+      "sha256": "2D7318A21DE3AC8588407ADCC0CC4AEAD734AE3DE3570C88D0B2C42F5FE59EF7"
+    },
+    {
+      "path": "RecoveredSource/RuntimeInspectorNamespace/WindowDragHandler.cs",
+      "sha256": "89700C998056DC017221EE2A25EE5D1BEBCB17AA660C42A2AAC782C6FDBEC3D1"
+    },
+    {
+      "path": "RecoveredSource/Rw1gRBZINYqqUycQDAVzVUspDHxB9kBz2FYjLkqn6c5t8-2gRBS9DLOoFVjsA69CGA.cs",
+      "sha256": "CF76CC7B82B87549B6E9015FB79FD8B7FEC2E2834791788FF736475EAAA9957E"
+    },
+    {
+      "path": "RecoveredSource/SEGI.cs",
+      "sha256": "CE7AD6ED907D2D2D7565B3D17BE905D9EB1D2DDABBE90C916559D78FFB14D11C"
+    },
+    {
+      "path": "RecoveredSource/SEGIPreset.cs",
+      "sha256": "77BFA0C180597E0A5F612B1C96C1D8C31F5F2ACE8AF5A9C26BA109707D182158"
+    },
+    {
+      "path": "RecoveredSource/SimpleIKSolver.cs",
+      "sha256": "806A7219CC7D95C7E4A081975D94905F0D450019D8905F836CD2FF70FA7C20A1"
+    },
+    {
+      "path": "RecoveredSource/TOZmG6HRM9kr-vysloxzF6vqAPZhI51GXJz9SNSgTege.cs",
+      "sha256": "CC733FD9265D580CA43F242828B57AD3ABF1CF009392253C3C1A5863C0F74D2E"
+    },
+    {
+      "path": "RecoveredSource/Translation/Translator.cs",
+      "sha256": "5755798EE7AA47A47FB7E19A1374F004D1A825D642845C0AF7300A17D0B59B46"
+    },
+    {
+      "path": "RecoveredSource/TriAABBOverlap.cs",
+      "sha256": "3CCF34949A5D0D26B2B9F725AD4AD7D0FC0256C990D3D211DEDD68201EC22800"
+    },
+    {
+      "path": "RecoveredSource/U-Y3HeQRR-vHVl515guIm5pFz5zddo_EEiypiKocRd4SQiyP7ZyPcC8WZZRlllFLCg.cs",
+      "sha256": "4B84F4E6BEC56EA67DEDB679612E9F76135654D13A9E169BB1075824BF155FA9"
+    },
+    {
+      "path": "RecoveredSource/U1GmT9ZMi6XvQgaRUcEHGTIQHfzPhx1iuaxf6E3VI8FO1W6Cvda7X81QvAFK4kp0BblGT5OfBUQXMt7rhMCay3U.cs",
+      "sha256": "B2E5DB3FCA8ED44D72FC057B61459D51573021725F802C0A32F1C3A7B21EE41B"
+    },
+    {
+      "path": "RecoveredSource/U9uySeRC8KPm7A_fSSed_tSq1sKf2r9G5fJRyskLCT7f.cs",
+      "sha256": "03C7CBF76F45B3354709B997577CB0380BDFB651E1E364EA5E7DD2286378638B"
+    },
+    {
+      "path": "RecoveredSource/UDIRjB3VSmwHpVmUxcnHH66kk6ThWzbxmySWu7OngspoKs_47sbCTTGVAxk9y7DBfQ.cs",
+      "sha256": "891847F0EFF6C761AEBFF62350AF7FE336D623F01109E0C49FC7329846BD55A5"
+    },
+    {
+      "path": "RecoveredSource/UUi9CES6jT0ZzKFkxbFyR2jEgvhxrm6WMabMV4KBwk4K-MAe7FKbv3UblWLVLXi1aw.cs",
+      "sha256": "FC79B42F292F945E4964FA8BC1F5CCAB547B0852A1AB846B7C3E02F44A059134"
+    },
+    {
+      "path": "RecoveredSource/UjCoH5zXWVzYg0MXTOOvepyp0n3CWqd5yFc07HzK9iCsTQH9a5ApFinzqXMIYg_Euw.cs",
+      "sha256": "74A39FC05D12C26A82845E4B48AE28CAB5B736626B46D724B2C69F1FD07325F3"
+    },
+    {
+      "path": "RecoveredSource/UnityEngine.AI/CollectObjects.cs",
+      "sha256": "E3DE8A2070DD1FFDA0F54FC22BA4867C08977127302F6604079AAEAF70E73A76"
+    },
+    {
+      "path": "RecoveredSource/UnityEngine.AI/NavMeshLink.cs",
+      "sha256": "199CE20D370BB4FC8EDA1DEE103AA42BD6FB0C340B3B50C8CC5C5F8098657CDB"
+    },
+    {
+      "path": "RecoveredSource/UnityEngine.AI/NavMeshModifier.cs",
+      "sha256": "1EC467160A7B21F0F7B3AB71CFF072834F64CEC9A4ACB6B338469D849B06F080"
+    },
+    {
+      "path": "RecoveredSource/UnityEngine.AI/NavMeshModifierVolume.cs",
+      "sha256": "2AAB0561314160DE4DC997B8978F7CFE1076CFCDA0DE12DD4EDFBA2E4CE496A0"
+    },
+    {
+      "path": "RecoveredSource/UnityEngine.AI/NavMeshSurface.cs",
+      "sha256": "D7C006BA7D56624BB9413450898353AF31B66CF5E1D2A0686331F841B498E3E6"
+    },
+    {
+      "path": "RecoveredSource/Unqldt6n-hz_1hUSDmZpkf68UcmWgqOc0n-ERarCi9fcUgSnxTsl0DYO631WcA1ZOg.cs",
+      "sha256": "068136B1A9CBEA74F85E692E908D3566C1A1785311CE00FCA462BE696957BDDC"
+    },
+    {
+      "path": "RecoveredSource/Unsq3CfnSMn3FCfL3_AOB5NLoB-Omoq6g7GDt92XsafK.cs",
+      "sha256": "5EB998AC726592348BE67CE97AB38A3E3BE9F5E5E3CE1DAF8F89ABF3F5339DE7"
+    },
+    {
+      "path": "RecoveredSource/VAKKH25tiZ979R7HMdtVXnLNtNlDlxDBxoBifMx0Hi5OMoKRxud0sOMdYt-WLv66Gw.cs",
+      "sha256": "62B7D71C0519DA001FF1E22EFB94B4C3719138ADC7A87BE9696C57CE726F0483"
+    },
+    {
+      "path": "RecoveredSource/VBGvGFOsmw5aR9Pc8Td1LSYJPgq8Le3DRGORTCrjoJvo8tol2e0JowjQUMlAiUUeoQ.cs",
+      "sha256": "5175BC7D9AAF7B21D0F07C210329E04DF92B4A5CF41133C523A1B998C579AA4F"
+    },
+    {
+      "path": "RecoveredSource/VXIWU2sOhsIKv4WDoTo2AI3jtM-h0E-4RFjkXe_ZhHPeNEgS8zF4Yk5LlmedFPBqog.cs",
+      "sha256": "F935BD156C23356095EB7DC20CB3B20641E9556B37173A9B840F7F17B3A856D9"
+    },
+    {
+      "path": "RecoveredSource/Voxeliser.cs",
+      "sha256": "6DE5AD7B321B37B2CFC019D72E4729BC1289B26D1EC3BBB2E346D07FC7D1BD6A"
+    },
+    {
+      "path": "RecoveredSource/Vp8bxrhzgk3tEfSlzu8650AEt3ed5anlFVSaJI37AOGo.cs",
+      "sha256": "B1C6F24AFDF92DA64040894B7C2BC36F0403EAFD9CE77EFF5122B187A764D302"
+    },
+    {
+      "path": "RecoveredSource/WjdgUJZnYG6vw94Y3x8Nf0K0lQC2qufqVZyuZsp_B3WP2Wpkr37R0UEpZiI_81GH3w.cs",
+      "sha256": "E0C357B4B05270A81E670855F1C174B6BD3DF6AA56269A497F1008F8CF7DF121"
+    },
+    {
+      "path": "RecoveredSource/WoMCpYvRGZJu7ct6lRwjse4DzmbHyL83TNVjta45XMMb.cs",
+      "sha256": "1CB19347BA73BE2CBDD29CC6879CA66F65CC033B399792506497AC1EBA397138"
+    },
+    {
+      "path": "RecoveredSource/XBS7OSIVgwiqp2YsikrDtq6zcM87cw3nXOw4Pre7ULHrBi6l5_25VvKQC1MdNr-s2g.cs",
+      "sha256": "404CEC7C627A9253BC6925AB7AA54918C1C64B5C1CA4E7FDB5ECA14C55B2FCB6"
+    },
+    {
+      "path": "RecoveredSource/XBS7OSIVgwiqp2YsikrDtq6zcM87cw3nXOw4Pre7ULHrFpjhoDlZmc-_dixBV9c1sQ.cs",
+      "sha256": "E6B8EA8C656B146F2C673A61016D8E8856F393E1EDC5E5E8724747230B81924E"
+    },
+    {
+      "path": "RecoveredSource/XxAJ0vo10qaLovS4w9cCmko-VY60fHaHGA9858Yt4TL0r8NsjpNSMzO89lYqP89-6EUCpyR3IgNa-kpjiKwbu6E.cs",
+      "sha256": "F5CCD509F93A5AFD4DCF7271745351ADD5C0C55B17BB2A92FEB77A28861291D4"
+    },
+    {
+      "path": "RecoveredSource/Y0682_EmDASRYkXiQKRSXHE.cs",
+      "sha256": "39E25BBBFA69FFCE651F34C1D2600F02D2AD98BAC44EC9715BAB2C930B16A19F"
+    },
+    {
+      "path": "RecoveredSource/Y_KnsAySLoCDb4SHb-ozdg9Jhandbv5CjRS2vvjE93HwxrEnN8gRKN_3gH8ZJ8dFtwLfFaqEhK1SoCTTPpPBgcQ.cs",
+      "sha256": "D2CC93523104269E3218F80911ED4FC95475AE818647461D8B2F7A3936782215"
+    },
+    {
+      "path": "RecoveredSource/Yh0MC1EmkntIzqy080BKjSgpLa2CI4PTcamj03GzVohKShTG--auwPq0-GE7v0-TcQ.cs",
+      "sha256": "FEE569C161217EA4933D7C8CF981D3779640871BA75EDE3C32BD1A7FBA73D96A"
+    },
+    {
+      "path": "RecoveredSource/Yh0MC1EmkntIzqy080BKjShiynuLMqAhQNZcSdNXa8NCs5hh969QYHVb1xRZpPUR1yCJJxvvjVN4EdwzA0sRu_U.cs",
+      "sha256": "0DE4431C1F62993CAF9C0506092D49CC86F294B8FA65A00D6A41AAB20600DED9"
+    },
+    {
+      "path": "RecoveredSource/ZVmMBmN3dIHG7u7B20FQXZ9agEoRSBS017F43aKnHUDm.cs",
+      "sha256": "D7F99F35EF630C7BF17144DAB4A18269FD0A2C8EA6719E103EB5AC76F2C85B04"
+    },
+    {
+      "path": "RecoveredSource/ZiI9aHMhmFzgbO3ZQwveVboLAHZ_-QLGcztIl0CDrdYL.cs",
+      "sha256": "4E798AD37BC89209C8C14734464FBB35F205E7EF843B73DFAC18DDA4DC25421A"
+    },
+    {
+      "path": "RecoveredSource/_Xy1VslaHlYtfsUmuCgSy8DOmtBN1a9chf9fX3d-zmHL.cs",
+      "sha256": "587430DAA8CE241F7CCBF2EA44DA35D385A086E4E35F112B9CB5D45D63D979AA"
+    },
+    {
+      "path": "RecoveredSource/aIaZtYI7wNQDacAAHL34p0OkQ2hMebOyXaBe3QcGmX_OSQeoNa1agDdJf9YfxZnGGw.cs",
+      "sha256": "B105DB0559BA24B9464621CB80CBC9F81B17A95C97C04402EB698DF320C51C10"
+    },
+    {
+      "path": "RecoveredSource/awf1opR73mv9LSqQ84LlTsI.cs",
+      "sha256": "4B83C2B097DE85FB70B15A2004B78923079CAF064EED2415F1EC4B1F370CB2A5"
+    },
+    {
+      "path": "RecoveredSource/ax-v9-SAexqtnivpn2xbJvDiJH60f7H1LaLLn3Ct9ToDsxp_ZwO4d5b6LcBrpAgoWQ.cs",
+      "sha256": "E625AC8E775FA62E1552D7106B09E1D833B19E4BA2C65072939514D59E5E484F"
+    },
+    {
+      "path": "RecoveredSource/ax-v9-SAexqtnivpn2xbJvDmLoZqYQgD82KAtFRKwysCUi1dcgq2cA2a7Fb6y_m1uQ.cs",
+      "sha256": "5FE21BF93CB6B13C3F33A359BBD082573E8505739EECAD37E9FF22195130523F"
+    },
+    {
+      "path": "RecoveredSource/bOo8x9nQoPUnPLha-sUCFCqhjTVaFjLEDRZK9mDqIg9yrCGxqCOAt3DLrt_mrOyUYOUF4ILJGSQEyiaIRTSrMu8.cs",
+      "sha256": "A160F3D8825DB054B06604F464A0CB775AAB3101D343A57D4305B9D2F6EB5B21"
+    },
+    {
+      "path": "RecoveredSource/bSGrtVxykakCj0HeNeHFuDVWTeGKiz3u32xNe8gn5t9-.cs",
+      "sha256": "FA242ED29EDEEE08F6A4F1BFF584355F79F0D65ECDF40AF5987E2DBFFA3474BC"
+    },
+    {
+      "path": "RecoveredSource/boq2Pu1wVUKBmYhCHYqNyeIJToBLrl9v4fX1Wj2K7fW80xAZGrjtRfrLlnuFUPPFo7r3VDm3ADUhB_r2BgwLSN0.cs",
+      "sha256": "5A7E5BDD4700C7E3DDD529792C31DF0CD3F8D50D137C6029E11F14084FFCC317"
+    },
+    {
+      "path": "RecoveredSource/c2wojWPyeJ90X8UxbVw8Ie7t2iSXT4W6AM5UctjLMkqq.cs",
+      "sha256": "4EF531145CF7DE8A1AED1FA4D1599229E49F1768A78AAB6EBFF7A26872E307D2"
+    },
+    {
+      "path": "RecoveredSource/cueQi_wQP26TRIVnZP9Z8aIXZH4JvDO0r_vy--NeyIlt6nScWImBH6O_ma4h8XogcA.cs",
+      "sha256": "6C8FCA88A15579E3411362C9D09278141AD4DD526752538717CC1FDAD7435680"
+    },
+    {
+      "path": "RecoveredSource/cueQi_wQP26TRIVnZP9Z8aKHYYL-5mvYiphrS2INIGjFBzL0M0-ZrwQ0Yl0WnnCZVw.cs",
+      "sha256": "A668D677D690C096AE31F2E0EDD2432445EABF72857A9917B653C80411CA2691"
+    },
+    {
+      "path": "RecoveredSource/cueQi_wQP26TRIVnZP9Z8aKR6dED8Hl8W5iDYL_VPtx_dIciFE5bVmMCUS5X5HIpyWZYqeL-OMtz0-IS1W5U-SQ.cs",
+      "sha256": "B7925FD6ADA53C8F9002D1607EC21BB75D55D33B7D287C3BF8236707FC73FAE5"
+    },
+    {
+      "path": "RecoveredSource/cueQi_wQP26TRIVnZP9Z8aKuGe8STPH1J69SyYpd7QAcLkTgNnDboqxHBenun9-iUyNPL_0yB16b1-sswP4Rryc.cs",
+      "sha256": "BCF21BA355B58D2285CD99410C153A3CB6D009B59A92C2E415E8EAD250D66FBF"
+    },
+    {
+      "path": "RecoveredSource/drGKDPlVNm06T6fgsX2kJFCfbMNk8_lM-ACqOZddiJzqn6gLc4VNTtqAyCmVtgZzLQ.cs",
+      "sha256": "8D61C3FBFB786658A45E049F8E0ABDB73A5B9BB0C35352522A9751F89D5576CD"
+    },
+    {
+      "path": "RecoveredSource/dyl7NQFWvb8SnwY4dXogp_aCQhx2Y7dLGUBgzCus25T9Wpo6h01g9Y342KDBl8ctV_NzWUOypgYMsbS0RAESeaU.cs",
+      "sha256": "205A58477E6C6AF13D4BAABCF7645F356D83746DB449F401DECAF90D5D1BFDB3"
+    },
+    {
+      "path": "RecoveredSource/e3bYTbA5Gz-7eYOyWWEMD5zb1FSjwWVV08_WpOF28HKM.cs",
+      "sha256": "C8EB338A0709ED2B9A2847A2C1BECA506EC818D5886AF65A1758CF8DFEA0BF58"
+    },
+    {
+      "path": "RecoveredSource/esVt-n_bS0hJEVHiWv46D3oSm5ss0nqGnPsWqrSZk_Tvffp9kx-b8C99gg6ItYA-cA.cs",
+      "sha256": "4151CF5D3066B7EF95EB8C5D5E9FD114637CEF0F1EE7D00F2A3F49DB3B4EB0D3"
+    },
+    {
+      "path": "RecoveredSource/fB_UAU3VnG0wrUs2vz3KliVPPZGNBZGJ1WMs94YsvVgRq16uNvACiTMzlWLTlwKpvA.cs",
+      "sha256": "CA234DE5476878C6390E0DAC2FC72CC931CEE3D1B4DF94D617F58F03B14EC8BE"
+    },
+    {
+      "path": "RecoveredSource/fM8akW_NCNObVpnHZDsn9ZpvaBT-2EZI-IX7xApy8Ppu5lo_bKdEPM8rXjLtGIhLxvyaFhnCfADn6F2MZVB9G2w.cs",
+      "sha256": "C932FE8E8792630ABCAA05A7C781AAE98CFE1575A9CA712E5AC0CFCA42A8F895"
+    },
+    {
+      "path": "RecoveredSource/fWvgZH1Uh15yXdrDTaG-OCVvtntxUL5vVl5s_mKNw8ih7I1CqX7Tn9LLZlZaIp8eN6vfAJGyRIBM8HzaZS5chtbR4ozeMdp4xXQ-1vwe7lP2.cs",
+      "sha256": "56B3C9417609CC1660450F65D82A8BB1F61D8B5888BC0F85C0D94A9B876D3271"
+    },
+    {
+      "path": "RecoveredSource/fYYx8vN1tah7ZgfygXMH9eJU0YzjaUsqtv9tADffziMcu1k1It8P-ZciTdZuxN09bA.cs",
+      "sha256": "F250055796F795AA566529B1ED143BCEAE52F20F5F036D47AACFB06FC36B4FF9"
+    },
+    {
+      "path": "RecoveredSource/fuLOHWIE5UYsXf1i-U7ZrRt7wYu2JGe7flr2Cyk0jSHi7p3wG28vwmnGpDW496-OrA.cs",
+      "sha256": "F30DCF6CAE584F26C94F8DBB725AE9BA3A980B56E825338AC7AF8974F5E010C2"
+    },
+    {
+      "path": "RecoveredSource/fyuG4GW3IraSRLT0CLbDKQ09fF3B9ergVMo51j9Rl0-r5ffufWNoL4IzyNljW0l7-w.cs",
+      "sha256": "3B370B61CCCCD32CCC06A1AF1AB9CE496D222A65BCE6B41A270EDF927BDD7D76"
+    },
+    {
+      "path": "RecoveredSource/gFDKM7L7DPdtlWCXlOB2N1XMdnb1esUg7YunDptXQOkgwlv5QQQg16hMgugsXX5C2g.cs",
+      "sha256": "C1A0240C6460CBBF996ABC72FE88B4BE05FD9D6D9634924A05A317E523069A7C"
+    },
+    {
+      "path": "RecoveredSource/globals.cs",
+      "sha256": "2B1A479C35194D8497C759E32C13FA505256B61B06BD8333ECC251E1487462ED"
+    },
+    {
+      "path": "RecoveredSource/gnRUQtSP6HaPYqmIMjTfoY15ycAUWN0n5_8sGSL87h8t1RYJn-32i9qyBSGHYESZpQ.cs",
+      "sha256": "89C875A7242C56CF12D62D2AEF7617E4607356543B3C5CA3AFBE518E3B5F9B9A"
+    },
+    {
+      "path": "RecoveredSource/h2lGWq7sdOQyg331JpPXlr0gm-aR7ZGDluTAO3U-07Foi2urXCbaPrmt7Ys4eB3o7g.cs",
+      "sha256": "B03BD8CEB2FF7ADD2790AE11FF09A176E25C645B85D558BE1461F7C1FD1C6C1C"
+    },
+    {
+      "path": "RecoveredSource/hEh6p6DPBEQL_ETI-wQQtEtSJ6RoJNEcKCHdSC5kM6sUcMYvs_Zy72CNlwLiq1PGFg.cs",
+      "sha256": "A4B8DB7D39A6CF6E1F4B75966C58FCA530186046174E7B5E7ABC563B228BB85B"
+    },
+    {
+      "path": "RecoveredSource/hTuDJNunqiaIgtEZ4zZlND3qDsZI6K8aIATtTfzruTuDPWpeVQdfoJfbhZUPJkP1IQ.cs",
+      "sha256": "ECE54845C8AEDA6DF7FB182F245DEC3DD0AAF1549396F3BFBDB17232B7172F18"
+    },
+    {
+      "path": "RecoveredSource/iK6fSwg8tZ-emq_vet-Smve_9IfrhVSwdP1a_jFOD7xJBpDFHXrMUreWEnISSbwJ4Q.cs",
+      "sha256": "393CF8B91D2519DF2D9D3814D3FE5A5E540628C113A4A2DCA94470AC607D8102"
+    },
+    {
+      "path": "RecoveredSource/iK6fSwg8tZ-emq_vet-SmvfeOX0MyVTRqRjd5zqmuBGHyyucmpSbIMqTFoCGV5KVaeJjT-pbHDyMSME9Vz9XDIw.cs",
+      "sha256": "8B4DFE02C9A6F69F1EE3093F37921DE27439EE15C0AE0EB0E3B9DECD0633D499"
+    },
+    {
+      "path": "RecoveredSource/j11cGBDYP8UYQEHVTkChdIOmgQumIJyS_qg07j_tssO5oe12WhiMFv9DLxz68nMrQg.cs",
+      "sha256": "BAD5C877C36D8EF43B3DCEF3ABB497CB92C9256987786EA584CB8B0821556367"
+    },
+    {
+      "path": "RecoveredSource/jOPiJh3qeDGMygCXpyKmzAGcwJL0Yl5U8G5-UOtYfDZX1_VRKN6yCjIYes1xhqtV0w.cs",
+      "sha256": "42565F2A20ABA335D874592A2B471182ABA371927BD3EE8260041FD04443D138"
+    },
+    {
+      "path": "RecoveredSource/kDvngSsLQS7vl_qGr-jibCxVYL-ks-bsN7zI0ZyzXYScIktdMuFZrmCIStKHdAslZg.cs",
+      "sha256": "AE115346873FA31648676E331B5048DCBA0790FF5D56416788330DBED88A2B6A"
+    },
+    {
+      "path": "RecoveredSource/kILN-q_tbcSASqORkmJ7BBsDUjxuSBqI3VGW6VcIauaSSt6_Qk8HVbbHG-WDerWUiLyHmclIfPXtnf3BNWVqydk.cs",
+      "sha256": "EDA5D853294B4549D542A80D270A3D4262ACBC630EC575CAD2135904A9273520"
+    },
+    {
+      "path": "RecoveredSource/kILN-q_tbcSASqORkmJ7BBsHZ-NvZSWw5PyFkcF9sNb4p2Xf-UVaPWSXF0-gn8lcUA.cs",
+      "sha256": "719CFACD2D0F8B31F4989AC489EEF628C2111C2BE1A85FCFE3A55CBA449F1DCF"
+    },
+    {
+      "path": "RecoveredSource/kR5a7hOtkF-_CEj9hhobe-UHyUf2kssgviuneZH-o76iQx-llk9k-UbkAShiRzazvQ.cs",
+      "sha256": "B8DEFFD0C8035BB5AEE72275614D83FE44B93FE6144C0217E7394D18F1C5A2C2"
+    },
+    {
+      "path": "RecoveredSource/kR5a7hOtkF-_CEj9hhobe-WbGh1FQ9BN5bMDF7i1YIxY5T81x6j25eGuymw3K0yjVg.cs",
+      "sha256": "0C7AB599B7966D7163195F6257D5B476D71AA24C39F1F5F477FFCED03B2D6A43"
+    },
+    {
+      "path": "RecoveredSource/lK5oaNEKpgPwCxJ6s74woV74UddrTvXqHc_2jApM-aHQbM7D7DZBi7juF5tu_f3KzQ.cs",
+      "sha256": "AC2F986A5A9147F612197F383941B04DD056E725692350471F89670F8AFF2089"
+    },
+    {
+      "path": "RecoveredSource/lcJ-o4QlCJj779lbTD_VTnIy5sO2aIoxJoTC-9HYbtFHskS9uvU9Grlzn58YAeCbpw.cs",
+      "sha256": "CD97D66BF664411AD14FBD76755C2F354CD91EF99071E65FC37B4167672FB86D"
+    },
+    {
+      "path": "RecoveredSource/m0HM_uVPHuetIhO98ec0YYXakAbCJhU7jw0q6FI9lBE6NNfOlW0PtzeNiryZBW4hGBKIOl92ebLgbYsZGLkYn2s.cs",
+      "sha256": "3022D248D0A2830026B21083E6DEC3C45D3A13838A125852FB620AFF2059EFAB"
+    },
+    {
+      "path": "RecoveredSource/mK6lLU33ECSzxV4u22c7-ijC0MeyAkqA_PRIEl9WpAZK.cs",
+      "sha256": "9E3700E927E5BE3468AA0E22B4DCF059B07309992673BB98D9FBBC0B6C583606"
+    },
+    {
+      "path": "RecoveredSource/metG733wDBlDhjB0MSUi-WZtiv2d5Ta15QUy66BHDFij5pgSnnkUUekfxHo4GGqdng.cs",
+      "sha256": "92ED3D239E2CC2304ADCA33A3731842E57DC3EDFAD9AC94FB3A5C8504B6A1BF5"
+    },
+    {
+      "path": "RecoveredSource/miRGDz0BfTDQ_sn8vjwTjb9JXVzP6HdOAt_dpDR6Ehhw4F9dMzqzIQstsbJ5nmVjQw97Btz_eoznmLy53zIbgYU.cs",
+      "sha256": "E872671C57B47F6DD9454A3BA20115A05403408C85DBAF244CAF42F97370602B"
+    },
+    {
+      "path": "RecoveredSource/nfIqruisjwbrqbYtCJuoSA7DosA4L0FkAbTogZt6U8q-4Mw9hpDlrdyv1kVeKjhH6g.cs",
+      "sha256": "6402D5D9CDE4BEA3E3231ED67BCF23D51D5B86C964EE7DABA1E942C288D23E27"
+    },
+    {
+      "path": "RecoveredSource/nfIqruisjwbrqbYtCJuoSA7n8dXAYjEX1_9Hmm3dLrAgzamlT-UfxbCTySI3k4AmBA.cs",
+      "sha256": "22D585180CE17575348BB6DEC9930DE8EA37633729189FEBEEDF7EEA6BE0673E"
+    },
+    {
+      "path": "RecoveredSource/nnHuJswxvsz1pZEYGN-1t_hRktuePQgaPa2hccgMZBGMarJabqUZUQ4omKAa5FU0eA.cs",
+      "sha256": "819D4AB015D551DE660A8F662E66DF6D1E3B5F4D2345D74E7AE520DEDBCEEEC0"
+    },
+    {
+      "path": "RecoveredSource/oIuuMMCo9UmUIWmYFQEqxXAOJy8LYqspmW2FKyHMiXKdcT1cBP8p9QxEsmrfao0MIw.cs",
+      "sha256": "53CBF86B06CC1D3402ADE48D3C7401F5B268337C4D17B635CD7F5A764D2396C4"
+    },
+    {
+      "path": "RecoveredSource/p15TFflpW2KKy78hPxhNbiPljDEt9MtSH5pTlOs7Y-LnvAl3Cjkk3Gzzu32qTCrlBA.cs",
+      "sha256": "72982F9513EB65479A8913BA14ED9408AF1189C1F8FE3F2D76561FA2A828BE6A"
+    },
+    {
+      "path": "RecoveredSource/pQCv4GWEmO7suQD936qIBn22jIu63BZDtto8pweiUAZY.cs",
+      "sha256": "965F8A84A6CA32F8B8F51942961C034CFA6835E73C7F85BD49665E43A620E64C"
+    },
+    {
+      "path": "RecoveredSource/pTbXl0BQalSWSABflrYhjNmk_A7RB7wKIBoc-LjdnXpzOQoqdduhV2bTbESRxybyAA.cs",
+      "sha256": "5B3242E9B968809140041034BB377361AE188FF75AE63754B3C7FF7177740BCE"
+    },
+    {
+      "path": "RecoveredSource/psdRdI7hc081t9dJJ5z-OdB8xbQGLZVsl590oxhjP7f4VlD_n3-h4tuXN-gEeO_qnA.cs",
+      "sha256": "19A8ED486528397E5E6BB2521EC090DA132542E32D8EF465FC92ABE24E648752"
+    },
+    {
+      "path": "RecoveredSource/q11OkRCNnJSc7B9oAm2iiDy_dxuAP_XQuqvU6kvp3YxcC3E9HoBBDUaHX4F1nUnZzg.cs",
+      "sha256": "418933DE88EE9756E169E1B1A7542504C6E1813E2FAD1B2F6B599E5B59F1536F"
+    },
+    {
+      "path": "RecoveredSource/qDuYWfwetcT__nj0tRnRsqTXK-vcku6SDcaPd3IHTKcDRKrbh7cnM7g9EFXlCgUN2AYyxU31a1vMLv21siAsQ-8.cs",
+      "sha256": "C7D8D34E06B32EBEABBCB4EFF2229AE897CE07FBD49922DCEDD11350668CB3F7"
+    },
+    {
+      "path": "RecoveredSource/quoQt4rDIgY_dfcYMj4e8Gr8OG953LjeBzZL9TDoVf-j.cs",
+      "sha256": "457DA1570949D22FFB23C8981EE5C73B830B6EF8E4B51E331E0D9DF9F2CF845D"
+    },
+    {
+      "path": "RecoveredSource/r0FjGfwwmg4ieGHTHNmU4cI.cs",
+      "sha256": "C8B883418C1C3D14D5DBDCB042F9B179C5A605B291C72E9CAF69AA133EDC38BA"
+    },
+    {
+      "path": "RecoveredSource/rJ_GZCaJwYznjXdT4CwqWDAG-hZrAYgw3km2DZEzhET1-3gtR_6ZmXjiR6ngG1wl7Q.cs",
+      "sha256": "C3E22BAD03D33FD18449650508F40FEBD3E7B5784B6C9D12079223EA2F8AAB7F"
+    },
+    {
+      "path": "RecoveredSource/rJ_GZCaJwYznjXdT4CwqWDCxYyFtABbbcEpsXX_tHwAw5IiWCagOLqg_ot-fXBSs-w.cs",
+      "sha256": "D3938DFB16A1D4143897702B05DAA5649F6E76D67B8A935373887F16F88AC054"
+    },
+    {
+      "path": "RecoveredSource/rR_1N7RjZ9cFTh9TDZDK25yKTCP9_aFycwr_xeHo48o18-KuFxwwqB2bCalyR3HV4w.cs",
+      "sha256": "372A8012213C38BA620455B1A2B3033A516C0530800F5BC7BEE6730F9D9ADD4F"
+    },
+    {
+      "path": "RecoveredSource/s0CV_1dOPNh2ULpsRVNWRF2gkJwrEiIabEsvmwZjVio8W-DTogUnX87vulnjwhMjvQ.cs",
+      "sha256": "86726E92995672D97F9D789785D003EFE7CC787F9B6CEBF023FAAE8CD9669F41"
+    },
+    {
+      "path": "RecoveredSource/settingsIngame.cs",
+      "sha256": "D1F838672BDFA5FCE6477E69369EBB189F243C9D7746A8A9522F038A4B219D5F"
+    },
+    {
+      "path": "RecoveredSource/tRJvS6DbDGSAxEUp64c3QC48aU7MDx_d9E7eZDgMLdNx.cs",
+      "sha256": "6BA8B6C8212939C8D94CEC5DD9674BE83F31349A9DB46D917F624A619BDD0F33"
+    },
+    {
+      "path": "RecoveredSource/tnEo2lQHuv72GoUQCRuo3XpzqJNq9wGnGwXKTgj2D_Tr2gLLgiLCAsHvK-muhHpMlUAwInSl_ayNxtzKmeKDXmE.cs",
+      "sha256": "F5C4200AB3418054F74FCE82813EE80610A7CD46C87DA00F30D94BD1CEF4F48E"
+    },
+    {
+      "path": "RecoveredSource/tx5ezQjnJ588lHZb2y8_uGsRPxt8Gday9OvZVymtg997MmWK3bB9ajZOlUrRC07uCQhupP7i68Fu_hxQVh_EgfY.cs",
+      "sha256": "22EDB238B01A15B6D5981BFDED4E767675151312229E7EAEF764A8E592B19A7C"
+    },
+    {
+      "path": "RecoveredSource/u8Ar2V0yBXu1MN706lBpr0cloYcEfFWi2mOKspfamqUe_cd8Q8IzHpYyhevoqoPeRwzeHCG7cneLxvJIVa5JjOk.cs",
+      "sha256": "9CD49D565EA47EAF4EFDBE9E7E0D7F1D06D9146A0CB828419E064170A7F18BD0"
+    },
+    {
+      "path": "RecoveredSource/uHeKFpRK8CxNoYrUXwmBb_wvw8UhiG2Q6_VFz6q6ykR1.cs",
+      "sha256": "AABBDED53175565B099656395B8DBB166D8FB835EA11076650555C1B627893C0"
+    },
+    {
+      "path": "RecoveredSource/uJXJHpgO70ufC3wCKNGGi54JyfhyZCLleaJHGwdw02RKCMZKGw-Hmw3wMZXj_sPFYw.cs",
+      "sha256": "8AAE7580892B52E8B25CFE0669458806B2373877C587C3185A99B05B1173A22A"
+    },
+    {
+      "path": "RecoveredSource/v1JBKckAa1RFmn2CeELS4d1FhLzhlYwRV2bd7TgD-MEJnWym5unAzsCQpkwgvPK2FbBLfBqBfJdE_8ZO15q40ZU.cs",
+      "sha256": "DEFB9555C56A2BF5B8A98CCC75DA82E3A66F2D060DDF894BC2F1FD4D5D614246"
+    },
+    {
+      "path": "RecoveredSource/v8fwj6Sh74zipqAfgLp-1v03QrY57rxEDKsDLlfUsTxb.cs",
+      "sha256": "AE80DC29580364237870F5DF6FC99E947BCF006D5B257F62011234EE8D07B91D"
+    },
+    {
+      "path": "RecoveredSource/v8fwj6Sh74zipqAfgLp-1v0npFIO5aYaLDeNaTjpNQTpqdMWHS3ztRRUN84mMCWdfg.cs",
+      "sha256": "713CAFAEC6169066DE083ACA5B41F739BF8851F440584171F1AB0CFF86099E7A"
+    },
+    {
+      "path": "RecoveredSource/v8fwj6Sh74zipqAfgLp-1v2N2M_NveTX_-Vt0jTP_2IF6poGM9GW9jsK64aBPXPhEQ.cs",
+      "sha256": "53DEC12773BDCF3D6F64FFB31F3E9976FC65C47C4E03EEA1F9DAB1F55765CB69"
+    },
+    {
+      "path": "RecoveredSource/vJYJ1eONDPkjkgcRUVQ5P_6fiNuWWkFO2SJsiVgCvmOHSwl4oPxs0mnS2fhI_kOLUNxM30RRWDtzqP1RB0IJ1cg.cs",
+      "sha256": "D92DE42B295A4394FF1B24C36E4E2C0D12E537CC215F8A9BE92CE8702CED8762"
+    },
+    {
+      "path": "RecoveredSource/vcvWq48of1PpnetEh2AY81tkRkpDe4qOaCwTttO9vBY6.cs",
+      "sha256": "E47BA65734860FCD8B3CA88C75AFCB10ABC7D527643D147A5DBBC980BAD816AF"
+    },
+    {
+      "path": "RecoveredSource/vx5rezbz88IHFhAtbnsNz0vOuO_OyLZVxvo-8FYAb7gL.cs",
+      "sha256": "1B217AE5EB0EA1854C13D988E6BC00CD8EDA3338B3D904F80CC0559B405B43AB"
+    },
+    {
+      "path": "RecoveredSource/w5chUZMTNzi3hsv_ZuyAmjs7F6wodTntfLqg4PIMLgIS87wmHu7xDRY-miAUMfwGJCouQPUigRfUN_dwVL-BUMA.cs",
+      "sha256": "4C4AD74A56D3A8D33CDA0177B9BE14DC55F19AD675A4516A9B8D2B8D1C7B6471"
+    },
+    {
+      "path": "RecoveredSource/w5chUZMTNzi3hsv_ZuyAmjsrIqV_JS4UmvQj9ChlfHgM0YkamwAOecvqmdcCMPuZpA.cs",
+      "sha256": "05CE5D78106DBF5D8A09B4D285F7D7810F8354A0DA518A5C6DA973C814E7DEDE"
+    },
+    {
+      "path": "RecoveredSource/ww7-tm2OpDjQ8k2SaRJ45n_izBXA_GR88o7TRTfqWJMDUlZcdF18qK68bF_kR0jYuQ.cs",
+      "sha256": "AE93172A8B01FC2B8868C6C69F3DADC85BB24BE0B0F4C582375D3F9FE5F54D9A"
+    },
+    {
+      "path": "RecoveredSource/x2KzkW9JuGQXmzuCdgytKZhtDl_Q4F_kgfJY01G7qH2bwnaHFpw66hwDQa0zL5zVOw.cs",
+      "sha256": "DDE52DA7EF0DFD713EDE0BD1782C9D4959B78E3F4C1C114B094E865FEC7AF0F8"
+    },
+    {
+      "path": "RecoveredSource/xQLlXwvQfU73AR7DWoyqeJv6ZjVQBscarONfuuoCEEaT09MkuTY-OzaxmHcti2C7mA.cs",
+      "sha256": "EA40DA63C0AF9F222079F943F008AB073239EAB225B1D4CC2AD1B2427D257AB9"
+    },
+    {
+      "path": "RecoveredSource/xh28Je5vGZzmlyaYTv4leqahX-d76HU68fsrFhxkr_aiwJvGWxEZr2ULd9ujX_W1gg.cs",
+      "sha256": "6C19383C55042958C7ABBB1C064FF2A8554F5D24C168A5461983E7E575A871E2"
+    },
+    {
+      "path": "RecoveredSource/yGuTea24VPvAzRiGuAr623th2L_LH4ICGrjI04j3-kqN.cs",
+      "sha256": "B57B5179DA3E2FD0205972B98014AEB396AF2126DE966DE4CF675A361BC39E95"
+    },
+    {
+      "path": "RecoveredSource/yJT1gK8OIDr03twQ0UsF3X03laCCNIeL85eTHNnX5V_o.cs",
+      "sha256": "66E0D4E94B9DD2C3C03FFF2258AD63106CCA02038AD21B167992C66AE576B126"
+    },
+    {
+      "path": "RecoveredSource/yfEXMHxuSzjMGikN5wvnJIfLxGAf-UT-xByMq6wI03NM.cs",
+      "sha256": "47FFBA0977CF83BC419855CFD4E9747DEA16E6D0DC7903FF5CEC3CDA9483722B"
+    },
+    {
+      "path": "RecoveredSource/yzJYu9roTp6ENqtLoiCZ-IkzieVUW5qCWgOWO91IB0T1qP3hebt7hsycbIzVsKXt6A.cs",
+      "sha256": "99CBD3705B622FE1663DA85B2654DBCC98916A6D2FB401F1A50BC2AE22753350"
+    },
+    {
+      "path": "RecoveredSource/yzJYu9roTp6ENqtLoiCZ-IlmR4S21MYknwWab8ZmGOpbf99-V1fkXD6vIvlbY2i-4wLBDd9OSyxlNysLO3mMuTc.cs",
+      "sha256": "9C7B355CC1506CD7E4B6924A908EB66DD653DFCB2DCB4841D24DC0C6C862A5CF"
+    },
+    {
+      "path": "RecoveredSource/zAOrzM_2ysNo3jthAClNSQ3POH9nkmbIAQjQeFsGY2hYwlsUfYcNDVio3ZwNGLR-5A.cs",
+      "sha256": "3FCAE210504DC9B807EF4824406B01C91237D3598826E2B8A95AF11C8C125E83"
+    },
+    {
+      "path": "RecoveredSource/zE60wVxOgZhBbFe-L2dQQnBpi9PrY5xO_LcZQVhXG-JnB399sbSEMqDfCXIKMB5QMYje4jK4C_HFa6uGRpqTj5fiCtnsPiP3e027YIjVAP0B.cs",
+      "sha256": "4E65B10A92DD19210D02D8D4010DD2B18F235C5EA747738127AEE2F676A28522"
+    }
+  ],
+  "ModuleSources": [
+    {
+      "path": "ScaleRuntime/ConnectedShapeContact.cs",
+      "sha256": "4855DBA1F543B6977843A6B9EB2A1D24540C8803BEF8C2E6584D0593780F2E45"
+    },
+    {
+      "path": "ScaleRuntime/ConnectedShapeHierarchy.cs",
+      "sha256": "47EB2688C0810C4B5E12D342A55F78D90702137AA9E7F536B927E4C28DB45CF3"
+    },
+    {
+      "path": "ScaleRuntime/ConnectedShapePoseHierarchy.cs",
+      "sha256": "176B442A58FC9CC604C0A69B34FFF8FC293E4FD5B219B6825C2B5EDB4FD36138"
+    },
+    {
+      "path": "ScaleRuntime/ConnectedShapeScaleV2.cs",
+      "sha256": "B983CF0F5DA4A65910C8ECCE2BF83DF8E09900FA484226F247EC176910C9994A"
+    },
+    {
+      "path": "ScaleRuntime/ConnectedShapeTopology.cs",
+      "sha256": "02D46C465A91AD5A6EE1B067457E7FFF615AABB498329F6DB1AA6EAE9B422DD4"
+    },
+    {
+      "path": "ScaleRuntime/CouplerBranchSelection.cs",
+      "sha256": "9B511FC2EF45F0C150A698B271FABC44E3FC75FDC182CEEAB0F5BC10B51DE741"
+    },
+    {
+      "path": "ScaleRuntime/ManualShapeSelection.cs",
+      "sha256": "47E4BF22B30991CD1AF382BBB0A585179CBCE8290D8F49C12EB658FB98191DDE"
+    },
+    {
+      "path": "ScaleRuntime/NativeScalePanel.cs",
+      "sha256": "379A9AD3F7E180AA509FE6BCC7704D7707B3A5DED3CC93CE371A8304FB406CC2"
+    },
+    {
+      "path": "ScaleRuntime/RootAnchorSelectionPolicy.cs",
+      "sha256": "007FDBD94EB989066AE451F8C97DEB3AEC5E9486CD434E56CD1BCABE4934A012"
+    },
+    {
+      "path": "ScaleRuntime/ScaleLocalization.cs",
+      "sha256": "BACA0BE92A31C551EC98CBA609320E7631B6577846F3EB7531823663F4EDD444"
+    },
+    {
+      "path": "ScaleRuntime/ScaleRuntimeModule.cs",
+      "sha256": "14E3F3A960C73091C0C0557994001D644C71C5315D87C77F4010620DB7857E4E"
+    },
+    {
+      "path": "ScaleRuntime/SculptScaleInputPolicy.cs",
+      "sha256": "BA89D6F12D51D2545E12CF6E1C70BC8184C60B2128D26DD685B0B94CE9DBD085"
+    },
+    {
+      "path": "ScaleRuntime/SculptScaleUi.cs",
+      "sha256": "5F39F35B11F8A1D10E8A5A6E0DC72741BD998665F371AD8C1D4263C930E6CBAD"
+    },
+    {
+      "path": "ScaleRuntime/SelectedShapePreviewPolicy.cs",
+      "sha256": "641BABEC360B19ADB752942D255DEBA7000705B6D9984740DB87548960B314CA"
+    },
+    {
+      "path": "ScaleRuntime/ShapeRotationComparison.cs",
+      "sha256": "9862B9FDF595E522A2E27FD291B48701FB2B8986D49443AC4B32DAD4445A2AAF"
+    },
+    {
+      "path": "ScaleRuntime/ShapeScalePicking.cs",
+      "sha256": "837BB6A68705EAA90C5C0308003AAE0333547AD51D92AF439E70DF687E91D1BB"
+    },
+    {
+      "path": "ScaleRuntime/ShapeScaleVisibility.cs",
+      "sha256": "CFBB59B8310411DE31864C359889A8374B9DE401F28B3CA4A5EC2EE20705CC58"
+    }
+  ],
+  "GeneratedModuleVersionSource": "ReleaseSources/ScaleRuntimeVersion.cs"
+}

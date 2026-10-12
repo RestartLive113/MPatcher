@@ -24,6 +24,7 @@ internal static class metG733wDBlDhjB0MSUi_0024WZtiv2d5Ta15QUy66BHDFij5pgSnnkUUe
 			MPatcherFork.CustomPatches.CouplerRotation.TryRegister();
 			MqnKZ_0024xlzvnL3l15SHWn86U();
 			MPatcherFork.CustomPatches.SetupPrecision.TryRegister();
+			MPatcherFork.CustomPatches.ShapeDetailRetention.TryRegister();
 		}
 	}
 

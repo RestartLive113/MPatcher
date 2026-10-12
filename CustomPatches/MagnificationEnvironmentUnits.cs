@@ -10,7 +10,7 @@ namespace MPatcherFork.CustomPatches
 {
 	internal static class MagnificationEnvironmentUnits
 	{
-		internal static float Scale(Component owner) { return MagnificationScalePolicy.Enabled ? MagnificationPhysicsNormalization.MachineScale(MagnificationForceUnits.Machine(owner)) : 1f; }
+		internal static float Scale(Component owner) { return MagnificationScalePolicy.Enabled ? MagnificationPhysicsMode.PhysicsScale(MagnificationForceUnits.Machine(owner)) : 1f; }
 		private static float CraftLength(float value, Component owner) { return value / Scale(owner); }
 		private static Vector3 CraftVelocity(Vector3 value, Component owner) { return value / Scale(owner); }
 		internal static void Register(Harmony harmony)

@@ -464,11 +464,23 @@ namespace MPatcherFork.CustomPatches
 
 		private static byte[] Encode(BuildData build)
 		{
+			if (MachineCompressionMetadata.Required(build))
+			{
+				byte[] retained = MachineCompressionMetadata.Encode(build);
+				Log("METADATA_ENCODE format=shapeDetail-json-v1 bytes=" + retained.Length);
+				return retained;
+			}
 			return KjZ6k5EOvx8ehHa8KpN7D9CVL2r1svVmATmUt3PKPSEN2gwgw888a55kuCgtdRKS2Q.TeFH4ifj99LlUm32GP4kcVk(build);
 		}
 
 		private static BuildData Decode(byte[] bytes)
 		{
+			if (MachineCompressionMetadata.IsEnvelope(bytes))
+			{
+				BuildData retained = MachineCompressionMetadata.Decode(bytes);
+				Log("METADATA_DECODE format=shapeDetail-json-v1 blocks=" + retained.blockData.Count);
+				return retained;
+			}
 			return KjZ6k5EOvx8ehHa8KpN7D9CVL2r1svVmATmUt3PKPSEN2gwgw888a55kuCgtdRKS2Q.smethod_0(bytes);
 		}
 

@@ -1,0 +1,18 @@
+MPatcher is maintained as a community continuation of the original project.
+
+Original MPatcher and patching code:
+  Dylan Grinberg (dylanpdx)
+
+This community continuation and redistribution are made with permission from
+the original MPatcher author.
+
+Original installer credits also name:
+  Sanikku
+
+MachineCraft is the property of its respective developer and publisher.
+This package is intended for compatibility and community maintenance of the
+abandoned MPatcher codebase. It is not an official MachineCraft or MPatcher release.
+
+The optional Zapret - Legacy helper redistributes pinned components from zapret
+and WinDivert. Their license texts, upstream metadata, and corresponding source
+archives are embedded in MPatcherPackage.exe and installed with the helper.

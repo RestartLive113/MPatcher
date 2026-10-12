@@ -1,0 +1,2 @@
+# Preserve exact tested compiler input bytes in the Alpha source tree.
+* -text

@@ -20,6 +20,11 @@ namespace MPatcherFork.CustomPatches
 		private static void SetCollision(Rigidbody body, bool enabled, ContactSensor sensor)
 		{
 			if (!enabled) DisableRequests++;
+			if (sensor.DLMKKFCHFNC != null && !MagnificationPhysicsMode.Applies(sensor.DLMKKFCHFNC.CIPOPAGDJDE))
+			{
+				body.detectCollisions = enabled;
+				return;
+			}
 			float scale = sensor.DLMKKFCHFNC == null ? 1f : MagnificationPhysicsNormalization.MachineScale(sensor.DLMKKFCHFNC.CIPOPAGDJDE);
 			if (ShouldSuppress(enabled, scale, MagnificationCraftProbe.Model)) { Suppressed++; return; }
 			body.detectCollisions = enabled;

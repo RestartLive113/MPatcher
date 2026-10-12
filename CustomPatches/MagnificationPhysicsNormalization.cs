@@ -67,6 +67,7 @@ namespace MPatcherFork.CustomPatches
 
 		internal static void NormalizeMachine(MachineController machine)
 		{
+			if (!MagnificationPhysicsMode.Applies(machine)) return;
 			float scale = MachineScale(machine);
 			if (scale == 1f) return;
 			MagnificationDownscale.Log("PHYSICS_MACHINE scale=" + scale.ToString("R", CultureInfo.InvariantCulture)
@@ -115,11 +116,11 @@ namespace MPatcherFork.CustomPatches
 
 		private static float ScaleWheelLength(float value, WheelController wheel)
 		{
-			return value * MachineScale(wheel.FPEBEEJGFPI);
+			return !MagnificationPhysicsMode.Applies(wheel.FPEBEEJGFPI) ? value : value * MachineScale(wheel.FPEBEEJGFPI);
 		}
 		private static float UnscaleWheelLength(float value, WheelController wheel)
 		{
-			return value / MachineScale(wheel.FPEBEEJGFPI);
+			return !MagnificationPhysicsMode.Applies(wheel.FPEBEEJGFPI) ? value : value / MachineScale(wheel.FPEBEEJGFPI);
 		}
 
 		internal static IEnumerable<CodeInstruction> MachineFixedUpdateTranspiler(IEnumerable<CodeInstruction> instructions)
@@ -152,7 +153,7 @@ namespace MPatcherFork.CustomPatches
 			return codes;
 		}
 
-		private static float ScaleMachineLength(float value, MachineController machine) { return value * MachineScale(machine); }
+		private static float ScaleMachineLength(float value, MachineController machine) { return !MagnificationPhysicsMode.Applies(machine) ? value : value * MachineScale(machine); }
 		internal static IEnumerable<CodeInstruction> BodyFixedUpdateTranspiler(IEnumerable<CodeInstruction> instructions)
 		{
 			List<CodeInstruction> codes = MagnificationDownscale.Copy(instructions);
@@ -182,8 +183,8 @@ namespace MPatcherFork.CustomPatches
 			return codes;
 		}
 
-		private static float ScaleBodyLength(float value, BodyController body) { return value * MachineScale(body.CIPOPAGDJDE); }
-		private static float UnscaleBodyLength(float value, BodyController body) { return value / MachineScale(body.CIPOPAGDJDE); }
+		private static float ScaleBodyLength(float value, BodyController body) { return !MagnificationPhysicsMode.Applies(body.CIPOPAGDJDE) ? value : value * MachineScale(body.CIPOPAGDJDE); }
+		private static float UnscaleBodyLength(float value, BodyController body) { return !MagnificationPhysicsMode.Applies(body.CIPOPAGDJDE) ? value : value / MachineScale(body.CIPOPAGDJDE); }
 
 		internal static IEnumerable<CodeInstruction> ShaftFixedUpdateTranspiler(IEnumerable<CodeInstruction> instructions)
 		{
@@ -213,8 +214,8 @@ namespace MPatcherFork.CustomPatches
 			return codes;
 		}
 
-		private static float ScaleShaftLength(float value, ShaftController shaft) { return value * MachineScale(shaft.FPEBEEJGFPI); }
-		private static Vector3 ScaleShaftVector(Vector3 value, ShaftController shaft) { return value * MachineScale(shaft.FPEBEEJGFPI); }
+		private static float ScaleShaftLength(float value, ShaftController shaft) { return !MagnificationPhysicsMode.Applies(shaft.FPEBEEJGFPI) ? value : value * MachineScale(shaft.FPEBEEJGFPI); }
+		private static Vector3 ScaleShaftVector(Vector3 value, ShaftController shaft) { return !MagnificationPhysicsMode.Applies(shaft.FPEBEEJGFPI) ? value : value * MachineScale(shaft.FPEBEEJGFPI); }
 
 		private static void InsertConversion(List<CodeInstruction> codes, int index, MethodInfo method)
 		{

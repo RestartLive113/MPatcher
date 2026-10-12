@@ -39,6 +39,7 @@ namespace MPatcherFork.CustomPatches
 		private static void BaseSetJointPostfix(JointController __instance)
 		{
 			if (__instance == null || __instance.FPEBEEJGFPI == null || __instance.ALGHGLCBLDJ == null) return;
+			if (!MagnificationPhysicsMode.Applies(__instance.FPEBEEJGFPI)) return;
 			float scale = MagnificationPhysicsNormalization.MachineScale(__instance.FPEBEEJGFPI);
 			if (scale == 1f) return;
 
@@ -64,6 +65,7 @@ namespace MPatcherFork.CustomPatches
 		private static void PistonSetJointPostfix(PistonController __instance)
 		{
 			if (__instance == null || __instance.FPEBEEJGFPI == null) return;
+			if (!MagnificationPhysicsMode.Applies(__instance.FPEBEEJGFPI)) return;
 			float scale = MagnificationPhysicsNormalization.MachineScale(__instance.FPEBEEJGFPI);
 			if (scale == 1f) return;
 			ConfigurableJoint joint = PistonJointField.GetValue(__instance) as ConfigurableJoint;
@@ -111,6 +113,7 @@ namespace MPatcherFork.CustomPatches
 		internal static void FinalizeMachine(MachineController machine)
 		{
 			if (machine == null) return;
+			if (!MagnificationPhysicsMode.Applies(machine)) return;
 			float scale = MagnificationPhysicsNormalization.MachineScale(machine);
 			if (scale == 1f) return;
 

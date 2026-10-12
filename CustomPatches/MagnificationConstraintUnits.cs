@@ -26,7 +26,7 @@ namespace MPatcherFork.CustomPatches
 		internal static void Apply(MachineController machine)
 		{
 			if (!MagnificationScalePolicy.Enabled) return;
-			float scale = MagnificationPhysicsNormalization.MachineScale(machine);
+			float scale = MagnificationPhysicsMode.PhysicsScale(machine);
 			if (MagnificationScalePolicy.Bypass(scale)) return;
 			HashSet<int> seen = new HashSet<int>();
 			List<GameObject> roots = new List<GameObject> { machine.gameObject }; roots.AddRange(machine.KBLANAFAJFP);

@@ -26,7 +26,7 @@ namespace MPatcherFork.CustomPatches
         private static float Scale(MachineController machine)
         {
             if (!MagnificationScalePolicy.SameTime || MagnificationInuProbe.Baseline) return 1f;
-            float scale = MagnificationPhysicsNormalization.MachineScale(machine);
+            float scale = MagnificationPhysicsMode.PhysicsScale(machine);
             if (scale != 1f && logged.Add(machine.GetInstanceID()))
                 MagnificationDownscale.Log("SAFETY_UNITS_ACTIVE machine=" + machine.GetInstanceID() + " scale=" + scale.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
                     + " accelerationLimit=" + (3f * scale).ToString("R", System.Globalization.CultureInfo.InvariantCulture)

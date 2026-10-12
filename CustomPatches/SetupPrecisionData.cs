@@ -14,6 +14,10 @@ namespace MPatcherFork.CustomPatches
         internal const int Scale = 1000;
         internal const int Maximum = 1000;
         internal const int MaxScaled = Maximum * Scale;
+        internal const int ShapeSizeMaximum = 1000;
+        internal const int ShapeOffsetMaximum = 1000;
+        internal const int BoxOffsetMaximum = 10000;
+        internal const int CouplerOffsetMaximum = 10000;
         private const int CurrentVersion = 2;
 
         internal static bool IsMechanism(BlockData block)
@@ -57,6 +61,29 @@ namespace MPatcherFork.CustomPatches
                 || block.type == BlockData.AAHMDBHDCDK.CapGen && slot < 2);
         }
 
+        internal static bool IsShapeOffset(BlockData block, int slot)
+        {
+            return block != null && slot >= 0
+                && (((block.type == BlockData.AAHMDBHDCDK.BoxGen
+                    || block.type == BlockData.AAHMDBHDCDK.CapGen) && slot >= 3 && slot < 6)
+                    || block.type == BlockData.AAHMDBHDCDK.Coupler && slot < 3);
+        }
+
+        internal static bool IsCouplerOffset(BlockData block, int slot)
+        {
+            return block != null && block.type == BlockData.AAHMDBHDCDK.Coupler && slot >= 0 && slot < 3;
+        }
+
+        internal static int SlotMaximum(BlockData block, int slot)
+        {
+            if (IsCouplerOffset(block, slot)) return CouplerOffsetMaximum;
+            return block != null && block.type == BlockData.AAHMDBHDCDK.BoxGen && slot >= 3 && slot < 6
+                ? BoxOffsetMaximum : Maximum;
+        }
+
+        internal static int ShapeOffsetLimit(BlockData block)
+        { return block != null && block.type == BlockData.AAHMDBHDCDK.BoxGen ? BoxOffsetMaximum : ShapeOffsetMaximum; }
+
         internal static float SizeMinimum(BlockData block, int slot)
         {
             return slot == 1 && (block.type == BlockData.AAHMDBHDCDK.BoxGen || block.actionParam[2] == 0) ? 0f : 0.001f;
@@ -71,7 +98,7 @@ namespace MPatcherFork.CustomPatches
 
         internal static int Quantize(float value)
         {
-            if (float.IsNaN(value) || float.IsInfinity(value) || Math.Abs(value) > MaxScaled / Scale)
+            if (float.IsNaN(value) || float.IsInfinity(value) || Math.Abs(value) > CouplerOffsetMaximum)
                 throw new ArgumentOutOfRangeException("value");
             return (int)Math.Round((double)value * Scale, MidpointRounding.AwayFromZero);
         }
@@ -100,11 +127,11 @@ namespace MPatcherFork.CustomPatches
                 int slot, baseline, stored, guard;
                 if (parts.Length != 4 || !Integer(parts[0], out slot) || !Integer(parts[1], out baseline)
                     || !Integer(parts[2], out stored) || !Integer(parts[3], out guard)
-                    || !Supports(block, slot) || Math.Abs((long)stored) > Maximum * (long)storedScale) continue;
+                    || !Supports(block, slot) || Math.Abs((long)stored) > SlotMaximum(block, slot) * (long)storedScale) continue;
                 int scaled = stored * (Scale / storedScale);
-                if (scaled < -MaxScaled || scaled > MaxScaled
+                if (Math.Abs((long)scaled) > SlotMaximum(block, slot) * (long)Scale
                     || Baseline(block, slot, scaled) != baseline || scaled % Scale == 0
-                    || IsSize(block, slot) && (scaled < 0 || scaled > 250 * Scale)
+                    || IsSize(block, slot) && (scaled < 0 || scaled > ShapeSizeMaximum * Scale)
                     || Native(block, slot) != baseline || Guard(block, slot) != guard) continue;
                 values[slot] = scaled;
             }
@@ -129,6 +156,17 @@ namespace MPatcherFork.CustomPatches
             return scaled == int.MinValue ? Native(block, slot) : scaled / (float)Scale;
         }
 
+        // Snapshot comparisons must retain the stored integer thousandths instead
+        // of comparing an x87 intermediate with a spilled single-precision value.
+        // Native fallback keeps Read's slot semantics; callers validate Supports.
+        internal static int ReadScaled(BlockData block, int slot)
+        {
+            if (!Supports(block, slot) || block.props == null || !block.props.ContainsKey(PropertyName))
+                return checked(Native(block, slot) * Scale);
+            int scaled = Decode(block)[slot];
+            return scaled == int.MinValue ? checked(Native(block, slot) * Scale) : scaled;
+        }
+
         internal static float ReadActionAngle(BlockData block, int slot)
         {
             return slot == 7 && Supports(block, 8) ? Read(block, 8) : block.actionID[slot];
@@ -148,12 +186,14 @@ namespace MPatcherFork.CustomPatches
         {
             if (!Supports(block, slot)) return false;
             int scaled = Quantize(value);
+            if (Math.Abs((long)scaled) > SlotMaximum(block, slot) * (long)Scale)
+                throw new ArgumentOutOfRangeException("value");
             int[] values = Decode(block);
             int previous = values[slot] == int.MinValue ? Native(block, slot) * Scale : values[slot];
             if (previous == scaled && (block.props == null || !block.props.ContainsKey(PropertyName))) return false;
             // Truncation keeps FREE/STOP neighbouring integer sentinels out of a
             // fractional numeric interval (for example 100.99 must not become 101).
-            if (IsSize(block, slot) && scaled % Scale != 0 && (scaled < 0 || scaled > 250 * Scale))
+            if (IsSize(block, slot) && scaled % Scale != 0 && (scaled < 0 || scaled > ShapeSizeMaximum * Scale))
                 throw new ArgumentOutOfRangeException("value");
             if (slot == 8) block.actionID[7] = Baseline(block, slot, scaled);
             else block.actionParam[slot] = Baseline(block, slot, scaled);
@@ -238,7 +278,7 @@ namespace MPatcherFork.CustomPatches
 
         private static bool SameValue(float first, float second)
         {
-            if (Math.Abs(first) > Maximum || Math.Abs(second) > Maximum) return first == second;
+            if (Math.Abs(first) > CouplerOffsetMaximum || Math.Abs(second) > CouplerOffsetMaximum) return first == second;
             return Quantize(first) == Quantize(second);
         }
 
@@ -251,7 +291,7 @@ namespace MPatcherFork.CustomPatches
                 if ((!offsetsOnly || slot < 3) && Supports(source, slot) && Supports(destination, slot))
                 {
                     float value = Read(source, slot);
-                    if (Math.Abs(value) <= Maximum) Set(destination, slot, value);
+                    if (Math.Abs(value) <= SlotMaximum(source, slot)) Set(destination, slot, value);
                     else
                     {
                         if (slot == 8) destination.actionID[7] = (int)value;

@@ -21,6 +21,7 @@ namespace MPatcherFork.CustomPatches
 		internal static void Track(Rigidbody body, float scale)
 		{
 			if (!MagnificationScalePolicy.SameTime || body == null) return;
+			if (MagnificationMassBoundary.IsVanilla(body)) { entries.Remove(body.GetInstanceID()); return; }
 			if (MagnificationScalePolicy.Bypass(scale)) { entries.Remove(body.GetInstanceID()); return; }
 			int id = body.GetInstanceID(); Entry entry;
 			if (!entries.TryGetValue(id, out entry) || !ReferenceEquals(entry.Body, body))
@@ -42,7 +43,7 @@ namespace MPatcherFork.CustomPatches
 			foreach (KeyValuePair<int, Entry> pair in entries)
 			{
 				Entry entry = pair.Value; Rigidbody body = entry.Body;
-				if (body == null) { expired.Add(pair.Key); continue; }
+				if (body == null || MagnificationMassBoundary.IsVanilla(body)) { expired.Add(pair.Key); continue; }
 				bool useGravity = body.useGravity;
 				if (!entry.Observed || entry.UseGravity != useGravity || entry.Gravity != gravity)
 				{

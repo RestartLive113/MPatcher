@@ -35,6 +35,8 @@ public class mcpd
 
 	public int recoilMult = 100;
 
+	public bool magnificationPhysics = true;
+
 	public string objPlan_name;
 
 	public int objPlan_xoff;

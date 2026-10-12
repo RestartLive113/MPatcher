@@ -29,10 +29,11 @@ namespace MPatcherFork.CustomPatches
 		}
 		private static float Factor(PistonController piston)
 		{
+			if (!MagnificationPhysicsMode.Applies(piston.FPEBEEJGFPI)) return 1f;
 			return MagnificationScalePolicy.SameTime ? MagnificationPhysicsNormalization.MachineScale(piston.FPEBEEJGFPI) : piston.FPEBEEJGFPI == null ? 1f : DownscaleFactor(piston.FPEBEEJGFPI.DJCDFLDHPHK);
 		}
-		private static float ToWorldLength(float value, PistonController piston) { return value * Factor(piston); }
-		private static float ToCraftLength(float value, PistonController piston) { return value / Factor(piston); }
+		private static float ToWorldLength(float value, PistonController piston) { return !MagnificationPhysicsMode.Applies(piston.FPEBEEJGFPI) ? value : value * Factor(piston); }
+		private static float ToCraftLength(float value, PistonController piston) { return !MagnificationPhysicsMode.Applies(piston.FPEBEEJGFPI) ? value : value / Factor(piston); }
 		private static void StartPostfix(PistonController __instance)
 		{
 			float factor = Factor(__instance);

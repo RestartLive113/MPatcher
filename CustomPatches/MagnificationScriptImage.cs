@@ -129,14 +129,20 @@ namespace MPatcherFork.CustomPatches
 		private static float FeedbackScale(AutoPilot owner)
 		{
 			if (autoPilotMachine == null) throw new MissingFieldException("AutoPilot", "machineScr");
-			return MagnificationPhysicsNormalization.MachineScale((MachineController)autoPilotMachine.GetValue(owner));
+			return MagnificationPhysicsMode.PhysicsScale((MachineController)autoPilotMachine.GetValue(owner));
 		}
+        private static bool IsVanilla(AutoPilot owner)
+        {
+            if (autoPilotMachine == null) throw new MissingFieldException("AutoPilot", "machineScr");
+            return MagnificationPhysicsMode.IsVanilla((MachineController)autoPilotMachine.GetValue(owner));
+        }
 		// Calls only from rewritten scripts. Native AI, world positions/raycasts
 		// and the game's speed display retain world units. A script that uses its
 		// control speed for a HUD (such as JZZ30) also displays source-craft speed.
 		public static float ReadScriptSpeed(AutoPilot owner)
 		{
 			float world = owner.GetSpeed();
+            if (IsVanilla(owner)) return world;
 			FeedbackSpeedReads++;
 			if (!MagnificationScalePolicy.SameTime) return world;
 			float scale = FeedbackScale(owner);
@@ -151,6 +157,7 @@ namespace MPatcherFork.CustomPatches
 		public static Vector3 ReadScriptVelocity(AutoPilot owner)
 		{
 			Vector3 world = owner.GetVelocity();
+            if (IsVanilla(owner)) return world;
 			FeedbackVelocityReads++;
 			if (!MagnificationScalePolicy.SameTime) return world;
 			float scale = FeedbackScale(owner);

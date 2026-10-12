@@ -6,9 +6,10 @@ using System.Security.Cryptography;
 
 namespace MPatcherFork.CustomPatches
 {
-	// Captures the exact native Unity NetworkManager only after the packet source
-	// was identified as the NAT facilitator and the peer role was identified as
-	// Host. Unity's original immediate reconnect remains in place. The managed
+	// Captures the exact native Unity NetworkManager after a facilitator packet
+	// has been identified for the Host role. Capturing the connected event also
+	// permits independent native-state checks when the loss event was missed.
+	// Unity's original immediate reconnect remains in place. The managed
 	// host driver can then repeat that same RakPeer Connect call without invoking
 	// Network.InitializeServer or replacing the live server session.
 	internal static class LegacyHostFacilitatorReconnectFix
@@ -17,6 +18,10 @@ namespace MPatcherFork.CustomPatches
 		private const int HostFacilitatorConnectedRva = 0x470CF4;
 		private const int HostFacilitatorLossRva = 0x47125A;
 		private const int AddressToStringRva = 0x8C7560;
+		private const int AddressOrGuidConstructorRva = 0x45FFB0;
+		private const int IsConnectedRva = 0x8CF194;
+		// GetManager(13), VA00580590, reads manager table VA014396B0 + 13*4.
+		private const int NetworkManagerSlotRva = 0x10396E4;
 		private const uint MemCommitReserve = 0x3000;
 		private const uint MemRelease = 0x8000;
 		private const uint PageExecuteReadWrite = 0x40;
@@ -26,9 +31,15 @@ namespace MPatcherFork.CustomPatches
 		private static IntPtr managerSlot;
 		private static IntPtr pendingSlot;
 		private static NativeReconnectDelegate reconnect;
+		private static NativeConnectivityDelegate connectivity;
+		private static IntPtr liveManagerSlot;
+		private static IntPtr expectedIsConnected;
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		private delegate int NativeReconnectDelegate(IntPtr networkManager);
+
+		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+		private delegate int NativeConnectivityDelegate(IntPtr networkManager, int includeConnecting, int includeDisconnecting);
 
 		internal static bool Applied
 		{
@@ -60,13 +71,19 @@ namespace MPatcherFork.CustomPatches
 				using (FileStream stream = new FileStream(module.FileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
 				using (SHA256 sha = SHA256.Create())
 					hash = BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "");
-				if (hash != ExpectedExeSha256 || module.ModuleMemorySize <= AddressToStringRva + 16)
+				if (hash != ExpectedExeSha256 || module.ModuleMemorySize <= NetworkManagerSlotRva + 4)
 					throw new NotSupportedException("Unknown Unity player profile: " + hash);
 
 				lossAddress = LegacyHostNativePatchLayout.Add(module.BaseAddress, HostFacilitatorLossRva);
 				connectedAddress = LegacyHostNativePatchLayout.Add(module.BaseAddress, HostFacilitatorConnectedRva);
 				EnsureEqual(Read(lossAddress, lossExpected.Length), lossExpected, "host facilitator loss signature mismatch");
 				EnsureEqual(Read(connectedAddress, connectedExpected.Length), connectedExpected, "host facilitator connected signature mismatch");
+				EnsureEqual(Read(LegacyHostNativePatchLayout.Add(module.BaseAddress, AddressOrGuidConstructorRva), 10),
+					new byte[] { 0x55, 0x8B, 0xEC, 0x56, 0x8B, 0xF1, 0xB8, 0xFF, 0xFF, 0x00 }, "AddressOrGUID constructor signature mismatch");
+				expectedIsConnected = LegacyHostNativePatchLayout.Add(module.BaseAddress, IsConnectedRva);
+				EnsureEqual(Read(expectedIsConnected, 10), new byte[] { 0x55, 0x8B, 0xEC, 0x83, 0xEC, 0x1C, 0x80, 0x7D, 0x20, 0x00 },
+					"RakPeer IsConnected signature mismatch");
+				liveManagerSlot = LegacyHostNativePatchLayout.Add(module.BaseAddress, NetworkManagerSlotRva);
 
 				nativeBlock = VirtualAlloc(IntPtr.Zero, new UIntPtr(4096), MemCommitReserve, PageExecuteReadWrite);
 				if (nativeBlock == IntPtr.Zero) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
@@ -75,38 +92,47 @@ namespace MPatcherFork.CustomPatches
 				IntPtr lossStub = LegacyHostNativePatchLayout.Add(nativeBlock, 32);
 				IntPtr connectedStub = LegacyHostNativePatchLayout.Add(nativeBlock, 96);
 				IntPtr reconnectStub = LegacyHostNativePatchLayout.Add(nativeBlock, 160);
+				IntPtr connectivityStub = LegacyHostNativePatchLayout.Add(nativeBlock, 256);
 				Marshal.WriteIntPtr(managerSlot, IntPtr.Zero);
 				Marshal.WriteInt32(pendingSlot, 0);
 
 				WriteRaw(lossStub, LegacyHostNativePatchLayout.BuildLossStub(lossStub, lossAddress, managerSlot, pendingSlot));
-				WriteRaw(connectedStub, LegacyHostNativePatchLayout.BuildConnectedStub(connectedStub, connectedAddress, pendingSlot));
+				WriteRaw(connectedStub, LegacyHostNativePatchLayout.BuildConnectedStub(connectedStub, connectedAddress, managerSlot, pendingSlot));
 				WriteRaw(reconnectStub, LegacyHostNativePatchLayout.BuildReconnectStub(
 					LegacyHostNativePatchLayout.Add(module.BaseAddress, AddressToStringRva)));
+				WriteRaw(connectivityStub, LegacyHostNativePatchLayout.BuildConnectivityStub(
+					LegacyHostNativePatchLayout.Add(module.BaseAddress, AddressOrGuidConstructorRva)));
 				if (!FlushInstructionCache(process.Handle, nativeBlock, new UIntPtr(4096)))
 					throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
 
-				WritePatch(process, lossAddress, lossExpected, LegacyHostNativePatchLayout.JumpPatch(lossAddress, lossStub, lossExpected.Length));
 				lossPatched = true;
-				WritePatch(process, connectedAddress, connectedExpected, LegacyHostNativePatchLayout.JumpPatch(connectedAddress, connectedStub, connectedExpected.Length));
+				WritePatch(process, lossAddress, lossExpected, LegacyHostNativePatchLayout.JumpPatch(lossAddress, lossStub, lossExpected.Length));
 				connectedPatched = true;
+				WritePatch(process, connectedAddress, connectedExpected, LegacyHostNativePatchLayout.JumpPatch(connectedAddress, connectedStub, connectedExpected.Length));
 				reconnect = (NativeReconnectDelegate)Marshal.GetDelegateForFunctionPointer(reconnectStub, typeof(NativeReconnectDelegate));
+				connectivity = (NativeConnectivityDelegate)Marshal.GetDelegateForFunctionPointer(connectivityStub, typeof(NativeConnectivityDelegate));
 				applied = true;
-				Log("APPLIED version=1 profile=Unity-5.6.2f1-x86 lossRva=0x47125A connectedRva=0x470CF4 nativeFirstAttempt=unchanged managedRetry=8,15,30,max30 sessionReinitialize=never scope=current-process-only exeFile=unchanged sha256=" + hash);
+				Log("APPLIED version=2 profile=Unity-5.6.2f1-x86 lossRva=0x47125A connectedRva=0x470CF4 independentHealth=RakPeer-IsConnected healthInterval=5 healthMissingSamples=2 nativeFirstAttempt=unchanged managedRetry=8,15,30,max30 sessionReinitialize=never scope=current-process-only exeFile=unchanged sha256=" + hash);
 			}
 			catch (Exception error)
 			{
+				bool restored = true;
 				if (process != null)
 				{
-					if (connectedPatched) TryRestore(process, connectedAddress, connectedExpected, "connected");
-					if (lossPatched) TryRestore(process, lossAddress, lossExpected, "loss");
+					if (connectedPatched) restored &= TryRestore(process, connectedAddress, connectedExpected, "connected");
+					if (lossPatched) restored &= TryRestore(process, lossAddress, lossExpected, "loss");
 				}
-				if (nativeBlock != IntPtr.Zero) VirtualFree(nativeBlock, UIntPtr.Zero, MemRelease);
+				// A branch that could not be restored must never target freed memory.
+				if (restored && nativeBlock != IntPtr.Zero) VirtualFree(nativeBlock, UIntPtr.Zero, MemRelease);
 				nativeBlock = IntPtr.Zero;
 				managerSlot = IntPtr.Zero;
 				pendingSlot = IntPtr.Zero;
 				reconnect = null;
+				connectivity = null;
+				liveManagerSlot = IntPtr.Zero;
+				expectedIsConnected = IntPtr.Zero;
 				applied = false;
-				Log("FAILED type=" + error.GetType().Name + " message=" + Clean(error.Message));
+				Log("FAILED type=" + error.GetType().Name + " rollbackVerified=" + restored + " stubRetained=" + !restored + " message=" + Clean(error.Message));
 			}
 			finally
 			{
@@ -119,18 +145,60 @@ namespace MPatcherFork.CustomPatches
 			networkManager = IntPtr.Zero;
 			if (!applied) return false;
 			if (Marshal.ReadInt32(pendingSlot) != 1) return false;
-			networkManager = Marshal.ReadIntPtr(managerSlot);
-			return networkManager != IntPtr.Zero;
+			return TryGetHostManager(out networkManager);
+		}
+
+		private static bool TryGetHostManager(out IntPtr networkManager)
+		{
+			networkManager = IntPtr.Zero;
+			if (!applied || liveManagerSlot == IntPtr.Zero) return false;
+			IntPtr observed = Marshal.ReadIntPtr(managerSlot);
+			// Check the current Unity singleton before dereferencing an old capture.
+			if (observed == IntPtr.Zero || Marshal.ReadIntPtr(liveManagerSlot) != observed) return false;
+			if (Marshal.ReadInt32(observed, 0x28) != 1 || Marshal.ReadByte(observed, 0x214) == 0) return false;
+			IntPtr peer = Marshal.ReadIntPtr(observed, 0x38);
+			if (peer == IntPtr.Zero || Marshal.ReadByte(peer, 4) != 0) return false;
+			IntPtr table = Marshal.ReadIntPtr(peer);
+			if (table == IntPtr.Zero || Marshal.ReadIntPtr(table, 0x9C) != expectedIsConnected) return false;
+			if (Marshal.ReadInt32(observed, 0x2F8) == 0 || Marshal.ReadInt16(observed, 0x2FC) == 0) return false;
+			networkManager = observed;
+			return true;
+		}
+
+		internal static LegacyHostFacilitatorHealth ReadHealth(out IntPtr networkManager)
+		{
+			if (!TryGetHostManager(out networkManager) || connectivity == null) return LegacyHostFacilitatorHealth.Unknown;
+			if (connectivity(networkManager, 0, 0) != 0) return LegacyHostFacilitatorHealth.Connected;
+			if (connectivity(networkManager, 1, 0) != 0) return LegacyHostFacilitatorHealth.Connecting;
+			if (connectivity(networkManager, 0, 1) != 0) return LegacyHostFacilitatorHealth.Disconnecting;
+			return LegacyHostFacilitatorHealth.Missing;
+		}
+
+		internal static bool MarkMissing(IntPtr networkManager)
+		{
+			IntPtr current;
+			if (ReadHealth(out current) != LegacyHostFacilitatorHealth.Missing || current != networkManager) return false;
+			Marshal.WriteInt32(pendingSlot, 1);
+			return true;
 		}
 
 		internal static int TryReconnect(IntPtr networkManager)
 		{
 			if (!applied || reconnect == null || networkManager == IntPtr.Zero) return -1;
 			if (Marshal.ReadInt32(pendingSlot) != 1 || Marshal.ReadIntPtr(managerSlot) != networkManager) return -1;
+			IntPtr current;
+			if (ReadHealth(out current) != LegacyHostFacilitatorHealth.Missing || current != networkManager) return -2;
 			return reconnect(networkManager);
 		}
 
 		internal static void ClearPending()
+		{
+			if (!applied) return;
+			Marshal.WriteInt32(pendingSlot, 0);
+			// Preserve the live binding when auto-port hands this peer to stability.
+		}
+
+		internal static void ForgetHost()
 		{
 			if (!applied) return;
 			Marshal.WriteInt32(pendingSlot, 0);
@@ -181,16 +249,17 @@ namespace MPatcherFork.CustomPatches
 			}
 		}
 
-		private static void TryRestore(Process process, IntPtr address, byte[] original, string name)
+		private static bool TryRestore(Process process, IntPtr address, byte[] original, string name)
 		{
 			try
 			{
 				uint oldProtection;
-				if (!VirtualProtect(address, new UIntPtr((uint)original.Length), PageExecuteReadWrite, out oldProtection)) return;
+				if (!VirtualProtect(address, new UIntPtr((uint)original.Length), PageExecuteReadWrite, out oldProtection)) return false;
 				try
 				{
 					Marshal.Copy(original, 0, address, original.Length);
 					FlushInstructionCache(process.Handle, address, new UIntPtr((uint)original.Length));
+					EnsureEqual(Read(address, original.Length), original, "rollback bytes differ");
 					Log("ROLLED_BACK site=" + name);
 				}
 				finally
@@ -198,8 +267,9 @@ namespace MPatcherFork.CustomPatches
 					uint unused;
 					VirtualProtect(address, new UIntPtr((uint)original.Length), oldProtection, out unused);
 				}
+				return true;
 			}
-			catch { }
+			catch { return false; }
 		}
 
 		private static void EnsureEqual(byte[] actual, byte[] expected, string message)

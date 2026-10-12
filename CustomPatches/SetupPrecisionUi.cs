@@ -14,6 +14,7 @@ namespace MPatcherFork.CustomPatches
     internal static class SetupPrecisionUi
     {
         private const int DigitCount = 6;
+        private const int CouplerDigitCount = 7;
         private const string NormalizedBackgroundPngBase64 = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACYUlEQVR42u2XMUhbURSGP+95eaHpIx3MIgGhEOnUkipFHCySya04iEs3oVAoQVuHDh272kGLhZK1gwhKN2ltEZzEQgNCQ3mbkMVJSEjQd+99XV4kpmkx4oNS8sOBx33n3POfc++5nDMAMDo6SgupVAprLY7jYK0FwFqLUope0G6jlEJrjVKKRqNxQa+3XWOAao++A3eAZeAboIGwR9GR7XK0V1c4f1h/rrV+XSwWb+TzeUZGRq5yBOL7/li5XB5bWVl5CrwC3nTqDXRkwE2lUh9nZmam5+bmyGaz15LmarXK+vo6W1tb241G4xFw1vonuVwO13VxXRcRWZ6dnX28uLhIOp2+tnNOp9NMTExQq9Vyvu/fVEp9chwHx3EYmJycbOndNcZ8393dlUQiEcuFOz09pVAomDAM7wE/AJQxhkjmFxYWYnMOkEwmKRaLIiLzIoKIXCjD6fHx8djLLvIxfV4Fbbf79tDQUOwEMpkM1tpstzJ040x/C57noZS69e+8hH0CfQJ9An0CfQJt32dBEMTuMOqK690IHB0fH8dOIPJx1I3A9v7+fuwEDg4OsNZ+ttZirf29Jdvb25NeO+DLIggCpqamjIjcBw4BVBiGRHKolHq3uroaW/Rra2sAb40xh61WUDKZDEEQtOSL7/sPTk5OcsPDw9fWGVerVUqlEpubm9vNZnNea2201mitkY42zIjIh0qlUtvY2HjoeV4imUwyODh4Jce+77Ozs8PS0lKzUqm8DMPwmdba/G0wwfO889HMWvsEKAD5KwZfBr4qpd4DPwHq9fqlRjMigxf//Uv4C5YRAB8nZ1itAAAAAElFTkSuQmCC";
         private const float CellHeight = 20f;
         private const float DigitWidth = 0.15f;
@@ -36,6 +37,7 @@ namespace MPatcherFork.CustomPatches
         private const float ArrowGap = 3f;
         private const float ArrowCenter = CellHeight * 0.5f + ArrowGap + ArrowHeight * 0.5f;
         private static readonly int[] PlaceScales = { 100000, 10000, 1000, 100, 10, 1 };
+        private static readonly int[] CouplerPlaceScales = { 1000000, 100000, 10000, 1000, 100, 10, 1 };
         private static readonly Color CellColor = new Color(154f / 255f, 154f / 255f, 154f / 255f, 1f);
         private static readonly Color HoverColor = new Color(245f / 255f, 245f / 255f, 245f / 255f, 1f);
         private static readonly Color SignOutlineColor = Color.white;
@@ -109,6 +111,9 @@ namespace MPatcherFork.CustomPatches
             internal VerticalWrapMode NativeTextVerticalOverflow;
             internal float VanillaTextWidth;
             internal float NativeMinimum;
+            internal float NativeMaximum;
+            internal bool ExtendedRange;
+            internal bool LargeCouplerOffset;
             internal Vector2 SliderAnchorMin;
             internal Vector2 SliderAnchorMax;
             internal Vector2 SliderPivot;
@@ -363,7 +368,7 @@ namespace MPatcherFork.CustomPatches
             bool pressed = HOCGCCAIPFF.FGCCNKAIKAI(action);
             bool filtered = FilterBuildModeHotkey(action, pressed, DirectInputEditing());
             if (pressed && !filtered) SetupPrecision.Log("INPUT_HOTKEY_BLOCKED action=" + action);
-            return filtered;
+            return SculptScaleUi.FilterMappedKeyDown(action, filtered);
         }
 
         internal static bool FilterBuildModeHotkey(SystemData.EHLMFKOOHLI action, bool pressed, bool editing)
@@ -457,7 +462,17 @@ namespace MPatcherFork.CustomPatches
                         && row.Slider.gameObject.activeInHierarchy;
                     SetEnabled(row, enabled);
                     if (!enabled) continue;
-                    if (SetupPrecisionData.IsSize(block, row.Slot)) row.Slider.minValue = SetupPrecisionData.SizeMinimum(block, row.Slot);
+                    if (SetupPrecisionData.IsSize(block, row.Slot))
+                    {
+                        row.Slider.minValue = SetupPrecisionData.SizeMinimum(block, row.Slot);
+                        row.Slider.maxValue = SetupPrecisionData.ShapeSizeMaximum;
+                    }
+                    else if (SetupPrecisionData.IsShapeOffset(block, row.Slot))
+                    {
+                        int limit = SetupPrecisionData.SlotMaximum(block, row.Slot);
+                        row.Slider.minValue = -limit;
+                        row.Slider.maxValue = limit;
+                    }
                     bool interactable = row.Slider.IsInteractable()
                         && !(group == "ParamC" && row.Slot >= 3 && CouplerRotation.IsRotationReadOnly(block));
                     if (row.Mode != (int)SetupPrecisionEditorMode.DigitSpinner)
@@ -546,6 +561,13 @@ namespace MPatcherFork.CustomPatches
                 NativeTextVerticalOverflow = native.verticalOverflow,
                 VanillaTextWidth = VanillaTextWidth(native.rectTransform.parent as RectTransform),
                 NativeMinimum = slider.minValue,
+                NativeMaximum = slider.maxValue,
+                ExtendedRange = (group == "ParamBox" && slot < 6)
+                    || (group == "ParamCap" && (slot < 2 || slot >= 3 && slot < 6))
+                    || (group == "ParamC" && slot < 3),
+                // Reuse the existing four-whole-digit offset editor for Box.
+                LargeCouplerOffset = UsesLargeOffsetEditor(group, slot),
+                Digits = new Digit[UsesLargeOffsetEditor(group, slot) ? CouplerDigitCount : DigitCount],
                 SliderAnchorMin = sliderRect.anchorMin,
                 SliderAnchorMax = sliderRect.anchorMax,
                 SliderPivot = sliderRect.pivot,
@@ -569,11 +591,16 @@ namespace MPatcherFork.CustomPatches
             row.Sign.fontSize = SignFontSize;
             row.Sign.resizeTextForBestFit = false;
             AddSignOutline(row.Sign);
-            row.Separator = CreateText(panel.transform, "Separator", native, new Vector2(0.50f, 0.15f), new Vector2(0.54f, 0.85f), 14);
+            row.Separator = CreateText(panel.transform, "Separator", native,
+                row.LargeCouplerOffset ? new Vector2(0.552f, 0.15f) : new Vector2(0.50f, 0.15f),
+                row.LargeCouplerOffset ? new Vector2(0.574f, 0.85f) : new Vector2(0.54f, 0.85f), 14);
             row.Separator.text = ",";
-            float[] starts = { 0.06f, 0.21f, 0.36f, 0.54f, 0.69f, 0.84f };
-            for (int place = 0; place < DigitCount; place++)
-                row.Digits[place] = CreateDigit(row, panel.transform, place, starts[place], starts[place] + DigitWidth, native);
+            float[] starts = row.LargeCouplerOffset
+                ? new[] { 0.055f, 0.18f, 0.305f, 0.43f, 0.575f, 0.7f, 0.825f }
+                : new[] { 0.06f, 0.21f, 0.36f, 0.54f, 0.69f, 0.84f };
+            float cellWidth = row.LargeCouplerOffset ? 0.125f : DigitWidth;
+            for (int place = 0; place < row.Digits.Length; place++)
+                row.Digits[place] = CreateDigit(row, panel.transform, place, starts[place], starts[place] + cellWidth, native);
             row.Special = CreateText(panel.transform, "Special", native, new Vector2(0.06f, 0.15f), new Vector2(0.99f, 0.85f), 12);
             row.Special.gameObject.SetActive(false);
             panel.AddComponent<DigitDriver>().Row = row;
@@ -594,7 +621,8 @@ namespace MPatcherFork.CustomPatches
             row.HybridSeparator.text = ",";
             float[] fractionStarts = { 0.13f, 0.42f, 0.71f };
             for (int index = 0; index < row.FractionDigits.Length; index++)
-                row.FractionDigits[index] = CreateDigit(row, hybridPanel.transform, index + 3,
+                row.FractionDigits[index] = CreateDigit(row, hybridPanel.transform,
+                    index + (row.LargeCouplerOffset ? 4 : 3),
                     fractionStarts[index], fractionStarts[index] + 0.28f, native);
             hybridPanel.AddComponent<DigitDriver>().Row = row;
             hybridPanel.SetActive(false);
@@ -619,7 +647,7 @@ namespace MPatcherFork.CustomPatches
             input.textComponent = inputText;
             input.contentType = InputField.ContentType.Standard;
             input.lineType = InputField.LineType.SingleLine;
-            input.characterLimit = 8;
+            input.characterLimit = row.LargeCouplerOffset ? 10 : 8;
             input.onValidateInput = delegate(string current, int insertion, char added)
             {
                 return ValidateRowInputCharacter(row, current, insertion, added);
@@ -639,12 +667,12 @@ namespace MPatcherFork.CustomPatches
             slider.gameObject.AddComponent<SliderDoubleClick>().Row = row;
             slider.gameObject.AddComponent<SliderDragModifier>().Row = row;
             SetupPrecision.Log("UI_DIGITS group=" + group + " slot=" + slot
-                + " widget=digit-spinner cells=000,000 cellSize=24x20 cellColor=154,154,154 cellSprite="
+                + " widget=digit-spinner cells=" + (row.LargeCouplerOffset ? "0000,000" : "000,000") + " cellSize=24x20 cellColor=154,154,154 cellSprite="
                 + (nativeBackgroundImage.overrideSprite == null ? nativeBackgroundImage.sprite == null ? "null" : nativeBackgroundImage.sprite.name : nativeBackgroundImage.overrideSprite.name)
                 + " cellImageType=" + nativeBackgroundImage.type
                 + " cellTexture=normalized-214-to-255 hover=245,245,245/fade-" + slider.transition
                 + " focus=pointer-only/root-raycast+bounds width=+16 offsetY=-7 idleTint=white-base/absolute"
-                + " sign=17/white-outline arrows=native-sprite/14x8/gap3 keys=A/D,S/Shift=center,W=signed-negate/unsigned-mirror sizeHotkeys=logical-0..250 safeMin=0.001 floatBounds=normalized wheel=setting alt=x10/drag-step10 ctrl=.100 ctrl+alt=.001 ctrlScope=A/D+wheel/all-editors carry=enabled input=vanilla-only/double-click/handle-contained/fixed-3/auto-comma nativeUi=mode-dependent panel=transparent hybridFractionWidth=82"
+                + " sign=17/white-outline arrows=native-sprite/14x8/gap3 keys=A/D,S/Shift=center,W=signed-negate/unsigned-mirror sizeHotkeys=logical-0..1000 safeMin=0.001 floatBounds=normalized wheel=setting alt=x10/drag-step10 ctrl=.100 ctrl+alt=.001 ctrlScope=A/D+wheel/all-editors carry=enabled input=vanilla-only/double-click/handle-contained/fixed-3/auto-comma nativeUi=mode-dependent panel=transparent hybridFractionWidth=82"
                 + " vanillaTextWidth=" + row.VanillaTextWidth.ToString("0.##", CultureInfo.InvariantCulture)
                 + " nativeTextSize=" + row.NativeTextSize.x.ToString("0.##", CultureInfo.InvariantCulture) + "x"
                 + row.NativeTextSize.y.ToString("0.##", CultureInfo.InvariantCulture)
@@ -915,6 +943,7 @@ namespace MPatcherFork.CustomPatches
                 row.Slider.interactable = row.NativeSliderInteractable;
                 row.Slider.wholeNumbers = row.WholeNumbers;
                 row.Slider.minValue = row.NativeMinimum;
+                if (row.ExtendedRange) row.Slider.maxValue = row.NativeMaximum;
             }
             else if (mode == (int)SetupPrecisionEditorMode.DigitSpinner)
             {
@@ -1131,7 +1160,7 @@ namespace MPatcherFork.CustomPatches
             if (row == null) return;
             ColorBlock colors = row.Slider.colors;
             PaintDigits(row, row.Digits, 0, colors, instant);
-            PaintDigits(row, row.FractionDigits, 3, colors, instant);
+            PaintDigits(row, row.FractionDigits, row.LargeCouplerOffset ? 4 : 3, colors, instant);
         }
 
         private static void PaintDigits(Row row, Digit[] digits, int firstPlace, ColorBlock colors, bool instant)
@@ -1157,12 +1186,27 @@ namespace MPatcherFork.CustomPatches
 
         private static Digit ActiveDigit(Row row, int place)
         {
-            if (row == null || place < 0 || place >= DigitCount) return null;
+            if (row == null || place < 0 || place >= row.Digits.Length) return null;
             if (row.Mode == (int)SetupPrecisionEditorMode.DigitSpinner)
                 return row.Digits == null ? null : row.Digits[place];
-            if (row.Mode == (int)SetupPrecisionEditorMode.SliderDigitSpinner && place >= 3)
-                return row.FractionDigits == null ? null : row.FractionDigits[place - 3];
+            int fractionStart = row.LargeCouplerOffset ? 4 : 3;
+            if (row.Mode == (int)SetupPrecisionEditorMode.SliderDigitSpinner && place >= fractionStart)
+                return row.FractionDigits == null ? null : row.FractionDigits[place - fractionStart];
             return null;
+        }
+
+        private static int RowMaximum(Row row)
+        {
+            if (row != null && row.Group == "ParamBox" && row.Slot >= 3 && row.Slot < 6)
+                return SetupPrecisionData.BoxOffsetMaximum;
+            return row != null && row.Group == "ParamC" && row.Slot < 3
+                ? SetupPrecisionData.CouplerOffsetMaximum : SetupPrecisionData.Maximum;
+        }
+
+        internal static bool UsesLargeOffsetEditor(string group, int slot)
+        {
+            return group == "ParamC" && slot >= 0 && slot < 3
+                || group == "ParamBox" && slot >= 3 && slot < 6;
         }
 
         private static string Display(Row row, float value)
@@ -1191,7 +1235,7 @@ namespace MPatcherFork.CustomPatches
         private static bool IsSpecial(Row row, float value)
         {
             return IsNativeEndpoint(row, value)
-                || float.IsNaN(value) || float.IsInfinity(value) || Math.Abs(value) > SetupPrecisionData.Maximum;
+                || float.IsNaN(value) || float.IsInfinity(value) || Math.Abs(value) > RowMaximum(row);
         }
 
         private static bool IsNativeEndpoint(Row row, float value)
@@ -1202,7 +1246,8 @@ namespace MPatcherFork.CustomPatches
 
         private static void SetDigits(Row row, float value)
         {
-            string special = IsSpecial(row, value) || UsesDigitOverlay(value) ? Display(row, value) : null;
+            string special = IsSpecial(row, value)
+                || Math.Abs(value) >= RowMaximum(row) ? Display(row, value) : null;
             string specialDigits = row.Group == "Param" ? DigitsForSpecial(special) : null;
             bool distributed = specialDigits != null;
             row.Special.gameObject.SetActive(special != null && !distributed);
@@ -1212,22 +1257,24 @@ namespace MPatcherFork.CustomPatches
             row.HybridSeparator.text = special == null ? "," : string.Empty;
             if (distributed)
             {
-                for (int place = 0; place < DigitCount; place++)
+                for (int place = 0; place < row.Digits.Length; place++)
                     row.Digits[place].Value.text = specialDigits[place] == ' '
                         ? string.Empty : specialDigits[place].ToString();
             }
             else if (special != null)
             {
-                for (int place = 0; place < DigitCount; place++) row.Digits[place].Value.text = string.Empty;
+                for (int place = 0; place < row.Digits.Length; place++) row.Digits[place].Value.text = string.Empty;
             }
             else
             {
                 int scaled = SetupPrecisionData.Quantize(value);
-                string digits = DigitsForScaled(scaled);
+                string digits = row.LargeCouplerOffset ? DigitsForScaledCoupler(scaled) : DigitsForScaled(scaled);
                 row.Sign.text = scaled < 0 ? "-" : string.Empty;
-                for (int place = 0; place < DigitCount; place++) row.Digits[place].Value.text = digits[place].ToString();
+                for (int place = 0; place < row.Digits.Length; place++) row.Digits[place].Value.text = digits[place].ToString();
             }
-            string fraction = special == null ? DigitsForScaled(SetupPrecisionData.Quantize(value)).Substring(3, 3) : string.Empty;
+            string fraction = special == null
+                ? (row.LargeCouplerOffset ? DigitsForScaledCoupler(SetupPrecisionData.Quantize(value)).Substring(4, 3)
+                    : DigitsForScaled(SetupPrecisionData.Quantize(value)).Substring(3, 3)) : string.Empty;
             for (int index = 0; index < row.FractionDigits.Length; index++)
                 row.FractionDigits[index].Value.text = special == null ? fraction[index].ToString() : string.Empty;
         }
@@ -1247,6 +1294,21 @@ namespace MPatcherFork.CustomPatches
             if (scaled < -SetupPrecisionData.MaxScaled || scaled > SetupPrecisionData.MaxScaled)
                 throw new ArgumentOutOfRangeException("scaled");
             return Math.Abs(scaled).ToString("D6", CultureInfo.InvariantCulture);
+        }
+
+        internal static string DigitsForScaledCoupler(int scaled)
+        {
+            if (Math.Abs((long)scaled) > SetupPrecisionData.CouplerOffsetMaximum * (long)SetupPrecisionData.Scale)
+                throw new ArgumentOutOfRangeException("scaled");
+            return Math.Abs(scaled).ToString("D7", CultureInfo.InvariantCulture);
+        }
+
+        private static int StepScaledForRow(Row row, int place, bool alt, bool control)
+        {
+            if (!row.LargeCouplerOffset) return StepScaledWithModifiers(place, alt, control);
+            if (place < 0 || place >= CouplerPlaceScales.Length) throw new ArgumentOutOfRangeException("place");
+            if (control) return alt ? 1 : 100;
+            return CouplerPlaceScales[place] * (alt ? 10 : 1);
         }
 
         internal static int StepScaled(int place, bool alt)
@@ -1314,8 +1376,8 @@ namespace MPatcherFork.CustomPatches
 
         private static void NumericLimits(Row row, out int minimum, out int maximum)
         {
-            float numericMinimum = Mathf.Max(row.Slider.minValue + (row.Controller.GJDAJCALLPF != 0 ? 1f : 0f), -SetupPrecisionData.Maximum);
-            float numericMaximum = Mathf.Min(row.Slider.maxValue - (row.Controller.PPFPKBJFNEH != 0 ? 1f : 0f), SetupPrecisionData.Maximum);
+            float numericMinimum = Mathf.Max(row.Slider.minValue + (row.Controller.GJDAJCALLPF != 0 ? 1f : 0f), -RowMaximum(row));
+            float numericMaximum = Mathf.Min(row.Slider.maxValue - (row.Controller.PPFPKBJFNEH != 0 ? 1f : 0f), RowMaximum(row));
             minimum = BoundScaled(numericMinimum, true);
             maximum = BoundScaled(numericMaximum, false);
         }
@@ -1328,14 +1390,14 @@ namespace MPatcherFork.CustomPatches
                 BlockData block = Selected.GetValue(row.Build) as BlockData;
                 if (row.Group != Group(block) || !SetupPrecisionData.Supports(block, row.Slot)) return;
                 float current = SetupPrecisionData.Read(block, row.Slot);
-                float numericMinimum = Mathf.Max(row.Slider.minValue + (row.Controller.GJDAJCALLPF != 0 ? 1f : 0f), -SetupPrecisionData.Maximum);
-                float numericMaximum = Mathf.Min(row.Slider.maxValue - (row.Controller.PPFPKBJFNEH != 0 ? 1f : 0f), SetupPrecisionData.Maximum);
+                float numericMinimum = Mathf.Max(row.Slider.minValue + (row.Controller.GJDAJCALLPF != 0 ? 1f : 0f), -RowMaximum(row));
+                float numericMaximum = Mathf.Min(row.Slider.maxValue - (row.Controller.PPFPKBJFNEH != 0 ? 1f : 0f), RowMaximum(row));
                 bool lowSpecial = row.Controller.GJDAJCALLPF != 0;
                 bool highSpecial = row.Controller.PPFPKBJFNEH != 0;
                 float target;
-                if (current < -SetupPrecisionData.Maximum)
+                if (current < -RowMaximum(row))
                     target = direction > 0 ? numericMinimum : current;
-                else if (current > SetupPrecisionData.Maximum)
+                else if (current > RowMaximum(row))
                     target = direction < 0 ? numericMaximum : current;
                 else if (lowSpecial && current == row.Slider.minValue)
                     target = direction > 0 ? numericMinimum : current;
@@ -1348,10 +1410,10 @@ namespace MPatcherFork.CustomPatches
                     int currentScaled = SetupPrecisionData.Quantize(current);
                     bool alt = AltDown();
                     bool control = precisionModifiers && ControlDown();
-                    long raw = currentScaled + (long)direction * StepScaledWithModifiers(place, alt, control);
+                    long raw = currentScaled + (long)direction * StepScaledForRow(row, place, alt, control);
                     if (raw < minimum && lowSpecial) target = row.Slider.minValue;
                     else if (raw > maximum && highSpecial) target = row.Slider.maxValue;
-                    else target = AdjustScaledWithModifiers(currentScaled, place, direction, alt, control, minimum, maximum)
+                    else target = (raw < minimum ? minimum : raw > maximum ? maximum : (int)raw)
                         / (float)SetupPrecisionData.Scale;
                     source += control ? alt ? "+Ctrl+Alt" : "+Ctrl" : alt ? "+Alt" : string.Empty;
                 }
@@ -1369,15 +1431,15 @@ namespace MPatcherFork.CustomPatches
                 BlockData block = Selected.GetValue(row.Build) as BlockData;
                 if (row.Group != Group(block) || !SetupPrecisionData.Supports(block, row.Slot)) return;
                 float current = SetupPrecisionData.Read(block, row.Slot);
-                float numericMinimum = Mathf.Max(row.Slider.minValue + (row.Controller.GJDAJCALLPF != 0 ? 1f : 0f), -SetupPrecisionData.Maximum);
-                float numericMaximum = Mathf.Min(row.Slider.maxValue - (row.Controller.PPFPKBJFNEH != 0 ? 1f : 0f), SetupPrecisionData.Maximum);
+                float numericMinimum = Mathf.Max(row.Slider.minValue + (row.Controller.GJDAJCALLPF != 0 ? 1f : 0f), -RowMaximum(row));
+                float numericMaximum = Mathf.Min(row.Slider.maxValue - (row.Controller.PPFPKBJFNEH != 0 ? 1f : 0f), RowMaximum(row));
                 bool lowSpecial = row.Controller.GJDAJCALLPF != 0;
                 bool highSpecial = row.Controller.PPFPKBJFNEH != 0;
                 bool alt = AltDown();
                 float target;
-                if (current < -SetupPrecisionData.Maximum)
+                if (current < -RowMaximum(row))
                     target = direction > 0 ? numericMinimum : current;
-                else if (current > SetupPrecisionData.Maximum)
+                else if (current > RowMaximum(row))
                     target = direction < 0 ? numericMaximum : current;
                 else if (lowSpecial && current == row.Slider.minValue)
                     target = direction > 0 ? numericMinimum : current;
@@ -1453,7 +1515,7 @@ namespace MPatcherFork.CustomPatches
                 {
                     bool special = current == row.Slider.minValue && row.Controller.GJDAJCALLPF != 0
                         || current == row.Slider.maxValue && row.Controller.PPFPKBJFNEH != 0
-                        || float.IsNaN(current) || float.IsInfinity(current) || Math.Abs(current) > SetupPrecisionData.Maximum;
+                        || float.IsNaN(current) || float.IsInfinity(current) || Math.Abs(current) > RowMaximum(row);
                     if (special) return;
                 }
                 int target = WholeValueScaled(SetupPrecisionData.Quantize(current), center,
@@ -1491,6 +1553,11 @@ namespace MPatcherFork.CustomPatches
 
         internal static bool TryParseInput(string text, out float value)
         {
+            return TryParseInput(text, out value, SetupPrecisionData.Maximum);
+        }
+
+        private static bool TryParseInput(string text, out float value, int maximum)
+        {
             value = 0f;
             if (text == null) return false;
             text = text.Trim();
@@ -1523,7 +1590,7 @@ namespace MPatcherFork.CustomPatches
                 if (!separator)
                 {
                     whole = whole * 10 + digit;
-                    if (whole > SetupPrecisionData.Maximum) return false;
+                    if (whole > maximum) return false;
                 }
                 else
                 {
@@ -1534,7 +1601,7 @@ namespace MPatcherFork.CustomPatches
             if (!anyDigit) return false;
             while (fractionDigits < 3) { fraction *= 10; fractionDigits++; }
             long scaled = whole * SetupPrecisionData.Scale + fraction;
-            if (scaled > SetupPrecisionData.MaxScaled) return false;
+            if (scaled > maximum * (long)SetupPrecisionData.Scale) return false;
             if (negative) scaled = -scaled;
             value = scaled / (float)SetupPrecisionData.Scale;
             return true;
@@ -1551,8 +1618,14 @@ namespace MPatcherFork.CustomPatches
 
         internal static string NormalizeInputText(string text)
         {
+            return NormalizeInputText(text, false);
+        }
+
+        private static string NormalizeInputText(string text, bool largeCoupler)
+        {
             if (string.IsNullOrEmpty(text)) return text;
             string normalized = text.Replace('.', ',');
+            if (largeCoupler) return normalized;
             if (normalized.IndexOf(',') >= 0) return normalized;
             int firstDigit = normalized[0] == '-' ? 1 : 0;
             return normalized.Length - firstDigit > 3 ? normalized.Insert(firstDigit + 3, ",") : normalized;
@@ -1566,9 +1639,17 @@ namespace MPatcherFork.CustomPatches
         internal static char ValidateInputReplacement(string current, int insertion, char added,
             int selectionAnchor, int selectionFocus)
         {
+            return ValidateInputReplacement(current, insertion, added, selectionAnchor, selectionFocus,
+                SetupPrecisionData.Maximum);
+        }
+
+        private static char ValidateInputReplacement(string current, int insertion, char added,
+            int selectionAnchor, int selectionFocus, int maximum)
+        {
             if (added != '-' && added != '.' && added != ',' && (added < '0' || added > '9')) return '\0';
             char canonical = added == '.' ? ',' : added;
-            current = NormalizeInputText(current) ?? string.Empty;
+            bool largeCoupler = maximum > SetupPrecisionData.Maximum;
+            current = NormalizeInputText(current, largeCoupler) ?? string.Empty;
             int selectionStart = Mathf.Clamp(Math.Min(selectionAnchor, selectionFocus), 0, current.Length);
             int selectionEnd = Mathf.Clamp(Math.Max(selectionAnchor, selectionFocus), selectionStart, current.Length);
             if (selectionStart != selectionEnd)
@@ -1577,8 +1658,8 @@ namespace MPatcherFork.CustomPatches
                 insertion = selectionStart;
             }
             if (insertion < 0 || insertion > current.Length) return '\0';
-            string candidate = NormalizeInputText(current.Insert(insertion, canonical.ToString()));
-            if (candidate.Length > 8) return '\0';
+            string candidate = NormalizeInputText(current.Insert(insertion, canonical.ToString()), largeCoupler);
+            if (candidate.Length > (largeCoupler ? 10 : 8)) return '\0';
             int index = 0;
             if (candidate.Length > 0 && candidate[0] == '-') index = 1;
             int separators = 0;
@@ -1600,7 +1681,7 @@ namespace MPatcherFork.CustomPatches
                 if (!afterSeparator)
                 {
                     whole = whole * 10 + digit;
-                    if (whole > SetupPrecisionData.Maximum) return '\0';
+                    if (whole > maximum) return '\0';
                 }
                 else
                 {
@@ -1608,7 +1689,7 @@ namespace MPatcherFork.CustomPatches
                     if (digit != 0) fractionNonZero = true;
                 }
             }
-            if (whole == SetupPrecisionData.Maximum && fractionNonZero) return '\0';
+            if (whole == maximum && fractionNonZero) return '\0';
             return canonical;
         }
 
@@ -1621,7 +1702,7 @@ namespace MPatcherFork.CustomPatches
                 anchor = row.Input.selectionAnchorPosition;
                 focus = row.Input.selectionFocusPosition;
             }
-            char accepted = ValidateInputReplacement(current, insertion, added, anchor, focus);
+            char accepted = ValidateInputReplacement(current, insertion, added, anchor, focus, RowMaximum(row));
             if (accepted != '\0' && anchor != focus && row != null)
                 SetupPrecision.Log("INPUT_REPLACE_SELECTION group=" + row.Group + " slot=" + row.Slot
                     + " range=" + Math.Min(anchor, focus) + ".." + Math.Max(anchor, focus));
@@ -1639,7 +1720,7 @@ namespace MPatcherFork.CustomPatches
         private static void OnInputChanged(Row row, string text)
         {
             if (row == null || row.Input == null || row.FormattingInput) return;
-            string normalized = NormalizeInputText(text);
+            string normalized = NormalizeInputText(text, row.LargeCouplerOffset);
             if (normalized != text)
             {
                 int separator = normalized == null ? -1 : normalized.IndexOf(',');
@@ -1713,10 +1794,10 @@ namespace MPatcherFork.CustomPatches
             try
             {
                 float value;
-                if (!TryParseInput(text, out value))
+                if (!TryParseInput(text, out value, RowMaximum(row)))
                 {
                     SetupPrecision.Log("INPUT_REJECTED group=" + row.Group + " slot=" + row.Slot
-                        + " reason=format-or-range decimals=3 range=-1000..1000/native-row");
+                        + " reason=format-or-range decimals=3 range=+-" + RowMaximum(row) + "/native-row");
                     Refresh(row.Build);
                     return;
                 }
@@ -1791,8 +1872,8 @@ namespace MPatcherFork.CustomPatches
 
         private static float SliderValue(Row row, float value)
         {
-            float minimum = Mathf.Max(row.Slider.minValue, -SetupPrecisionData.Maximum);
-            float maximum = Mathf.Min(row.Slider.maxValue, SetupPrecisionData.Maximum);
+            float minimum = Mathf.Max(row.Slider.minValue, -RowMaximum(row));
+            float maximum = Mathf.Min(row.Slider.maxValue, RowMaximum(row));
             value = Mathf.Clamp(value, minimum, maximum);
             value = SetupPrecisionData.Quantize(value) / (float)SetupPrecisionData.Scale;
             if (row.Controller.GJDAJCALLPF != 0 && value < row.Slider.minValue + 1)
@@ -1821,7 +1902,7 @@ namespace MPatcherFork.CustomPatches
                 return MergeWholeScaled(0, whole, minimum, maximum) / (float)SetupPrecisionData.Scale;
             BlockData block = Selected.GetValue(row.Build) as BlockData;
             float currentValue = block == null ? 0f : SetupPrecisionData.Read(block, row.Slot);
-            int current = Math.Abs(currentValue) <= SetupPrecisionData.Maximum
+            int current = Math.Abs(currentValue) <= RowMaximum(row)
                 ? SetupPrecisionData.Quantize(currentValue) : 0;
             return MergeWholeScaled(current, whole, minimum, maximum) / (float)SetupPrecisionData.Scale;
         }

@@ -30,7 +30,8 @@ namespace MPatcherFork.CustomPatches
 		}
 		private static JointDrive ToWorld(JointDrive value, PistonController piston)
 		{
-			if (MagnificationScalePolicy.Enabled) return MagnificationJointUnitProbe.Convert(MagnificationScalePolicy.LinearDrive(value, MagnificationPhysicsNormalization.MachineScale(piston.FPEBEEJGFPI)), piston);
+			if (!MagnificationPhysicsMode.Applies(piston.FPEBEEJGFPI)) return value;
+			if (MagnificationScalePolicy.Enabled) return MagnificationJointUnitProbe.Convert(MagnificationScalePolicy.LinearDrive(value, MagnificationPhysicsMode.PhysicsScale(piston.FPEBEEJGFPI)), piston);
 			return NormalizeDrive(value, MagnificationPhysicsNormalization.MachineScale(piston.FPEBEEJGFPI));
 		}
 		internal static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)

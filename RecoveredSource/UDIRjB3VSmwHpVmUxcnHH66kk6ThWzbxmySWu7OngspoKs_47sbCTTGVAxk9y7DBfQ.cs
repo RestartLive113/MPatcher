@@ -114,6 +114,11 @@ internal static class UDIRjB3VSmwHpVmUxcnHH66kk6ThWzbxmySWu7OngspoKs_47sbCTTGVAx
 
 		internal static void C8DNZpzKjPK7v0b5djavXno(BodyController __instance)
 		{
+			if (MPatcherFork.CustomPatches.MagnificationPhysicsMode.IsVanilla(__instance.CIPOPAGDJDE))
+			{
+				MagnificationNativeBodyWater(__instance);
+				return;
+			}
 			float craftScale = MPatcherFork.CustomPatches.MagnificationEnvironmentUnits.Scale(__instance);
 			int num = 0;
 			float num2 = 0f;
@@ -158,6 +163,80 @@ internal static class UDIRjB3VSmwHpVmUxcnHH66kk6ThWzbxmySWu7OngspoKs_47sbCTTGVAx
 				pointVelocity.y *= 2f;
 				float num6 = Mathf.Sqrt(num2);
 				MPatcherFork.CustomPatches.MagnificationForceUnits.AtPosition(__instance.NFMPBACKJOJ, pointVelocity * (0f - num6) * 0.001f * (pointVelocity.magnitude + 1f), vector3, __instance);
+				float magnitude = __instance.NFMPBACKJOJ.angularVelocity.magnitude;
+				__instance.NFMPBACKJOJ.angularVelocity /= num6 * magnitude * 0.002f + 1f;
+				if (Class17.iEGZnC5Qz9aAS5QbiOmfb_0024sNSSdkec6eJqnSdaVbVgmO<int>(global::_003CModule_003E.smethod_25<string>(1775215293u), __instance) > 0)
+				{
+					Class17.DMoImhPC2jNUt2tgmSezeT_IK_0024XK5Df9PmexG_CaKb1R(global::_003CModule_003E.smethod_26<string>(245706346u), (object)__instance, Class17.iEGZnC5Qz9aAS5QbiOmfb_0024sNSSdkec6eJqnSdaVbVgmO<int>(global::_003CModule_003E.smethod_26<string>(245706346u), __instance) - 1);
+				}
+				else if (num > 0)
+				{
+					float num7 = pointVelocity.magnitude * 0.004f + magnitude * 0.1f;
+					if (num7 > 0.1f)
+					{
+						float num8 = Mathf.Sqrt(num);
+						num7 += num8 * 0.01f;
+						float pDBNEGOFDCE = 1f / (num8 * 0.1f + 1f);
+						KEFHJCGICLE.BKODCLJILAO(EELHGJDCAHF: true, global::_003CModule_003E.smethod_26<string>(4068580720u), __instance.NFMPBACKJOJ.worldCenterOfMass, 0f - num7, null, PAIECBEEBNH: false, pDBNEGOFDCE);
+						Class17.DMoImhPC2jNUt2tgmSezeT_IK_0024XK5Df9PmexG_CaKb1R(global::_003CModule_003E.smethod_25<string>(1775215293u), (object)__instance, UnityEngine.Random.Range(20, 50));
+					}
+				}
+			}
+			if (num2 > 0f && !__instance.JBPBJMHLJOJ)
+			{
+				__instance.MCBBFDAECCI++;
+			}
+			else
+			{
+				__instance.MCBBFDAECCI = 0;
+			}
+		}
+
+		internal static void MagnificationNativeBodyWater(BodyController __instance)
+		{
+			int num = 0;
+			float num2 = 0f;
+			Vector3 zero = Vector3.zero;
+			Vector3 vector = Vector3.up;
+			Plane? plane = null;
+			if (D_Vus4oHDsZlAhsVoCPEDbQ && Physics.Raycast(new Ray(smethod_7(smethod_6((Component)__instance)) + new Vector3(0f, 260f, 0f), -Vector3.up), out var hitInfo, 520f, 1 << fhrfRxVubQ7jQHGH5tZ1Xn4, QueryTriggerInteraction.UseGlobal))
+			{
+				MeshRenderer component = hitInfo.transform.GetComponent<MeshRenderer>();
+				if (component != null && component.gameObject.layer == fhrfRxVubQ7jQHGH5tZ1Xn4 && component.material.shader.name.Contains(global::_003CModule_003E.smethod_29<string>(2761993531u)))
+				{
+					plane = new Plane(hitInfo.normal, hitInfo.point);
+					vector = hitInfo.normal;
+				}
+			}
+			for (int num3 = __instance.DEKDNJPGGOP.Count - 1; num3 >= 0; num3--)
+			{
+				float num4 = 0f;
+				Vector3 vector2 = __instance.transform.TransformPoint(__instance.DEKDNJPGGOP[num3]);
+				if (D_Vus4oHDsZlAhsVoCPEDbQ && plane.HasValue)
+				{
+					vector = plane.Value.normal;
+					plane.Value.Raycast(new Ray(vector2, Vector3.up), out var enter);
+					num4 = vector2.y + enter;
+				}
+				if (vector2.y < num4 + 0.5f)
+				{
+					float num5 = Mathf.Min(num4 + 0.5f - vector2.y, 1f);
+					num2 += num5;
+					zero += vector2 * num5;
+					__instance.NFMPBACKJOJ.AddForceAtPosition(vector * num5 * __instance.BHGEHEHDDHN[num3], vector2);
+					if (vector2.y > 0f - (num4 + 0.5f))
+					{
+						num++;
+					}
+				}
+			}
+			if (num2 > 0f)
+			{
+				Vector3 vector3 = zero / num2;
+				Vector3 pointVelocity = __instance.NFMPBACKJOJ.GetPointVelocity(vector3);
+				pointVelocity.y *= 2f;
+				float num6 = Mathf.Sqrt(num2);
+				__instance.NFMPBACKJOJ.AddForceAtPosition(pointVelocity * (0f - num6) * 0.001f * (pointVelocity.magnitude + 1f), vector3);
 				float magnitude = __instance.NFMPBACKJOJ.angularVelocity.magnitude;
 				__instance.NFMPBACKJOJ.angularVelocity /= num6 * magnitude * 0.002f + 1f;
 				if (Class17.iEGZnC5Qz9aAS5QbiOmfb_0024sNSSdkec6eJqnSdaVbVgmO<int>(global::_003CModule_003E.smethod_25<string>(1775215293u), __instance) > 0)

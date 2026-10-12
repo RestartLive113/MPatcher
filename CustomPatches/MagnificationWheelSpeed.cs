@@ -15,6 +15,7 @@ namespace MPatcherFork.CustomPatches
 		internal static float AngularLimit(float native, float scale) { return native / MagnificationPhysicsNormalization.ScaleFactor(scale); }
 		private static float Limit(float value, WheelController wheel)
 		{
+			if (!MagnificationPhysicsMode.Applies(wheel.FPEBEEJGFPI)) return value;
 			return MagnificationCraftProbe.Model >= 11 && MagnificationCraftProbe.Model < 17 ? AngularLimit(value, MagnificationPhysicsNormalization.MachineScale(wheel.FPEBEEJGFPI)) : value;
 		}
 		internal static void Register(Harmony harmony)
@@ -27,7 +28,7 @@ namespace MPatcherFork.CustomPatches
 			MagnificationDownscale.Log("WHEEL_SPEED_HOOKS scope=research model11-16=world-speed model17=constant-rpm+native-angular-cap");
 		}
 		internal static float TargetDivisor(float scale, bool boss, int model) { return model >= 17 && !boss ? 1f : scale; }
-		private static float TargetScale(MachineController machine) { return TargetDivisor(machine.DJCDFLDHPHK, machine.CHDEBOIIMCI, MagnificationCraftProbe.Model); }
+		private static float TargetScale(MachineController machine) { return !MagnificationPhysicsMode.Applies(machine) ? machine.DJCDFLDHPHK : TargetDivisor(machine.DJCDFLDHPHK, machine.CHDEBOIIMCI, MagnificationCraftProbe.Model); }
 		internal static IEnumerable<CodeInstruction> TargetTranspiler(IEnumerable<CodeInstruction> instructions)
 		{
 			List<CodeInstruction> codes = MagnificationDownscale.Copy(instructions);

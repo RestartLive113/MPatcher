@@ -130,7 +130,6 @@ namespace MPatcherFork.CustomPatches
 		internal string MigrationSession { get { return liveSession; } }
 		internal void MigrationRebound() { BindOrRefreshIdentity(); policy.IdentityChanged(Elapsed()); }
 		private readonly LegacyHostDirectoryPolicy policy = new LegacyHostDirectoryPolicy();
-		private readonly LegacyHostFacilitatorRetryPolicy facilitatorPolicy = new LegacyHostFacilitatorRetryPolicy();
 		private string gameType;
 		private string gameName;
 		private string comment;
@@ -239,7 +238,7 @@ namespace MPatcherFork.CustomPatches
 						nextPublicationRefresh = Time.realtimeSinceStartup + 60f;
 					}
 				}
-				UpdateFacilitatorRecovery(now, sameLiveHost);
+				LegacyHostFacilitatorRecovery.Update(sameLiveHost, "published-host");
 				ReportState();
 				if (Time.realtimeSinceStartup >= nextHeartbeat)
 				{
@@ -255,38 +254,6 @@ namespace MPatcherFork.CustomPatches
 				StopTracking("adapter failure: " + error.GetType().Name);
 				LegacyHostStability.Log("ADAPTER_FAILED type=" + error.GetType().Name
 					+ " message=" + LegacyHostStability.Clean(error.Message));
-			}
-		}
-
-		private void UpdateFacilitatorRecovery(double now, bool sameLiveHost)
-		{
-			IntPtr networkManager;
-			bool nativePending = LegacyHostFacilitatorReconnectFix.TryGetPending(out networkManager);
-			bool wasPending = facilitatorPolicy.Pending;
-			int previousAttempts = facilitatorPolicy.Attempts;
-			LegacyHostFacilitatorAction action = facilitatorPolicy.Tick(now, sameLiveHost, nativePending);
-			if (!wasPending && facilitatorPolicy.Pending)
-			{
-				LegacyHostStability.Log("FACILITATOR_LOST nativeFirstAttempt=unchanged retryDue="
-					+ facilitatorPolicy.DueAt.ToString("F3", CultureInfo.InvariantCulture));
-			}
-			else if (wasPending && !facilitatorPolicy.Pending && sameLiveHost)
-			{
-				LegacyHostStability.Log("FACILITATOR_RESTORED retries=" + previousAttempts
-					+ " sessionReinitialized=false existingPlayersDisconnected=false");
-			}
-			if (action != LegacyHostFacilitatorAction.Reconnect) return;
-			try
-			{
-				int result = LegacyHostFacilitatorReconnectFix.TryReconnect(networkManager);
-				LegacyHostStability.Log("FACILITATOR_RETRY attempt=" + facilitatorPolicy.Attempts
-					+ " nativeQueued=" + (result > 0) + " nativeResult=" + result
-					+ " nextDue=" + facilitatorPolicy.DueAt.ToString("F3", CultureInfo.InvariantCulture));
-			}
-			catch (Exception error)
-			{
-				LegacyHostStability.Log("FACILITATOR_RETRY_FAILED attempt=" + facilitatorPolicy.Attempts
-					+ " type=" + error.GetType().Name + " message=" + LegacyHostStability.Clean(error.Message));
 			}
 		}
 
@@ -447,8 +414,10 @@ namespace MPatcherFork.CustomPatches
 
 		private void ClearSession()
 		{
-			facilitatorPolicy.Reset("host session cleared");
-			LegacyHostFacilitatorReconnectFix.ClearPending();
+			LegacyHostFacilitatorRecovery.Reset("host session cleared");
+			// Capture also runs during auto-port -> published-host handoff. Do
+			// not erase the live native manager or loss flag in that transition.
+			if (!Network.isServer) LegacyHostFacilitatorReconnectFix.ForgetHost();
 			gameType = null;
 			gameName = null;
 			comment = null;
@@ -468,8 +437,9 @@ namespace MPatcherFork.CustomPatches
 		{
 			return "phase=" + policy.Phase + " evidence=" + policy.Evidence
 				+ " failures=" + policy.Failures + " reason=" + LegacyHostStability.Clean(policy.Reason)
-				+ " facilitatorPending=" + facilitatorPolicy.Pending
-				+ " facilitatorAttempts=" + facilitatorPolicy.Attempts;
+				+ " facilitatorPending=" + LegacyHostFacilitatorRecovery.Pending
+				+ " facilitatorAttempts=" + LegacyHostFacilitatorRecovery.Attempts
+				+ " facilitatorHealth=" + LegacyHostFacilitatorRecovery.Health;
 		}
 
 		private void ReportState()

@@ -20,12 +20,12 @@ namespace MPatcherFork.CustomPatches
 		private static float MachineLimit(float value, MachineController owner)
 		{
 			if (!MagnificationScalePolicy.SameTime) return value;
-			return ToWorldLimit(value, MagnificationPhysicsNormalization.MachineScale(owner), true);
+			return ToWorldLimit(value, MagnificationPhysicsMode.PhysicsScale(owner), true);
 		}
 		private static float BodyLimit(float value, BodyController owner)
 		{
 			if (!MagnificationScalePolicy.SameTime) return value;
-			return ToWorldLimit(value, MagnificationPhysicsNormalization.MachineScale(owner.CIPOPAGDJDE), true);
+			return ToWorldLimit(value, MagnificationPhysicsMode.PhysicsScale(owner.CIPOPAGDJDE), true);
 		}
 		internal static void Register(Harmony harmony)
 		{

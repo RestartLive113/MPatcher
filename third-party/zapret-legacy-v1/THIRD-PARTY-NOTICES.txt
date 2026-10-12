@@ -1,0 +1,21 @@
+MPatcher optional Legacy network helper — third-party components
+
+Unmodified binary provenance: Flowseal/zapret-discord-youtube tag 1.9.9a
+https://github.com/Flowseal/zapret-discord-youtube/releases/tag/1.9.9a
+The five shipped binaries/data files were checked against the Git blob hashes
+of this tag. The MachineCraft IP list and restricted kernel filter are MPatcher
+configuration; the packet strategy remains fake/repeats12/cutoff n2.
+
+zapret winws v72.9: bol-van, MIT license (Flowseal-LICENSE.txt).
+Source: zapret-72.9-source.zip, https://github.com/bol-van/zapret/tree/v72.9
+WinDivert 2.2.2: basil00 contributors, LGPLv3 or GPLv2 (WinDivert-LICENSE.txt).
+Source: WinDivert-2.2.2-source.zip, https://github.com/basil00/WinDivert/tree/v2.2.2
+Cygwin API DLL 3.4.10: Cygwin contributors, LGPLv3+ and Cygwin Linking Exception.
+Source package: cygwin-3.4.10-1-src.tar.xz, containing upstream source and cygport.
+https://ftp.cvut.cz/mirrors/cygwin.com/x86_64/release/cygwin/cygwin-3.4.10-1-src.tar.xz
+https://cygwin.com/licensing.html
+
+The source archives are included with this distribution. No modifications to
+these executables, DLLs, driver or fake packet have been made. Third-party
+components are separate from the MPatcher game assembly. No generic Discord,
+YouTube or browser filter profiles or their service scripts are installed.

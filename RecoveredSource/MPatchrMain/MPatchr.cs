@@ -2416,6 +2416,7 @@ public class MPatchr : MonoBehaviour
 		MPatcherFork.CustomPatches.HardKickFaultInjection.TryRegister();
 		MPatcherFork.CustomPatches.LegacyZapret.TryRegister();
 		MPatcherFork.CustomPatches.SettingsListIsolation.TryRegister();
+		MPatcherFork.CustomPatches.UnusedMpatcherLauncher.TryRegister();
 		MPatcherFork.CustomPatches.LegacyMachineChangeIngame.TryRegister();
 		MPatcherFork.CustomPatches.MagnificationDownscale.TryRegister();
 		MPatcherFork.CustomPatches.LegacyPrivateRooms.TryRegister();
@@ -2427,7 +2428,11 @@ public class MPatchr : MonoBehaviour
 		MPatcherFork.CustomPatches.LegacyMoreViewDistance.TryRegister();
 		MPatcherFork.CustomPatches.LegacyServerScripts.TryRegister();
 		MPatcherFork.CustomPatches.InstallerBackupScriptCompatibility.TryRegister();
-		MPatcherFork.CustomPatches.NormalMapStampOffsets.TryRegister();
+        MPatcherFork.CustomPatches.NormalMapStampOffsets.TryRegister();
+        MPatcherFork.CustomPatches.SculptScaleUi.TryRegister();
+        MPatcherFork.CustomPatches.SculptScaleCamera.TryRegister();
+		MPatcherFork.CustomPatches.ConnectedShapePoseScope.TryRegister();
+		MPatcherFork.CustomPatches.ConnectedShapeScaleV2.TryRegister();
 #if MPATCHER_EXCLUDE_PLAYER_PRESENCE
 		mK6lLU33ECSzxV4u22c7_0024ijC0MeyAkqA_PRIEl9WpAZK.YELeoCirSeVGf6u7nOIXkng("[PLAYER-PRESENCE] EXCLUDED_FROM_BUILD");
 #else

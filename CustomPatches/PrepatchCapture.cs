@@ -18,7 +18,7 @@ namespace MPatcherFork.CustomPatches
     {
         private static string directory;
         private static readonly object sync = new object();
-        private static int count, failures;
+        private static int count, failures, unavailableOptional;
         private static readonly HashSet<string> recorded = new HashSet<string>();
         [ThreadStatic] private static string emittedAssembly, emittedType, emittedMethod;
         private static bool finished;
@@ -159,12 +159,21 @@ namespace MPatcherFork.CustomPatches
                         classes++;
                         if (global::OhrvFPoRtmqzpOPJ_gdyp43sPzNUY8iJz48Anha3tAYq.j9O0UPvu4fmbYepM3CYIC_0024s.Contains(type)) continue;
                         try { new Harmony("local.mpatcher.prepatch.optional." + patch.internalName).ProcessorForAnnotatedClass(type).Patch(); }
-                        catch(Exception error) { failures++; Log("OPTIONAL_FAILED patch=" + patch.internalName + " type=" + type.FullName + " error=" + error); }
+                        catch(Exception error)
+                        {
+                            if (patch.patched) failures++;
+                            else unavailableOptional++;
+                            Log("OPTIONAL_FAILED patch=" + patch.internalName + " enabled=" + patch.patched
+                                + " type=" + type.FullName + " error=" + error);
+                        }
                     }
                 }
                 ExpandConfigurations();
-                Log("COMPLETE activeTargets=" + inventory.Count + " catalogClasses=" + classes + " emitted=" + count + " failures=" + failures);
-                File.WriteAllText(Path.Combine(directory, "complete.txt"), "activeTargets=" + inventory.Count + "\nclasses=" + classes + "\nemitted=" + count + "\nfailures=" + failures);
+                Log("COMPLETE activeTargets=" + inventory.Count + " catalogClasses=" + classes + " emitted=" + count
+                    + " failures=" + failures + " unavailableOptional=" + unavailableOptional);
+                File.WriteAllText(Path.Combine(directory, "complete.txt"), "activeTargets=" + inventory.Count
+                    + "\nclasses=" + classes + "\nemitted=" + count + "\nfailures=" + failures
+                    + "\nunavailableOptional=" + unavailableOptional);
             }
             catch(Exception error) { Log("FAILED " + error); }
             Application.Quit();

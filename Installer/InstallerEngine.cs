@@ -37,6 +37,12 @@ namespace MachineCraftMPatcherInstaller
 		internal string ProductVersion;
 		internal string InstalledPayloadSha256;
 		internal string InstalledWatchdogSha256;
+		internal string InstalledScaleModuleSha256;
+		internal string InstalledScaleModuleManifestSha256;
+		internal string InstalledScaleModuleApiVersion;
+		internal string InstalledScaleModuleName;
+		internal string LegacyScaleRuntimeApiVersion;
+		internal string LegacyScaleRuntimePayloadSha256;
 		internal string InstalledUtc;
 		internal bool OriginalExisted;
 		internal string BackupFileName;
@@ -183,7 +189,8 @@ namespace MachineCraftMPatcherInstaller
 				string watchdog = GetWatchdogPath(root);
 				state.CurrentPayload = string.Equals(state.LoaderHash, PayloadInfo.Sha256, StringComparison.OrdinalIgnoreCase)
 					&& File.Exists(watchdog)
-					&& string.Equals(ComputeSha256(watchdog), PayloadInfo.WatchdogSha256, StringComparison.OrdinalIgnoreCase);
+					&& string.Equals(ComputeSha256(watchdog), PayloadInfo.WatchdogSha256, StringComparison.OrdinalIgnoreCase)
+					&& ScaleModulePayload.IsCurrent(root);
 			}
 
 			if (state.CurrentPayload)
@@ -200,6 +207,7 @@ namespace MachineCraftMPatcherInstaller
 		internal static OperationResult Install(string root, Action<string> progress)
 		{
 			OperationResult result = new OperationResult();
+			ScaleModulePayload moduleOperation = null;
 			try
 			{
 				root = NormalizeAndValidateRoot(root);
@@ -209,6 +217,7 @@ namespace MachineCraftMPatcherInstaller
 				result.ClosedGameProcessCount = gameClose.ClosedProcessCount;
 				result.ForcedGameProcessCount = gameClose.ForcedProcessCount;
 				WaitForCrashWatchdog(root);
+				ScaleModulePayload.Recover(root, delegate(string message) { Report(root, progress, message); });
 				MigrateLegacyLogs(root);
 				Report(root, progress, "INSTALL_BEGIN version=" + PayloadInfo.Version);
 
@@ -218,11 +227,12 @@ namespace MachineCraftMPatcherInstaller
 				string backupDirectory = Path.Combine(root, "McnCraft_Data", BackupDirectoryName);
 				string supportDirectory = Path.Combine(root, "McnCraft_Data", SupportDirectoryName);
 				string watchdogPath = GetWatchdogPath(root);
-				Directory.CreateDirectory(backupDirectory);
-
 				InstallManifest manifest = null;
 				if (File.Exists(manifestPath))
 					manifest = ReadManifest(manifestPath);
+				moduleOperation = ScaleModulePayload.Begin(root, manifest, false,
+					delegate(string message) { Report(root, progress, message); });
+				Directory.CreateDirectory(backupDirectory);
 				SortedDictionary<string, string> knownBackups = ReadKnownBackups(root, manifest);
 
 				string currentHash = File.Exists(loaderPath) ? ComputeSha256(loaderPath) : string.Empty;
@@ -305,12 +315,14 @@ namespace MachineCraftMPatcherInstaller
 						File.Move(stagedPayload, loaderPath);
 						newLoaderInstalled = true;
 						File.Move(stagedWatchdog, watchdogPath);
+						moduleOperation.Apply();
 
 						manifest.ProductVersion = PayloadInfo.Version;
 						manifest.InstalledPayloadSha256 = PayloadInfo.Sha256;
 						manifest.InstalledWatchdogSha256 = PayloadInfo.WatchdogSha256;
 						manifest.InstalledUtc = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
-						WriteManifest(manifestPath, manifest);
+						moduleOperation.UpdateManifest(manifest);
+						WriteManifest(manifestPath, manifest, moduleOperation);
 
 						string installedHash = ComputeSha256(loaderPath);
 						if (!string.Equals(installedHash, PayloadInfo.Sha256, StringComparison.OrdinalIgnoreCase))
@@ -333,6 +345,7 @@ namespace MachineCraftMPatcherInstaller
 #endif
 						DeleteIfExists(rollbackPath);
 						DeleteIfExists(manifestRollbackPath);
+						moduleOperation.Commit();
 					}
 					catch
 					{
@@ -375,6 +388,11 @@ namespace MachineCraftMPatcherInstaller
 			}
 			catch (Exception error)
 			{
+				if (moduleOperation != null)
+				{
+					try { moduleOperation.Rollback(); }
+					catch (Exception recoveryError) { SafeReport(root, progress, "SCALE_MODULE_ROLLBACK_FAILED message=" + recoveryError.Message); }
+				}
 				SafeReport(root, progress, "INSTALL_FAILED type=" + error.GetType().Name + " message=" + error.Message);
 				result.Success = false;
 				result.ErrorDetails = error.Message;
@@ -509,6 +527,7 @@ namespace MachineCraftMPatcherInstaller
 		internal static OperationResult Uninstall(string root, Action<string> progress)
 		{
 			OperationResult result = new OperationResult();
+			ScaleModulePayload moduleOperation = null;
 			try
 			{
 				root = NormalizeAndValidateRoot(root);
@@ -518,6 +537,7 @@ namespace MachineCraftMPatcherInstaller
 				result.ClosedGameProcessCount = gameClose.ClosedProcessCount;
 				result.ForcedGameProcessCount = gameClose.ForcedProcessCount;
 				WaitForCrashWatchdog(root);
+				ScaleModulePayload.Recover(root, delegate(string message) { Report(root, progress, message); });
 				Report(root, progress, "UNINSTALL_BEGIN");
 
 				string loaderPath = GetLoaderPath(root);
@@ -528,9 +548,13 @@ namespace MachineCraftMPatcherInstaller
 					if (File.Exists(loaderPath)
 						&& string.Equals(ComputeSha256(loaderPath), PayloadInfo.Sha256, StringComparison.OrdinalIgnoreCase))
 					{
+						moduleOperation = ScaleModulePayload.Begin(root, null, true,
+							delegate(string message) { Report(root, progress, message); });
+						moduleOperation.Apply();
 						File.SetAttributes(loaderPath, FileAttributes.Normal);
 						File.Delete(loaderPath);
 						DeleteCurrentWatchdog(root, watchdogPath, PayloadInfo.WatchdogSha256, progress);
+						moduleOperation.Commit();
 						Report(root, progress, "UNINSTALL_OK mode=unmanaged-current-payload");
 						result.Success = true;
 						result.Message = InstallerText.UninstallSucceeded(InstallerText.UnmanagedPayloadRemoved,
@@ -550,6 +574,8 @@ namespace MachineCraftMPatcherInstaller
 						&& !string.Equals(currentHash, PayloadInfo.Sha256, StringComparison.OrdinalIgnoreCase))
 						throw new InvalidOperationException(InstallerText.LoaderChanged(currentHash));
 				}
+				moduleOperation = ScaleModulePayload.Begin(root, manifest, true,
+					delegate(string message) { Report(root, progress, message); });
 
 				if (manifest.OriginalExisted)
 				{
@@ -578,12 +604,14 @@ namespace MachineCraftMPatcherInstaller
 					string.IsNullOrEmpty(manifest.InstalledWatchdogSha256)
 						? PayloadInfo.WatchdogSha256 : manifest.InstalledWatchdogSha256,
 					progress);
+				moduleOperation.Apply();
 
 #if MPATCHER_ZAPRET_PACKAGE
 				NetworkAssistSetup.Uninstall(root);
 				Report(root, progress, "NETWORK_ASSIST_UNREGISTERED otherGamesPreserved=true");
 #endif
 				DeleteIfExists(manifestPath);
+				moduleOperation.Commit();
 				Report(root, progress, "UNINSTALL_OK");
 				result.Success = true;
 				result.Message = InstallerText.UninstallSucceeded(result.Message, root,
@@ -591,6 +619,11 @@ namespace MachineCraftMPatcherInstaller
 			}
 			catch (Exception error)
 			{
+				if (moduleOperation != null)
+				{
+					try { moduleOperation.Rollback(); }
+					catch (Exception recoveryError) { SafeReport(root, progress, "SCALE_MODULE_ROLLBACK_FAILED message=" + recoveryError.Message); }
+				}
 				SafeReport(root, progress, "UNINSTALL_FAILED type=" + error.GetType().Name + " message=" + error.Message);
 				result.Success = false;
 				result.ErrorDetails = error.Message;
@@ -846,7 +879,7 @@ namespace MachineCraftMPatcherInstaller
 			}
 		}
 
-		private static void WriteManifest(string path, InstallManifest manifest)
+		private static void WriteManifest(string path, InstallManifest manifest, ScaleModulePayload moduleOperation)
 		{
 			string temporary = path + ".tmp";
 			DeleteIfExists(temporary);
@@ -856,12 +889,17 @@ namespace MachineCraftMPatcherInstaller
 				"ProductVersion=" + (manifest.ProductVersion ?? string.Empty),
 				"InstalledPayloadSha256=" + (manifest.InstalledPayloadSha256 ?? string.Empty),
 				"InstalledWatchdogSha256=" + (manifest.InstalledWatchdogSha256 ?? string.Empty),
+				"InstalledScaleModuleSha256=" + (manifest.InstalledScaleModuleSha256 ?? string.Empty),
+				"InstalledScaleModuleManifestSha256=" + (manifest.InstalledScaleModuleManifestSha256 ?? string.Empty),
+				"InstalledScaleModuleApiVersion=" + (manifest.InstalledScaleModuleApiVersion ?? string.Empty),
+				"InstalledScaleModuleName=" + (manifest.InstalledScaleModuleName ?? string.Empty),
 				"InstalledUtc=" + (manifest.InstalledUtc ?? string.Empty),
 				"OriginalExisted=" + manifest.OriginalExisted.ToString(CultureInfo.InvariantCulture),
 				"BackupFileName=" + (manifest.BackupFileName ?? string.Empty),
 				"OriginalSha256=" + (manifest.OriginalSha256 ?? string.Empty)
 			};
 			File.WriteAllLines(temporary, lines, new UTF8Encoding(false));
+			if (moduleOperation != null) moduleOperation.RecordManifest(temporary);
 			DeleteIfExists(path);
 			File.Move(temporary, path);
 		}
@@ -882,6 +920,12 @@ namespace MachineCraftMPatcherInstaller
 			manifest.ProductVersion = GetValue(values, "ProductVersion");
 			manifest.InstalledPayloadSha256 = GetValue(values, "InstalledPayloadSha256");
 			manifest.InstalledWatchdogSha256 = GetValue(values, "InstalledWatchdogSha256");
+			manifest.InstalledScaleModuleSha256 = GetValue(values, "InstalledScaleModuleSha256");
+			manifest.InstalledScaleModuleManifestSha256 = GetValue(values, "InstalledScaleModuleManifestSha256");
+			manifest.InstalledScaleModuleApiVersion = GetValue(values, "InstalledScaleModuleApiVersion");
+			manifest.InstalledScaleModuleName = GetValue(values, "InstalledScaleModuleName");
+			manifest.LegacyScaleRuntimeApiVersion = GetValue(values, "ScaleRuntimeApiVersion");
+			manifest.LegacyScaleRuntimePayloadSha256 = GetValue(values, "ScaleRuntimePayloadSha256");
 			manifest.InstalledUtc = GetValue(values, "InstalledUtc");
 			manifest.OriginalExisted = string.Equals(GetValue(values, "OriginalExisted"), "True", StringComparison.OrdinalIgnoreCase);
 			manifest.BackupFileName = GetValue(values, "BackupFileName");
@@ -931,6 +975,541 @@ namespace MachineCraftMPatcherInstaller
 		internal static void LogAutomaticEvent(string root, string message)
 		{
 			Report(root, null, message);
+		}
+	}
+}
+
+namespace MachineCraftMPatcherInstaller
+{
+	// Only the two canonical Scale files are owned. Other module files are preserved.
+	internal sealed class ScaleModulePayload
+	{
+		internal const string DllFileName = "MPatcher.ScaleRuntime.dll";
+		internal const string ManifestFileName = "MPatcher.ScaleRuntime.manifest.ini";
+		private const string TransactionName = "MPatcherModuleTransaction";
+		private readonly string root;
+		private readonly string transaction;
+		private readonly Dictionary<string, string> journal;
+		private readonly Action<string> log;
+		private bool completed;
+
+		private ScaleModulePayload(string root, Dictionary<string, string> journal, Action<string> log)
+		{
+			this.root = Path.GetFullPath(root);
+			transaction = Path.Combine(this.root, TransactionName);
+			this.journal = journal;
+			this.log = log;
+		}
+
+		internal static string ModuleDirectory(string root)
+		{
+			return Path.Combine(root, "McnCraft_Data", "MPatcher", "Modules");
+		}
+
+		internal static bool IsCurrent(string root)
+		{
+			string dll = Path.Combine(ModuleDirectory(root), DllFileName);
+			string sidecar = Path.Combine(ModuleDirectory(root), ManifestFileName);
+			try
+			{
+				ValidatePaths(root);
+				if (Directory.Exists(Path.Combine(root, TransactionName))) return false;
+				if (!PayloadInfo.ScaleModuleIncluded)
+					return !File.Exists(dll) && !File.Exists(sidecar);
+				return Matches(dll, PayloadInfo.ScaleModuleSha256)
+					&& Matches(sidecar, PayloadInfo.ScaleModuleManifestSha256)
+					&& ValidMetadata(sidecar, PayloadInfo.ScaleModuleSha256);
+			}
+			catch { return false; }
+		}
+
+		internal static void Recover(string root, Action<string> log)
+		{
+			ValidatePaths(root);
+			string directory = Path.Combine(root, TransactionName);
+			if (File.Exists(directory)) throw new InvalidDataException("Scale transaction path is a file.");
+			if (!Directory.Exists(directory)) return;
+			RejectReparse(directory);
+			Dictionary<string, string> values = ReadValues(Path.Combine(directory, "journal.ini"));
+			if (Value(values, "Format") != "1") throw new InvalidDataException("Unsupported Scale transaction.");
+			ScaleModulePayload pending = new ScaleModulePayload(root, values, log);
+			pending.ValidateJournal();
+			if (Value(values, "Committed") == "True")
+			{
+				pending.ValidateNewState();
+				pending.Cleanup();
+				if (log != null) log("SCALE_MODULE_RECOVERY committed=true");
+			}
+			else
+			{
+				pending.Rollback();
+				if (log != null) log("SCALE_MODULE_RECOVERY restored=true");
+			}
+		}
+
+		// Called before installer backup/support writes. Validate every existing owned byte first.
+		internal static ScaleModulePayload Begin(string root, InstallManifest installed,
+			bool uninstall, Action<string> log)
+		{
+			ValidatePaths(root);
+			string dll = Path.Combine(ModuleDirectory(root), DllFileName);
+			string sidecar = Path.Combine(ModuleDirectory(root), ManifestFileName);
+			string expectedDll = installed == null ? string.Empty : installed.InstalledScaleModuleSha256;
+			string expectedSidecar = installed == null ? string.Empty : installed.InstalledScaleModuleManifestSha256;
+			bool tracked = !string.IsNullOrEmpty(expectedDll) || !string.IsNullOrEmpty(expectedSidecar);
+			if (tracked)
+			{
+				if (!Hash(expectedDll) || !Hash(expectedSidecar)
+					|| installed.InstalledScaleModuleApiVersion != "1"
+					|| installed.InstalledScaleModuleName != PayloadInfo.ScaleModuleName)
+					throw new InvalidDataException("Invalid installed Scale module ownership metadata.");
+				RequireExistingMatches(dll, expectedDll);
+				RequireExistingMatches(sidecar, expectedSidecar);
+				if (File.Exists(dll) && File.Exists(sidecar) && !ValidMetadata(sidecar, expectedDll))
+					throw new InvalidDataException("Installed Scale sidecar does not match its module.");
+			}
+			else if (installed != null && !string.IsNullOrEmpty(installed.LegacyScaleRuntimePayloadSha256))
+			{
+				expectedDll = installed.LegacyScaleRuntimePayloadSha256;
+				if (installed.LegacyScaleRuntimeApiVersion != "1" || !Hash(expectedDll)
+					|| !Matches(dll, expectedDll) || !ValidMetadata(sidecar, expectedDll))
+					throw new InvalidDataException("Legacy Scale module ownership cannot be verified.");
+				expectedSidecar = InstallerEngine.ComputeSha256(sidecar);
+				tracked = true;
+			}
+			else if (File.Exists(dll) || File.Exists(sidecar))
+			{
+				if (!PayloadInfo.ScaleModuleIncluded || !Matches(dll, PayloadInfo.ScaleModuleSha256)
+					|| !Matches(sidecar, PayloadInfo.ScaleModuleManifestSha256)
+					|| !ValidMetadata(sidecar, PayloadInfo.ScaleModuleSha256))
+					throw new InvalidDataException("Unowned canonical Scale module files; refusing to overwrite or remove them.");
+				tracked = true;
+			}
+
+			Dictionary<string, string> values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+			values["Format"] = "1";
+			values["Committed"] = "False";
+			values["ModuleDirectoryExisted"] = Directory.Exists(ModuleDirectory(root)) ? "True" : "False";
+			values["ModuleParentExisted"] = Directory.Exists(Path.GetDirectoryName(ModuleDirectory(root))) ? "True" : "False";
+			ScaleModulePayload operation = new ScaleModulePayload(root, values, log);
+			if (Directory.Exists(operation.transaction) || File.Exists(operation.transaction))
+				throw new InvalidDataException("Unrecovered Scale module transaction.");
+			Directory.CreateDirectory(operation.transaction);
+			try
+			{
+				operation.Snapshot("dll", dll);
+				operation.Snapshot("sidecar", sidecar);
+				operation.Snapshot("loader", operation.Target("loader"));
+				operation.Snapshot("manifest", operation.Target("manifest"));
+				operation.Snapshot("watchdog", operation.Target("watchdog"));
+				bool include = !uninstall && PayloadInfo.ScaleModuleIncluded;
+				values["dll.NewHash"] = include ? PayloadInfo.ScaleModuleSha256 : string.Empty;
+				values["sidecar.NewHash"] = include ? PayloadInfo.ScaleModuleManifestSha256 : string.Empty;
+				values["loader.NewHash"] = uninstall
+					? (installed != null && installed.OriginalExisted ? installed.OriginalSha256 : string.Empty)
+					: PayloadInfo.Sha256;
+				values["manifest.NewHash"] = string.Empty;
+				string oldWatchdog = Value(values, "watchdog.OldHash");
+				bool ownedWatchdog = string.Equals(oldWatchdog, PayloadInfo.WatchdogSha256, StringComparison.OrdinalIgnoreCase)
+					|| (installed != null && string.Equals(oldWatchdog, installed.InstalledWatchdogSha256, StringComparison.OrdinalIgnoreCase));
+				values["watchdog.NewHash"] = uninstall ? (ownedWatchdog ? string.Empty : oldWatchdog) : PayloadInfo.WatchdogSha256;
+				if (include)
+				{
+					operation.Extract(PayloadInfo.ScaleModuleResourceName, "dll.new", PayloadInfo.ScaleModuleSha256, PayloadInfo.ScaleModuleLength);
+					operation.Extract(PayloadInfo.ScaleModuleManifestResourceName, "sidecar.new", PayloadInfo.ScaleModuleManifestSha256, PayloadInfo.ScaleModuleManifestLength);
+					if (!ValidMetadata(Path.Combine(operation.transaction, "sidecar.new"), PayloadInfo.ScaleModuleSha256))
+						throw new InvalidDataException("Embedded Scale module sidecar is invalid.");
+				}
+				operation.SaveJournal();
+				if (log != null) log("SCALE_MODULE_TRANSACTION_BEGIN included=" + include + " tracked=" + tracked);
+				return operation;
+			}
+			catch
+			{
+				operation.Cleanup();
+				throw;
+			}
+		}
+
+		internal void Apply()
+		{
+			foreach (string key in new string[] { "dll", "sidecar" })
+			{
+				string target = Target(key);
+				RequireExistingMatches(target, Value(journal, key + ".OldHash"));
+				if (Value(journal, key + ".NewHash").Length > 0)
+				{
+					Directory.CreateDirectory(ModuleDirectory(root));
+					string stage = Path.Combine(transaction, key + ".install");
+					File.Copy(Path.Combine(transaction, key + ".new"), stage, true);
+					if (File.Exists(target)) File.Replace(stage, target, null);
+					else File.Move(stage, target);
+				}
+				else if (File.Exists(target)) File.Delete(target);
+			}
+			if (log != null) log("SCALE_MODULE_APPLIED included=" + (Value(journal, "dll.NewHash").Length > 0));
+		}
+
+		internal void UpdateManifest(InstallManifest manifest)
+		{
+			bool included = Value(journal, "dll.NewHash").Length > 0;
+			manifest.InstalledScaleModuleSha256 = included ? PayloadInfo.ScaleModuleSha256 : string.Empty;
+			manifest.InstalledScaleModuleManifestSha256 = included ? PayloadInfo.ScaleModuleManifestSha256 : string.Empty;
+			manifest.InstalledScaleModuleApiVersion = included ? "1" : string.Empty;
+			manifest.InstalledScaleModuleName = included ? PayloadInfo.ScaleModuleName : string.Empty;
+			manifest.LegacyScaleRuntimeApiVersion = string.Empty;
+			manifest.LegacyScaleRuntimePayloadSha256 = string.Empty;
+		}
+
+		internal void Commit()
+		{
+			string manifest = Target("manifest");
+			journal["manifest.NewHash"] = File.Exists(manifest) ? InstallerEngine.ComputeSha256(manifest) : string.Empty;
+			ValidateNewState();
+			journal["Committed"] = "True";
+			SaveJournal();
+			completed = true;
+			try { Cleanup(); }
+			catch (Exception error) { if (log != null) log("SCALE_MODULE_CLEANUP_PENDING message=" + error.Message); }
+			if (log != null) log("SCALE_MODULE_TRANSACTION_COMMIT");
+		}
+
+		internal void Rollback()
+		{
+			if (completed) return;
+			ValidateJournal();
+			// Validate the complete set before any restoration, preserving changed/unknown files.
+			foreach (string key in new string[] { "dll", "sidecar", "loader", "manifest", "watchdog" })
+			{
+				string target = Target(key);
+				if (key == "watchdog" && Directory.Exists(target))
+				{
+					if (DirectoryHash(target) != Value(journal, "watchdog.OldDirectoryHash"))
+						throw new InvalidDataException("Changed watchdog directory blocks Scale transaction recovery: " + target);
+					continue;
+				}
+				if (!File.Exists(target)) continue;
+				string hash = InstallerEngine.ComputeSha256(target);
+				if (!string.Equals(hash, Value(journal, key + ".OldHash"), StringComparison.OrdinalIgnoreCase)
+					&& !string.Equals(hash, Value(journal, key + ".NewHash"), StringComparison.OrdinalIgnoreCase))
+				{
+					// The manifest is generated after module writes; only its exact recorded bytes are recoverable.
+					if (key == "manifest" && Value(journal, "manifest.NewHash").Length == 0)
+						throw new InvalidDataException("Unrecorded changed installer manifest; Scale recovery requires its transaction metadata.");
+					throw new InvalidDataException("Changed file blocks Scale transaction recovery: " + target);
+				}
+			}
+			foreach (string key in new string[] { "dll", "sidecar", "loader", "manifest", "watchdog" })
+			{
+				string target = Target(key);
+				if (key == "watchdog" && Value(journal, "watchdog.OldDirectoryHash").Length > 0)
+				{
+					if (!Directory.Exists(target))
+					{
+						if (File.Exists(target)) File.Delete(target);
+						Directory.CreateDirectory(Path.GetDirectoryName(target));
+						Directory.Move(Path.Combine(transaction, "watchdog.directory.restore"), target);
+					}
+					continue;
+				}
+				if (Value(journal, key + ".OldHash").Length == 0)
+				{
+					if (File.Exists(target)) File.Delete(target);
+				}
+				else
+				{
+					Directory.CreateDirectory(Path.GetDirectoryName(target));
+					string stage = Path.Combine(transaction, key + ".restore");
+					File.Copy(Path.Combine(transaction, key + ".before"), stage, true);
+					if (File.Exists(target)) File.Replace(stage, target, null);
+					else File.Move(stage, target);
+				}
+			}
+			CleanupEmptyModuleDirectories();
+			Cleanup();
+			completed = true;
+			if (log != null) log("SCALE_MODULE_TRANSACTION_ROLLBACK");
+		}
+
+		// Record the exact next manifest before replacement; recovery never guesses ownership.
+		internal void RecordManifest(string path)
+		{
+			journal["manifest.NewHash"] = InstallerEngine.ComputeSha256(path);
+			SaveJournal();
+		}
+
+		private void Snapshot(string key, string path)
+		{
+			if (key == "watchdog")
+			{
+				journal["watchdog.OldDirectoryHash"] = string.Empty;
+				if (Directory.Exists(path))
+				{
+					// The existing installer intentionally replaces a stale watchdog directory.
+					// Snapshot it outside McnCraft_Data so both failure and interruption preserve it.
+					string directoryHash = DirectoryHash(path);
+					journal["watchdog.OldDirectoryHash"] = directoryHash;
+					foreach (string name in new string[] { "watchdog.directory.before", "watchdog.directory.restore" })
+					{
+						string snapshot = Path.Combine(transaction, name);
+						CopyDirectory(path, snapshot);
+						if (DirectoryHash(snapshot) != directoryHash) throw new InvalidDataException("Watchdog directory snapshot changed.");
+					}
+				}
+			}
+			string hash = File.Exists(path) ? InstallerEngine.ComputeSha256(path) : string.Empty;
+			journal[key + ".OldHash"] = hash;
+			if (hash.Length > 0)
+			{
+				File.Copy(path, Path.Combine(transaction, key + ".before"), false);
+				RequireExistingMatches(Path.Combine(transaction, key + ".before"), hash);
+			}
+		}
+
+		private void Extract(string resourceName, string name, string hash, long length)
+		{
+			if (!Hash(hash) || length <= 0) throw new InvalidDataException("Invalid embedded Scale payload metadata.");
+			string path = Path.Combine(transaction, name);
+			using (Stream source = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+			{
+				if (source == null) throw new InvalidDataException("Missing Scale module resource: " + resourceName);
+				using (FileStream destination = new FileStream(path, FileMode.CreateNew, FileAccess.Write)) source.CopyTo(destination);
+			}
+			if (new FileInfo(path).Length != length || !Matches(path, hash))
+				throw new InvalidDataException("Scale module resource length/hash mismatch.");
+		}
+
+		private string Target(string key)
+		{
+			if (key == "dll") return Path.Combine(ModuleDirectory(root), DllFileName);
+			if (key == "sidecar") return Path.Combine(ModuleDirectory(root), ManifestFileName);
+			if (key == "loader") return Path.Combine(root, "McnCraft_Data", "Mono", "__Internal.dll");
+			if (key == "manifest") return Path.Combine(root, "McnCraft_Data", "MPatcherFork.install.ini");
+			if (key == "watchdog") return Path.Combine(root, "McnCraft_Data", "MPatcherFork", "MPatcherCrashWatchdog.exe");
+			throw new InvalidDataException("Unknown Scale transaction target.");
+		}
+
+		private void ValidateJournal()
+		{
+			ValidatePaths(root);
+			RejectReparse(transaction);
+			foreach (string key in new string[] { "dll", "sidecar", "loader", "manifest", "watchdog" })
+			{
+				if (!journal.ContainsKey(key + ".OldHash") || !journal.ContainsKey(key + ".NewHash"))
+					throw new InvalidDataException("Incomplete Scale transaction.");
+				string oldHash = Value(journal, key + ".OldHash");
+				string newHash = Value(journal, key + ".NewHash");
+				if ((oldHash.Length > 0 && !Hash(oldHash)) || (newHash.Length > 0 && !Hash(newHash)))
+					throw new InvalidDataException("Invalid Scale transaction hash.");
+				if (Value(journal, "Committed") != "True" && oldHash.Length > 0
+					&& !Matches(Path.Combine(transaction, key + ".before"), oldHash))
+					throw new InvalidDataException("Scale transaction backup is damaged: " + key);
+			}
+			foreach (string path in Directory.GetFileSystemEntries(transaction))
+			{
+				RejectReparse(path);
+				string name = Path.GetFileName(path);
+				if (Directory.Exists(path) && (name == "watchdog.directory.before" || name == "watchdog.directory.restore"))
+				{
+					if (!Hash(Value(journal, "watchdog.OldDirectoryHash"))
+						|| DirectoryHash(path) != Value(journal, "watchdog.OldDirectoryHash"))
+						throw new InvalidDataException("Watchdog directory snapshot is damaged.");
+					continue;
+				}
+				if (Directory.Exists(path) || (name != "journal.ini" && name != "journal.tmp"
+					&& name != "dll.before" && name != "sidecar.before" && name != "loader.before"
+					&& name != "manifest.before" && name != "dll.new" && name != "sidecar.new"
+					&& name != "dll.install" && name != "sidecar.install"
+					&& name != "dll.restore" && name != "sidecar.restore" && name != "loader.restore" && name != "manifest.restore"
+					&& name != "watchdog.before" && name != "watchdog.restore"))
+					throw new InvalidDataException("Unknown Scale transaction content: " + name);
+			}
+			if (Value(journal, "Committed") != "True" && Value(journal, "watchdog.OldDirectoryHash").Length > 0)
+			{
+				string before = Path.Combine(transaction, "watchdog.directory.before");
+				string restore = Path.Combine(transaction, "watchdog.directory.restore");
+				if (!Directory.Exists(before) || DirectoryHash(before) != Value(journal, "watchdog.OldDirectoryHash")
+					|| (!Directory.Exists(restore) && (!Directory.Exists(Target("watchdog"))
+						|| DirectoryHash(Target("watchdog")) != Value(journal, "watchdog.OldDirectoryHash"))))
+					throw new InvalidDataException("Missing watchdog directory recovery snapshot.");
+			}
+		}
+
+		private void ValidateNewState()
+		{
+			foreach (string key in new string[] { "dll", "sidecar", "loader", "manifest", "watchdog" })
+			{
+				string hash = Value(journal, key + ".NewHash");
+				if (key == "watchdog" && hash.Length == 0 && Value(journal, "watchdog.OldDirectoryHash").Length > 0)
+				{
+					if (!Directory.Exists(Target(key)) || DirectoryHash(Target(key)) != Value(journal, "watchdog.OldDirectoryHash"))
+						throw new InvalidDataException("Retained watchdog directory changed.");
+					continue;
+				}
+				if (hash.Length == 0 ? File.Exists(Target(key)) : !Matches(Target(key), hash))
+					throw new InvalidDataException("Scale transaction final verification failed: " + key);
+			}
+		}
+
+		private void SaveJournal()
+		{
+			List<string> lines = new List<string>();
+			foreach (KeyValuePair<string, string> item in journal) lines.Add(item.Key + "=" + item.Value);
+			string path = Path.Combine(transaction, "journal.ini");
+			string temporary = Path.Combine(transaction, "journal.tmp");
+			File.WriteAllLines(temporary, lines.ToArray(), new UTF8Encoding(false));
+			if (File.Exists(path)) File.Replace(temporary, path, null);
+			else File.Move(temporary, path);
+		}
+
+		private void Cleanup()
+		{
+			string[] entries = Directory.GetFileSystemEntries(transaction);
+			foreach (string path in entries)
+			{
+				if (!string.Equals(Path.GetDirectoryName(Path.GetFullPath(path)), transaction, StringComparison.OrdinalIgnoreCase))
+					throw new InvalidDataException("Scale cleanup path is outside its transaction directory.");
+				RejectReparse(path);
+				string name = Path.GetFileName(path);
+				if (Directory.Exists(path) && (name == "watchdog.directory.before" || name == "watchdog.directory.restore"))
+				{
+					if (DirectoryHash(path) != Value(journal, "watchdog.OldDirectoryHash"))
+						throw new InvalidDataException("Changed watchdog directory snapshot retained.");
+					continue;
+				}
+				if (Directory.Exists(path) || !Regex.IsMatch(name,
+					"\\A(?:journal\\.(?:ini|tmp)|(?:dll|sidecar|loader|manifest|watchdog)\\.(?:before|new|install|restore))\\z"))
+					throw new InvalidDataException("Unexpected Scale transaction content: " + name);
+			}
+			// Keep the journal until every other known file is gone. Committed recovery
+			// validates current installed bytes rather than already removed snapshots.
+			foreach (string path in entries)
+				if (Path.GetFileName(path) != "journal.ini")
+				{
+					if (Directory.Exists(path)) Directory.Delete(path, true);
+					else File.Delete(path);
+				}
+			string journalPath = Path.Combine(transaction, "journal.ini");
+			if (File.Exists(journalPath)) File.Delete(journalPath);
+			Directory.Delete(transaction, false);
+			CleanupEmptyModuleDirectories();
+		}
+
+		private void CleanupEmptyModuleDirectories()
+		{
+			string directory = ModuleDirectory(root);
+			if (Value(journal, "ModuleDirectoryExisted") != "True" && Directory.Exists(directory)
+				&& Directory.GetFileSystemEntries(directory).Length == 0) Directory.Delete(directory, false);
+			string parent = Path.GetDirectoryName(directory);
+			if (Value(journal, "ModuleParentExisted") != "True" && Directory.Exists(parent)
+				&& Directory.GetFileSystemEntries(parent).Length == 0) Directory.Delete(parent, false);
+		}
+
+		private static void ValidatePaths(string root)
+		{
+			string full = Path.GetFullPath(root);
+			string data = Path.Combine(full, "McnCraft_Data");
+			foreach (string path in new string[] { full, data, Path.Combine(data, "Mono"),
+				Path.Combine(data, "MPatcher"), ModuleDirectory(full), Path.Combine(full, TransactionName),
+				Path.Combine(data, "MPatcherFork"), Path.Combine(data, "MPatcherFork", "MPatcherCrashWatchdog.exe"),
+				Path.Combine(ModuleDirectory(full), DllFileName), Path.Combine(ModuleDirectory(full), ManifestFileName),
+				Path.Combine(data, "Mono", "__Internal.dll"), Path.Combine(data, "MPatcherFork.install.ini") })
+			{
+				RejectReparse(path);
+				if ((path == data || path == Path.Combine(data, "MPatcher") || path == ModuleDirectory(full)
+					|| path == Path.Combine(data, "Mono")) && File.Exists(path))
+					throw new InvalidDataException("Scale module parent path is a file: " + path);
+				if ((path == Path.Combine(ModuleDirectory(full), DllFileName)
+					|| path == Path.Combine(ModuleDirectory(full), ManifestFileName)
+					|| path == Path.Combine(data, "Mono", "__Internal.dll")
+					|| path == Path.Combine(data, "MPatcherFork.install.ini")) && Directory.Exists(path))
+					throw new InvalidDataException("Scale module target is a directory: " + path);
+			}
+		}
+
+		private static void RejectReparse(string path)
+		{
+			if ((File.Exists(path) || Directory.Exists(path)) && (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
+				throw new InvalidDataException("Reparse point is not allowed in Scale module ownership paths: " + path);
+		}
+
+		private static void CopyDirectory(string source, string destination)
+		{
+			RejectReparse(source);
+			Directory.CreateDirectory(destination);
+			foreach (string path in Directory.GetFileSystemEntries(source))
+			{
+				RejectReparse(path);
+				string target = Path.Combine(destination, Path.GetFileName(path));
+				if (Directory.Exists(path)) CopyDirectory(path, target);
+				else File.Copy(path, target, false);
+			}
+		}
+
+		private static string DirectoryHash(string directory)
+		{
+			List<string> records = new List<string>();
+			AppendDirectoryRecords(directory, directory, records);
+			records.Sort(StringComparer.Ordinal);
+			using (SHA256 hash = SHA256.Create())
+			{
+				byte[] bytes = hash.ComputeHash(Encoding.UTF8.GetBytes(string.Join("\n", records.ToArray())));
+				return BitConverter.ToString(bytes).Replace("-", string.Empty);
+			}
+		}
+
+		private static void AppendDirectoryRecords(string root, string directory, List<string> records)
+		{
+			RejectReparse(directory);
+			foreach (string path in Directory.GetFileSystemEntries(directory))
+			{
+				RejectReparse(path);
+				string relative = path.Substring(root.Length).Replace('\\', '/');
+				string name = Convert.ToBase64String(Encoding.UTF8.GetBytes(relative));
+				if (Directory.Exists(path))
+				{
+					records.Add("D:" + name);
+					AppendDirectoryRecords(root, path, records);
+				}
+				else records.Add("F:" + name + ":" + InstallerEngine.ComputeSha256(path));
+			}
+		}
+
+		private static bool Matches(string path, string hash)
+		{
+			return Hash(hash) && File.Exists(path) && string.Equals(InstallerEngine.ComputeSha256(path), hash, StringComparison.OrdinalIgnoreCase);
+		}
+		private static void RequireExistingMatches(string path, string hash)
+		{
+			if (File.Exists(path) && !Matches(path, hash)) throw new InvalidDataException("Changed Scale ownership file: " + path);
+		}
+		private static bool Hash(string value) { return value != null && Regex.IsMatch(value, "\\A[0-9A-Fa-f]{64}\\z"); }
+		private static string Value(Dictionary<string, string> values, string key)
+		{
+			string value;
+			return values.TryGetValue(key, out value) ? value : string.Empty;
+		}
+		private static Dictionary<string, string> ReadValues(string path)
+		{
+			Dictionary<string, string> values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+			foreach (string line in File.ReadAllLines(path))
+			{
+				int separator = line.IndexOf('=');
+				if (separator <= 0 || values.ContainsKey(line.Substring(0, separator)))
+					throw new InvalidDataException("Invalid or duplicate Scale metadata.");
+				values.Add(line.Substring(0, separator), line.Substring(separator + 1));
+			}
+			return values;
+		}
+		private static bool ValidMetadata(string path, string dllHash)
+		{
+			try
+			{
+				Dictionary<string, string> values = ReadValues(path);
+				return Value(values, "HostApiVersion") == "1" && Value(values, "ModuleAssemblyName") == PayloadInfo.ScaleModuleName
+					&& string.Equals(Value(values, "PayloadSha256"), dllHash, StringComparison.OrdinalIgnoreCase);
+			}
+			catch { return false; }
 		}
 	}
 }

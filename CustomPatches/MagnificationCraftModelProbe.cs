@@ -42,10 +42,12 @@ namespace MPatcherFork.CustomPatches
 				harmony.Patch(AccessTools.DeclaredMethod(typeof(JointController), name), null, null,
 					new HarmonyMethod(AccessTools.Method(typeof(MagnificationCraftModelProbe), "Angular")), null);
 		}
-		private static float Scale(MachineController machine) { return MagnificationCraftProbe.Model >= 2 ? MagnificationPhysicsNormalization.MachineScale(machine) : 1f; }
-		private static float OtherScale(MachineController machine) { return MagnificationCraftProbe.Model >= 7 ? Scale(machine) : 1f; }
+		private static float Scale(MachineController machine) { return MagnificationCraftProbe.Model >= 2 ? MagnificationPhysicsMode.PhysicsScale(machine) : 1f; }
+		private static float GeometryScale(MachineController machine) { return MagnificationPhysicsNormalization.MachineScale(machine); }
+		private static float OtherScale(MachineController machine) { return MagnificationCraftProbe.Model >= 7 ? GeometryScale(machine) : 1f; }
 		private static float ScaleMachineLength(float value, MachineController machine)
 		{
+			if (!MagnificationPhysicsMode.Applies(machine)) return value;
 			float s = OtherScale(machine);
 			// These 50/100 arms are artificial recovery/stabilizer force couples,
 			// not attachment geometry. Match the I*s*s boundary to retain angular gain.
@@ -53,10 +55,10 @@ namespace MPatcherFork.CustomPatches
 			// Older diagnostic models retain their original world-space margins.
 			return Mathf.Abs(value) < 50f && !MagnificationScalePolicy.SameTime ? value : value * s * (MagnificationCraftProbe.Model != 9 && !MagnificationScalePolicy.Enabled ? s : 1f);
 		}
-		private static float ScaleBodyLength(float value, BodyController body) { return value * OtherScale(body.CIPOPAGDJDE); }
-		private static float UnscaleBodyLength(float value, BodyController body) { return value / OtherScale(body.CIPOPAGDJDE); }
-		private static float ScaleShaftLength(float value, ShaftController shaft) { return value * OtherScale(shaft.FPEBEEJGFPI); }
-		private static Vector3 ScaleShaftVector(Vector3 value, ShaftController shaft) { return value * OtherScale(shaft.FPEBEEJGFPI); }
+		private static float ScaleBodyLength(float value, BodyController body) { return !MagnificationPhysicsMode.Applies(body.CIPOPAGDJDE) ? value : value * OtherScale(body.CIPOPAGDJDE); }
+		private static float UnscaleBodyLength(float value, BodyController body) { return !MagnificationPhysicsMode.Applies(body.CIPOPAGDJDE) ? value : value / OtherScale(body.CIPOPAGDJDE); }
+		private static float ScaleShaftLength(float value, ShaftController shaft) { return !MagnificationPhysicsMode.Applies(shaft.FPEBEEJGFPI) ? value : value * OtherScale(shaft.FPEBEEJGFPI); }
+		private static Vector3 ScaleShaftVector(Vector3 value, ShaftController shaft) { return !MagnificationPhysicsMode.Applies(shaft.FPEBEEJGFPI) ? value : value * OtherScale(shaft.FPEBEEJGFPI); }
 		private static IEnumerable<CodeInstruction> OtherUnits(IEnumerable<CodeInstruction> instructions, MethodBase __originalMethod)
 		{
 			List<CodeInstruction> original = MagnificationDownscale.Copy(instructions);
@@ -99,9 +101,13 @@ namespace MPatcherFork.CustomPatches
 			MagnificationDownscale.Require(halves == 3 && depth == 1, "recovered body water half/depth", halves + depth);
 			return codes;
 		}
-		private static float Length(float value, WheelController wheel) { return value * Scale(wheel.FPEBEEJGFPI); }
-		private static float CraftLength(float value, WheelController wheel) { return value / Scale(wheel.FPEBEEJGFPI); }
-		private static Vector3 ContactVelocity(Vector3 normal, Vector3 angular, WheelController wheel) { return Vector3.Cross(normal, angular) * (MagnificationScalePolicy.SameTime ? 1f : Scale(wheel.FPEBEEJGFPI)); }
+		private static float Length(float value, WheelController wheel) { return !MagnificationPhysicsMode.Applies(wheel.FPEBEEJGFPI) ? value : value * GeometryScale(wheel.FPEBEEJGFPI); }
+		private static float CraftLength(float value, WheelController wheel) { return !MagnificationPhysicsMode.Applies(wheel.FPEBEEJGFPI) ? value : value / GeometryScale(wheel.FPEBEEJGFPI); }
+		private static Vector3 ContactVelocity(Vector3 normal, Vector3 angular, WheelController wheel)
+		{
+			if (!MagnificationPhysicsMode.Applies(wheel.FPEBEEJGFPI)) return Vector3.Cross(normal, angular);
+			return Vector3.Cross(normal, angular) * (MagnificationScalePolicy.SameTime ? 1f : Scale(wheel.FPEBEEJGFPI));
+		}
 		private static IEnumerable<CodeInstruction> Wheel(IEnumerable<CodeInstruction> instructions)
 		{
 			List<CodeInstruction> codes = new List<CodeInstruction>(MagnificationPhysicsNormalization.WheelFixedUpdateTranspiler(instructions));
@@ -126,6 +132,7 @@ namespace MPatcherFork.CustomPatches
 		}
 		private static void SetSpring(HingeJoint joint, JointSpring value, JointController owner)
 		{
+			if (!MagnificationPhysicsMode.Applies(owner.FPEBEEJGFPI)) { joint.spring = value; return; }
 			float scale = Scale(owner.FPEBEEJGFPI);
 			joint.spring = MagnificationRotorIsolationProbe.FilterSpring(joint, RotorDrive(value, scale, MagnificationCraftProbe.Model), false);
 		}
@@ -142,6 +149,7 @@ namespace MPatcherFork.CustomPatches
 		}
 		private static void WheelTorque(Rigidbody body, Vector3 value, ForceMode mode, JointController owner)
 		{
+			if (!MagnificationPhysicsMode.Applies(owner.FPEBEEJGFPI)) { body.AddTorque(value, mode); return; }
 			if (MagnificationCraftProbe.Model >= 3 && MagnificationCraftProbe.Model < 16 && owner.OMBBGKNHGEF != null) value /= Scale(owner.FPEBEEJGFPI);
 			if (MagnificationRotorIsolationProbe.SuppressTorque(owner, value, mode)) { MagnificationRotorProbe.RecordTorque(owner, Vector3.zero, mode); return; }
 			MagnificationRotorProbe.RecordTorque(owner, value, mode);
@@ -168,6 +176,7 @@ namespace MPatcherFork.CustomPatches
 		}
 		internal static void ApplyInertia(MachineController machine)
 		{
+			if (!MagnificationPhysicsMode.Applies(machine)) return;
 			if (MagnificationCraftProbe.Model < 3) return;
 			float scale = Scale(machine);
 			if (MagnificationScalePolicy.Bypass(scale)) { MagnificationDownscale.Log("SIMILARITY_BASELINE scale=1 extraMassWrites=0 extraInertiaWrites=0 conditioning=false"); return; }

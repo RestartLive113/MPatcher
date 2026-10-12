@@ -20,10 +20,15 @@ namespace MPatcherFork.CustomPatches
 
 		internal LegacyHostFacilitatorRetryPolicy()
 		{
-			Reason = "native facilitator link is healthy";
+			Reason = "native facilitator state has not been observed";
 		}
 
 		internal LegacyHostFacilitatorAction Tick(double now, bool sameLiveHost, bool nativeReconnectPending)
+		{
+			return Tick(now, sameLiveHost, nativeReconnectPending, true);
+		}
+
+		internal LegacyHostFacilitatorAction Tick(double now, bool sameLiveHost, bool nativeReconnectPending, bool canReconnect)
 		{
 			if (!sameLiveHost)
 			{
@@ -32,7 +37,7 @@ namespace MPatcherFork.CustomPatches
 			}
 			if (!nativeReconnectPending)
 			{
-				Reset(Pending ? "native facilitator connection restored" : "native facilitator link is healthy");
+				Reset(Pending ? "native facilitator connection restored" : "no native facilitator loss flag");
 				return LegacyHostFacilitatorAction.None;
 			}
 			if (!Pending)
@@ -44,6 +49,7 @@ namespace MPatcherFork.CustomPatches
 				return LegacyHostFacilitatorAction.None;
 			}
 			if (now < DueAt) return LegacyHostFacilitatorAction.None;
+			if (!canReconnect) return LegacyHostFacilitatorAction.None;
 
 			Attempts++;
 			int nextIndex = System.Math.Min(Attempts, RetryDelaysSeconds.Length - 1);

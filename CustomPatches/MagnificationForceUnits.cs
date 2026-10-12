@@ -27,7 +27,7 @@ namespace MPatcherFork.CustomPatches
 			BodyController body = owner as BodyController;
 			return body == null ? null : body.CIPOPAGDJDE;
 		}
-		private static float Scale(Component owner) { return MagnificationScalePolicy.Enabled ? MagnificationPhysicsNormalization.MachineScale(Machine(owner)) : 1f; }
+		private static float Scale(Component owner) { return MagnificationScalePolicy.Enabled ? MagnificationPhysicsMode.PhysicsScale(Machine(owner)) : 1f; }
 		internal static float LinearFactor(float scale, ForceMode mode)
 		{
 			float s = MagnificationScalePolicy.Valid(scale);
@@ -36,6 +36,7 @@ namespace MPatcherFork.CustomPatches
 		internal static void AtPosition(Rigidbody body, Vector3 force, Vector3 position, Component owner) { AtPositionMode(body, force, position, ForceMode.Force, owner); }
 		private static void AtPositionMode(Rigidbody body, Vector3 force, Vector3 position, ForceMode mode, Component owner)
 		{
+            if (MagnificationPhysicsMode.IsVanilla(Machine(owner))) { body.AddForceAtPosition(force, position, mode); return; }
 			float factor = LinearFactor(Scale(owner), mode);
 			if (MagnificationScalePolicy.Enabled && owner is AGDeviceController && agdLogged.Add(owner.GetInstanceID()))
 				MagnificationDownscale.Log("AGD_UNITS_APPLIED command=" + agdCommand.GetValue(owner) + " scale=" + Scale(owner)
@@ -46,18 +47,28 @@ namespace MPatcherFork.CustomPatches
 		private static void Force(Rigidbody body, Vector3 force, Component owner) { ForceModeValue(body, force, ForceMode.Force, owner); }
 		private static void ForceModeValue(Rigidbody body, Vector3 force, ForceMode mode, Component owner)
 		{
+            if (MagnificationPhysicsMode.IsVanilla(Machine(owner))) { body.AddForce(force, mode); return; }
 			float factor = LinearFactor(Scale(owner), mode);
 			Observe(owner, force, factor, mode); body.AddForce(force * factor, mode);
 		}
 		private static void Torque(Rigidbody body, Vector3 torque, Component owner) { TorqueMode(body, torque, ForceMode.Force, owner); }
 		private static void TorqueMode(Rigidbody body, Vector3 torque, ForceMode mode, Component owner)
 		{
+            if (MagnificationPhysicsMode.IsVanilla(Machine(owner))) { body.AddTorque(torque, mode); return; }
 			float s = Scale(owner);
 			float factor = mode == ForceMode.Force ? MagnificationScalePolicy.Torque(s) : mode == ForceMode.Impulse ? MagnificationScalePolicy.Inertia(s) : 1f;
 			Observe(owner, torque, factor, mode); body.AddTorque(torque * factor, mode);
 		}
-		private static Vector3 PointVelocity(Rigidbody body, Vector3 position, Component owner) { return body.GetPointVelocity(position) / Scale(owner); }
-		private static Vector3 Velocity(Rigidbody body, Component owner) { return body.velocity / Scale(owner); }
+        private static Vector3 PointVelocity(Rigidbody body, Vector3 position, Component owner)
+        {
+            if (MagnificationPhysicsMode.IsVanilla(Machine(owner))) return body.GetPointVelocity(position);
+            return body.GetPointVelocity(position) / Scale(owner);
+        }
+        private static Vector3 Velocity(Rigidbody body, Component owner)
+        {
+            if (MagnificationPhysicsMode.IsVanilla(Machine(owner))) return body.velocity;
+            return body.velocity / Scale(owner);
+        }
 		private static void Observe(Component owner, Vector3 source, float factor, ForceMode mode)
 		{
 			if (!MagnificationScalePolicy.Enabled) return;

@@ -13,7 +13,7 @@ namespace MPatcherFork.CustomPatches
 	// Unity receives the physical mass. Never multiply the stored source again.
 	internal static class MagnificationMassBoundary
 	{
-		private sealed class Entry { internal Rigidbody Body; internal float Factor, Scale; }
+        private sealed class Entry { internal Rigidbody Body; internal BodyController Owner; internal float Factor, Scale; }
 		private static readonly Dictionary<int, Entry> entries = new Dictionary<int, Entry>();
 		private static readonly HashSet<int> logged = new HashSet<int>();
 		private static readonly FieldInfo sledBody = AccessTools.Field(typeof(SledController), "KBCHBCMHFEH");
@@ -66,7 +66,25 @@ namespace MPatcherFork.CustomPatches
 			if (count == 0) throw new InvalidOperationException("missing-mass-callsite " + __originalMethod);
 			if (__originalMethod.MetadataToken == 0x06004513 && legacy != 1) throw new InvalidOperationException("remote-legacy-mass-scale-count " + legacy);
 		}
-		private static float LegacyMassScale(MachineController machine) { return MagnificationScalePolicy.Enabled ? 1f : machine.DJCDFLDHPHK; }
+        private static float LegacyMassScale(MachineController machine)
+        {
+            if (MagnificationPhysicsMode.IsVanilla(machine)) return machine.DJCDFLDHPHK;
+            return MagnificationScalePolicy.Enabled ? 1f : machine.DJCDFLDHPHK;
+        }
+        internal static MachineController Owner(Rigidbody body)
+        {
+            if (body == null) return null;
+            Entry cached;
+            // Tracked ON bodies already have their native controller. Read its
+            // live owner field: SyncAttach can transfer that controller to a
+            // different machine, so caching only a MachineController is stale.
+            if (entries.TryGetValue(body.GetInstanceID(), out cached) && ReferenceEquals(cached.Body, body)
+                && cached.Owner != null && cached.Owner.CIPOPAGDJDE != null) return cached.Owner.CIPOPAGDJDE;
+            BodyController owner = body.GetComponentInParent<BodyController>();
+            MachineController machine = owner == null ? null : owner.CIPOPAGDJDE;
+            return machine == null ? body.GetComponentInParent<MachineController>() : machine;
+        }
+        internal static bool IsVanilla(Rigidbody body) { return MagnificationPhysicsMode.IsVanilla(Owner(body)); }
 		internal static float Scale(Rigidbody body)
 		{
 			Entry entry;
@@ -79,10 +97,11 @@ namespace MPatcherFork.CustomPatches
 			BodyController owner = body.GetComponentInParent<BodyController>();
 			MachineController machine = owner == null ? null : owner.CIPOPAGDJDE;
 			if (machine == null) machine = body.GetComponentInParent<MachineController>();
-			return MagnificationPhysicsNormalization.MachineScale(machine);
+			return MagnificationPhysicsMode.PhysicsScale(machine);
 		}
 		internal static bool Bypass(Rigidbody body)
 		{
+            if (IsVanilla(body)) return true;
 			// Older diagnostic models retain their existing lookup/write behavior.
 			return MagnificationScalePolicy.SameTime && MagnificationScalePolicy.Bypass(ResolveScale(body));
 		}
@@ -111,8 +130,8 @@ namespace MPatcherFork.CustomPatches
 				MachineController machine = owner == null ? body.GetComponentInParent<MachineController>() : owner.CIPOPAGDJDE;
 				if (machine != null)
 				{
-					float scale = MagnificationPhysicsNormalization.MachineScale(machine);
-					entries[body.GetInstanceID()] = new Entry { Body = body, Scale = scale, Factor = MagnificationScalePolicy.Mass(scale) };
+					float scale = MagnificationPhysicsMode.PhysicsScale(machine);
+                    entries[body.GetInstanceID()] = new Entry { Body = body, Owner = owner, Scale = scale, Factor = MagnificationScalePolicy.Mass(scale) };
 				}
 			}
 			float physical = value * Factor(body);
@@ -121,10 +140,11 @@ namespace MPatcherFork.CustomPatches
 		}
 		internal static void Track(Rigidbody body, float scale)
 		{
+            if (IsVanilla(body)) return;
 			if (!MagnificationScalePolicy.Enabled || MagnificationScalePolicy.Bypass(scale)) return;
 			float source = Read(body), factor = MagnificationScalePolicy.Mass(scale);
 			if (!(source > 0f) || float.IsInfinity(source)) throw new InvalidOperationException("non-positive-finite-mass " + body.name);
-			entries[body.GetInstanceID()] = new Entry { Body = body, Factor = factor, Scale = scale };
+            entries[body.GetInstanceID()] = new Entry { Body = body, Owner = body.GetComponentInParent<BodyController>(), Factor = factor, Scale = scale };
 			Write(body, source);
 			float requested = source * factor;
 			if (Math.Abs(body.mass - requested) > requested * .0001f) throw new InvalidOperationException("Unity-mass-clamp " + body.name + " requested=" + requested + " actual=" + body.mass);
@@ -135,30 +155,34 @@ namespace MPatcherFork.CustomPatches
 		}
 		private static void AfterMakeTire(WheelController __instance)
 		{
+            if (MagnificationPhysicsMode.IsVanilla(__instance.FPEBEEJGFPI)) return;
 			if (!MagnificationScalePolicy.Enabled || __instance.EKHOCFCEGCB == null) return;
-			float scale = MagnificationPhysicsNormalization.MachineScale(__instance.FPEBEEJGFPI);
+			float scale = MagnificationPhysicsMode.PhysicsScale(__instance.FPEBEEJGFPI);
 			if (MagnificationScalePolicy.Bypass(scale)) return;
 			TrackPhysics(__instance.EKHOCFCEGCB, scale);
 		}
 		private static void AfterWheelStart(WheelController __instance)
 		{
+            if (MagnificationPhysicsMode.IsVanilla(__instance.FPEBEEJGFPI)) return;
 			if (!MagnificationScalePolicy.Enabled || __instance.EKHOCFCEGCB == null) return;
 			Rigidbody body = __instance.EKHOCFCEGCB;
-			if (MagnificationScalePolicy.Bypass(MagnificationPhysicsNormalization.MachineScale(__instance.FPEBEEJGFPI))) return;
+			if (MagnificationScalePolicy.Bypass(MagnificationPhysicsMode.PhysicsScale(__instance.FPEBEEJGFPI))) return;
 			Vector3 source = MagnificationInertiaBoundary.LastRequested(body);
-			float factor = MagnificationScalePolicy.Inertia(MagnificationPhysicsNormalization.MachineScale(__instance.FPEBEEJGFPI));
+			float factor = MagnificationScalePolicy.Inertia(MagnificationPhysicsMode.PhysicsScale(__instance.FPEBEEJGFPI));
 			MagnificationDownscale.Log("TIRE_INERTIA_LIFECYCLE body=" + body.name + " requested=" + (source * factor).ToString("R") + " afterGeometry=" + body.inertiaTensor.ToString("R"));
 			MagnificationInertiaBoundary.TrackSource(body, factor, source);
-            MagnificationLatePhysics.FinalizeBody(body, MagnificationPhysicsNormalization.MachineScale(__instance.FPEBEEJGFPI), "Wheel.Start");
+            MagnificationLatePhysics.FinalizeBody(body, MagnificationPhysicsMode.PhysicsScale(__instance.FPEBEEJGFPI), "Wheel.Start");
 		}
 		internal static Rigidbody SledBody(SledController sled) { return (Rigidbody)sledBody.GetValue(sled); }
 		private static void AfterSledStart(SledController __instance)
 		{
 			Rigidbody body = SledBody(__instance);
 			if (!MagnificationScalePolicy.Enabled || body == null) return;
-			float s = MagnificationPhysicsNormalization.MachineScale(__instance.FPEBEEJGFPI);
+			float visualScale = MagnificationPhysicsNormalization.MachineScale(__instance.FPEBEEJGFPI);
+			MagnificationSledVisualUnits.Apply(__instance, visualScale);
+            if (MagnificationPhysicsMode.IsVanilla(__instance.FPEBEEJGFPI)) return;
+			float s = MagnificationPhysicsMode.PhysicsScale(__instance.FPEBEEJGFPI);
 			if (MagnificationScalePolicy.Bypass(s)) return;
-            MagnificationSledVisualUnits.Apply(__instance, s);
 			Track(body, s);
             MagnificationSledJointUnits.Apply(body, s);
             MagnificationConstraintUnits.ApplyHierarchy(body.gameObject, s, "Sled.Start");
@@ -168,6 +192,7 @@ namespace MPatcherFork.CustomPatches
 		}
 		internal static void TrackPhysics(Rigidbody body, float scale)
 		{
+            if (IsVanilla(body)) return;
 			if (MagnificationScalePolicy.Bypass(scale)) return;
 			Vector3 source = MagnificationInertiaBoundary.LastRequested(body);
 			Track(body, scale);

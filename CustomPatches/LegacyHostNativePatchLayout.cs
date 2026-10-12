@@ -16,12 +16,29 @@ namespace MPatcherFork.CustomPatches
 			return code.ToArray();
 		}
 
-		internal static byte[] BuildConnectedStub(IntPtr stub, IntPtr returnAddress, IntPtr pendingSlot)
+		internal static byte[] BuildConnectedStub(IntPtr stub, IntPtr returnAddress, IntPtr managerSlot, IntPtr pendingSlot)
 		{
 			List<byte> code = new List<byte>();
+			Emit(code, 0x89, 0x35); EmitInt32(code, managerSlot.ToInt32());
 			Emit(code, 0xC7, 0x05); EmitInt32(code, pendingSlot.ToInt32()); EmitInt32(code, 0);
 			Emit(code, 0x8B, 0x4E, 0x3C, 0x6A, 0x01);
 			EmitJump(code, Add(stub, code.Count), Add(returnAddress, 5));
+			return code.ToArray();
+		}
+
+		// Cdecl wrapper around thiscall RakPeer::IsConnected(AddressOrGUID,
+		// includeConnecting, includeDisconnecting). Native AddressOrGUID is 24
+		// bytes and IsConnected removes its 32 bytes of arguments (RET 0x20).
+		internal static byte[] BuildConnectivityStub(IntPtr addressOrGuidConstructor)
+		{
+			List<byte> code = new List<byte>();
+			Emit(code, 0x55, 0x8B, 0xEC, 0x56, 0x8B, 0x75, 0x08);
+			Emit(code, 0xFF, 0x75, 0x10, 0xFF, 0x75, 0x0C, 0x83, 0xEC, 0x18);
+			Emit(code, 0x8B, 0xCC, 0x8D, 0x86, 0xF8, 0x02, 0x00, 0x00, 0x50, 0xBA);
+			EmitInt32(code, addressOrGuidConstructor.ToInt32());
+			Emit(code, 0xFF, 0xD2, 0x8B, 0x4E, 0x38, 0x8B, 0x11);
+			Emit(code, 0x8B, 0x82, 0x9C, 0x00, 0x00, 0x00, 0xFF, 0xD0);
+			Emit(code, 0x0F, 0xB6, 0xC0, 0x5E, 0x5D, 0xC3);
 			return code.ToArray();
 		}
 

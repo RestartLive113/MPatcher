@@ -2,9 +2,7 @@ using HarmonyLib;
 using UnityEngine;
 
 [HarmonyPriority(800)]
-[HarmonyPatch("Update")]
-[HarmonyPatch(typeof(Option))]
-[HarmonyPatch("Start")]
+[HarmonyPatch(typeof(Option), "Update")]
 internal class Class48
 {
 	[HarmonyPrefix]

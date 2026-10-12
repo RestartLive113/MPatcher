@@ -16,25 +16,42 @@ namespace MPatcherFork.CustomPatches
 		{
 			if (MagnificationCraftProbe.Model < 19) return 1f;
 			BodyController owner = joint.GetComponentInParent<BodyController>();
-			return owner == null ? 1f : MagnificationPhysicsNormalization.MachineScale(owner.CIPOPAGDJDE);
+			return owner == null ? 1f : MagnificationPhysicsMode.PhysicsScale(owner.CIPOPAGDJDE);
 		}
 		private static float Factor(HingeJoint joint) { float s = Scale(joint); return MagnificationScalePolicy.Enabled ? MagnificationScalePolicy.Torque(s) : s * s; }
+        private static bool IsVanilla(HingeJoint joint)
+        {
+            BodyController owner = joint.GetComponentInParent<BodyController>();
+            MachineController machine = owner == null ? null : owner.CIPOPAGDJDE;
+            if (machine == null) machine = joint.GetComponentInParent<MachineController>();
+            return MagnificationPhysicsMode.IsVanilla(machine);
+        }
 		internal static JointMotor MotorToWorld(JointMotor value, float factor) { value.force *= factor; return value; }
 		internal static JointMotor MotorToCraft(JointMotor value, float factor) { value.force /= factor; return value; }
 		internal static JointSpring SpringToWorld(JointSpring value, float factor) { value.spring *= factor; value.damper *= factor; return value; }
 		internal static JointSpring SpringToCraft(JointSpring value, float factor) { value.spring /= factor; value.damper /= factor; return value; }
-		internal static JointMotor ReadMotor(HingeJoint joint) { MotorReads++; return MotorToCraft(joint.motor, Factor(joint)); }
+        internal static JointMotor ReadMotor(HingeJoint joint)
+        {
+            if (IsVanilla(joint)) return joint.motor;
+            MotorReads++; return MotorToCraft(joint.motor, Factor(joint));
+        }
 		internal static void WriteMotor(HingeJoint joint, JointMotor value)
 		{
+            if (IsVanilla(joint)) { joint.motor = value; return; }
 			MotorWrites++;
 			float factor = Factor(joint);
 			joint.motor = MagnificationRotorIsolationProbe.FilterMotor(joint, MotorToWorld(value, factor));
 			if (factor != 1f && motorLogged.Add(joint.GetInstanceID()))
 				MagnificationDownscale.Log("CRAFT_SCRIPT_MOTOR factor=" + F(factor) + " craftForce=" + F(value.force) + " worldForce=" + F(joint.motor.force) + " targetDegPerSec=" + F(value.targetVelocity));
 		}
-		internal static JointSpring ReadSpring(HingeJoint joint) { SpringReads++; return MagnificationScalePolicy.Enabled ? MagnificationScalePolicy.AngularSpring(joint.spring, Scale(joint), false) : SpringToCraft(joint.spring, Factor(joint)); }
+        internal static JointSpring ReadSpring(HingeJoint joint)
+        {
+            if (IsVanilla(joint)) return joint.spring;
+            SpringReads++; return MagnificationScalePolicy.Enabled ? MagnificationScalePolicy.AngularSpring(joint.spring, Scale(joint), false) : SpringToCraft(joint.spring, Factor(joint));
+        }
 		internal static void WriteSpring(HingeJoint joint, JointSpring value)
 		{
+            if (IsVanilla(joint)) { joint.spring = value; return; }
 			SpringWrites++;
 			float factor = Factor(joint);
 			joint.spring = MagnificationRotorIsolationProbe.FilterSpring(joint, MagnificationScalePolicy.Enabled ? MagnificationScalePolicy.AngularSpring(value, Scale(joint), true) : SpringToWorld(value, factor), true);
