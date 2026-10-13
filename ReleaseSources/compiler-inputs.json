@@ -1,5 +1,5 @@
 {
-  "ProductVersion": "0.3.9.14",
+  "ProductVersion": "0.3.9.15",
   "HostApiVersion": 1,
   "CoreDefines": [
     "MPATCHER_EXCLUDE_PLAYER_PRESENCE"
@@ -7,7 +7,7 @@
   "CoreSources": [
     {
       "path": "CustomPatches/AlphaReleaseVersion.cs",
-      "sha256": "826CFEE1E972DED8D555BAEB907CDDDA61C10E44138B85E490EAEE6AA4B3D78B"
+      "sha256": "E1BBD8FC2CCA7D2213AC31717A791E8C356BB388E040D5E35494BF897A3E985F"
     },
     {
       "path": "CustomPatches/AutoReconnect.cs",
@@ -655,15 +655,15 @@
     },
     {
       "path": "CustomPatches/SetupPrecision.cs",
-      "sha256": "EB2929FE729DDE9AF01477352DF4A299930C6650C06508D05A4FF43235E4AFC8"
+      "sha256": "8E9CBD1A559AFF5E66D573427A947020F3D02D52772747C1191762F438A34188"
     },
     {
       "path": "CustomPatches/SetupPrecisionCodec.cs",
-      "sha256": "F339A499CEC09075CFE6DA8F1940B64873E225EF718BEDB4DB51F93E7EBA2347"
+      "sha256": "C81EC888BFD1276164D0963680A18EFBFC8506E40643B66049FF9677F3276D19"
     },
     {
       "path": "CustomPatches/SetupPrecisionData.cs",
-      "sha256": "6D5BF5E83337F631C21C294EE9AB3B05A1DCC3F12049BE3DAD5238C5DA8DBF4E"
+      "sha256": "B0F11247CCB86A2A007708F542391752C189A8F762467FFB7485150E2EB0A352"
     },
     {
       "path": "CustomPatches/SetupPrecisionLimits.cs",
@@ -671,7 +671,7 @@
     },
     {
       "path": "CustomPatches/SetupPrecisionNetwork.cs",
-      "sha256": "46CB0145EA890A473F0B421C7DA33E014EC34026F33DDA9D7F538C17D90C6ED2"
+      "sha256": "27AE814EF79B21760DBD999F901AF614036627A1DCFBA6FC94181F5BB728D580"
     },
     {
       "path": "CustomPatches/SetupPrecisionSettingsUi.cs",
@@ -1952,5 +1952,35 @@
       "decoderGraphSHA256": "6D7D7F0D731F43F412673387D1C55411EF2F8E5D0EF1FDA462BD00BAB76A9209",
       "preservation": "All other bodies, definition tokens, MVID, attribute rows and blobs, assembly references and embedded resources"
     }
-  ]
+  ],
+  "ValidationSources": [
+    {
+      "path": "tools/SetupPrecisionExpandedNetworkChecks.cs",
+      "sha256": "6DCB9F97DB80687A1A5805BFDE10A71AADB9FF09EB2B012050292B11324E8F1D"
+    },
+    {
+      "path": "tools/SetupPrecisionExpandedNetworkChecks.csproj",
+      "sha256": "AE2DCFC87A434F9E98048B134EB8109E7C735B6842477D0DBBD4A4EB18C17755"
+    },
+    {
+      "path": "tools/Test-SetupPrecisionExpandedNetwork.ps1",
+      "sha256": "1882FBC50DE1D070750DD596AD3F5F546F96FBA6E0EACE7ECB4E8D6644B961CC"
+    }
+  ],
+  "ReleaseDocumentation": [
+    {
+      "path": "README.md",
+      "sha256": "64C1AD6E1719F58A7E3205EB1BCDF06BCB3D243FD07D4A3FD40204A9A4790F2E"
+    },
+    {
+      "path": "Installer/DISTRIBUTION-README-ALPHA.txt",
+      "sha256": "E2BE99B0314FF1E1F15A3F2E26EFD5D8DD4973A89D81674BA328F1A046428E06"
+    },
+    {
+      "path": "docs/CHANGELOG-0.3.9.15-ALPHA.md",
+      "sha256": "3FB0AD79D5E97C324FF56466438E02CFF6F2DCC3CDF7215A907D8BAA1D003B0A"
+    }
+  ],
+  "ValidationCommand": "pwsh tools/Test-SetupPrecisionExpandedNetwork.ps1 -AssemblyPath build/alpha/MPatchrMain.dll -ReferenceDirectory <matching-patched-game-references> -DnlibPath <separately-obtained-dnlib.dll>",
+  "OptionalMachineFixture": "A separately supplied machine file can be checked with -MachineFixturePath; no user machine is included."
 }

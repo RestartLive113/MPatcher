@@ -267,6 +267,36 @@ namespace MPatcherFork.CustomPatches
             return false;
         }
 
+        // Fractional storage and network representability are separate concerns.
+        // Native shape records use bytes, signed angle bytes and biased 10-bit
+        // offsets; an integer editor value can therefore need the exact lane too.
+        internal static bool NeedsNativeExtension(BlockData block)
+        {
+            if (block == null || block.actionParam == null || block.actionParam.Length < 8
+                || block.actionID == null || block.actionID.Length < 8) return false;
+            int[] values = block.actionParam;
+            if (block.type == BlockData.AAHMDBHDCDK.BoxGen || block.type == BlockData.AAHMDBHDCDK.CapGen)
+            {
+                int dimensions = block.type == BlockData.AAHMDBHDCDK.BoxGen ? 3 : 2;
+                for (int slot = 0; slot < dimensions; slot++)
+                    if (values[slot] < 0 || values[slot] > byte.MaxValue) return true;
+                for (int slot = 3; slot < 6; slot++)
+                    if (values[slot] < -500 || values[slot] > 523) return true;
+                for (int slot = 6; slot < 8; slot++)
+                    if (values[slot] < sbyte.MinValue || values[slot] > sbyte.MaxValue) return true;
+                return block.actionID[7] < short.MinValue || block.actionID[7] > short.MaxValue;
+            }
+            if (block.type == BlockData.AAHMDBHDCDK.Coupler)
+            {
+                // Group offsets also include the native attachment pivot. Send
+                // exact group poses for the expanded editor region rather than
+                // treating the local hundredths as physical world coordinates.
+                for (int slot = 0; slot < 3; slot++)
+                    if (Math.Abs((long)values[slot]) > 500) return true;
+            }
+            return false;
+        }
+
         internal static bool Matches(BlockData first, BlockData second, bool offsetsOnly = false)
         {
             if (first == null || second == null || first.type != second.type) return false;

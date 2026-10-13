@@ -119,12 +119,13 @@ namespace MPatcherFork.CustomPatches
             SetupPrecisionCodec.Snapshot snapshot = Capture(machine);
             State state = GetState(owner);
             state.Send = snapshot.Blocks.Count > 0;
-            if (state.Send) state.Protocol = SetupPrecisionCodec.CurrentVersion;
-            else if (!state.Receive) state.Protocol = 0;
             Array.Clear(state.Sent, 0, state.Sent.Length);
             byte[] envelope = SetupPrecisionCodec.Encode(native, snapshot);
+            if (state.Send) state.Protocol = snapshot.Version;
+            else if (!state.Receive) state.Protocol = 0;
             if (state.Send) SetupPrecision.Log("NETWORK_WRITE protocol=SETUP-v" + snapshot.Version + " blocks=" + snapshot.Blocks.Count
-                + " poses=" + snapshot.Poses.Count + " nativeBytes=" + native.Length + " envelopeBytes=" + envelope.Length);
+                + " poses=" + snapshot.Poses.Count + " nativeBytes=" + native.Length + " envelopeBytes=" + envelope.Length
+                + RecordSummary(snapshot));
             return (byte[])Compress.Invoke(null, new object[] { envelope, mode });
         }
 
@@ -147,15 +148,34 @@ namespace MPatcherFork.CustomPatches
                 if (snapshot != null)
                 {
                     state.Protocol = snapshot.Version;
-                    SetupPrecision.Log("NETWORK_READ protocol=SETUP-v" + snapshot.Version + " blocks=" + snapshot.Blocks.Count + " poses=" + snapshot.Poses.Count);
+                    SetupPrecision.Log("NETWORK_READ protocol=SETUP-v" + snapshot.Version + " blocks=" + snapshot.Blocks.Count
+                        + " poses=" + snapshot.Poses.Count + RecordSummary(snapshot));
                 }
                 return native;
             }
             catch (Exception error)
             {
-                SetupPrecision.Log("NETWORK_REJECTED protocol=SETUP-v1/v2 " + error.Message);
+                SetupPrecision.Log("NETWORK_REJECTED protocol=SETUP-v1/v2/v3 " + error.Message);
                 throw;
             }
+        }
+
+        internal static bool NeedsExactBlock(BlockData block)
+        {
+            return SetupPrecisionData.HasAny(block) || SetupPrecisionData.NeedsNativeExtension(block)
+                || ShapeDetailRetention.HasRetainedDetail(block);
+        }
+
+        private static string RecordSummary(SetupPrecisionCodec.Snapshot snapshot)
+        {
+            int fractions = 0, extended = 0, details = 0;
+            foreach (BlockData block in snapshot.Blocks.Values)
+            {
+                if (SetupPrecisionData.HasAny(block)) fractions++;
+                if (SetupPrecisionData.NeedsNativeExtension(block)) extended++;
+                if (ShapeDetailRetention.HasRetainedDetail(block)) details++;
+            }
+            return " fractionalBlocks=" + fractions + " extendedBlocks=" + extended + " detailBlocks=" + details;
         }
 
         private static SetupPrecisionCodec.Snapshot Capture(MachineController machine)
@@ -165,7 +185,7 @@ namespace MPatcherFork.CustomPatches
                 for (int i = 0; i < body.transform.childCount; i++)
                 {
                     BlockController controller = body.transform.GetChild(i).GetComponent<BlockController>();
-                    if (controller == null || !SetupPrecisionData.HasAny(controller.JNKEKNOAPHO)) continue;
+                    if (controller == null || !NeedsExactBlock(controller.JNKEKNOAPHO)) continue;
                     BlockData block = controller.JNKEKNOAPHO;
                     result.Blocks.Add(SetupPrecisionCodec.Key(block), block);
                 }
@@ -223,7 +243,11 @@ namespace MPatcherFork.CustomPatches
                     yield return original.Current;
                 }
                 SetupPrecision.Log("NETWORK_APPLIED blocks=" + context.Attached + " rotations=" + context.Rotations
-                    + " offsets=" + context.Offsets + " protocol=SETUP-v" + context.Snapshot.Version);
+                    + " offsets=" + context.Offsets + " protocol=SETUP-v" + context.Snapshot.Version
+                    + " expectedBlocks=" + context.Snapshot.Blocks.Count);
+                if (context.Attached != context.Snapshot.Blocks.Count)
+                    SetupPrecision.Log("NETWORK_INCOMPLETE appliedBlocks=" + context.Attached
+                        + " expectedBlocks=" + context.Snapshot.Blocks.Count);
             }
             finally
             {
@@ -241,6 +265,15 @@ namespace MPatcherFork.CustomPatches
                 Array.Copy(exact.actionID, block.actionID, 8);
                 Array.Copy(exact.actionParam, block.actionParam, 8);
                 SetupPrecisionData.Copy(block, exact);
+                object detail;
+                if (ShapeDetailRetention.HasRetainedDetail(exact)
+                    && exact.props.TryGetValue(ShapeDetailRetention.PropertyName, out detail))
+                {
+                    Dictionary<string, object> props = block.props == null ? new Dictionary<string, object>()
+                        : new Dictionary<string, object>(block.props);
+                    props[ShapeDetailRetention.PropertyName] = detail;
+                    block.props = props;
+                }
                 if (block.type == BlockData.AAHMDBHDCDK.Coupler) CouplerRotationOrder.Set(block, CouplerRotationOrder.Read(exact));
                 current.Attached++;
             }
@@ -307,6 +340,7 @@ namespace MPatcherFork.CustomPatches
 
         private static bool NativeSamplesPrefix(MachineSerializer __instance, ref int ___JIBELECGPCC)
         {
+            if (HNJDDKJLHMM.FHLGOMHPDLN != HNJDDKJLHMM.HKGAACMIPIH.Legacy) return true;
             State state;
             if (!States.TryGetValue(__instance, out state) || !state.Send) return true;
             ___JIBELECGPCC = 0;
@@ -315,6 +349,7 @@ namespace MPatcherFork.CustomPatches
 
         private static bool NativeApplyPrefix(MachineSerializer __instance)
         {
+            if (HNJDDKJLHMM.FHLGOMHPDLN != HNJDDKJLHMM.HKGAACMIPIH.Legacy) return true;
             State state;
             return !States.TryGetValue(__instance, out state) || !state.Receive;
         }

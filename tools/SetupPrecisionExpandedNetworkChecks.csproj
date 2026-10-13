@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <ReferenceDirectory Condition="'$(ReferenceDirectory)' == ''">$(MSBuildThisFileDirectory)..\..\..\reference\mpatcher-installer-v1.6\mpatchrmain-recovery\references-patched-game</ReferenceDirectory>
+    <DnlibPath Condition="'$(DnlibPath)' == ''">$(MSBuildThisFileDirectory)bin\dnlib.dll</DnlibPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="SetupPrecisionExpandedNetworkChecks.cs" />
+    <Reference Include="UnityEngine"><HintPath>$(ReferenceDirectory)\UnityEngine.dll</HintPath></Reference>
+    <Reference Include="dnlib"><HintPath>$(DnlibPath)</HintPath></Reference>
+  </ItemGroup>
+</Project>

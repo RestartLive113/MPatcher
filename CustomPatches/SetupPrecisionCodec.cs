@@ -9,7 +9,10 @@ namespace MPatcherFork.CustomPatches
     internal static class SetupPrecisionCodec
     {
         private const uint Magic = 0x5053504d; // MPSP, followed by a separate version.
-        internal const int CurrentVersion = 2;
+        internal const int CurrentVersion = 3;
+        private const int PrecisionVersion = 2;
+        private const int MaximumMetadataBytes = 512;
+        private const int MaximumDetailBytes = 32;
         private const int MaximumBytes = 16 * 1024 * 1024;
         internal const int MaximumRecords = 65535;
 
@@ -46,24 +49,44 @@ namespace MPatcherFork.CustomPatches
             if (native == null || native.Length > MaximumBytes || native.Length % 4 != 0
                 || snapshot.Blocks.Count > MaximumRecords || snapshot.Poses.Count > MaximumRecords)
                 throw new InvalidDataException("SETUP structure size");
+            // Keep historical fractional-only packets byte-for-byte identical.
+            // The envelope version is independent from the props metadata version.
+            List<int> keys = new List<int>(snapshot.Blocks.Keys); keys.Sort();
+            Dictionary<int, string> metadata = new Dictionary<int, string>();
+            Dictionary<int, string> details = new Dictionary<int, string>();
+            int version = PrecisionVersion;
+            foreach (int key in keys)
+            {
+                BlockData block = snapshot.Blocks[key];
+                if (block == null || block.actionID == null || block.actionID.Length < 8
+                    || block.actionParam == null || block.actionParam.Length < 8 || Key(block) != key)
+                    throw new InvalidDataException("SETUP block arrays/key");
+                string precision = SetupPrecisionData.Export(block);
+                string detail = ExportDetail(block);
+                if (precision != null && (SetupPrecisionData.MetadataVersion(precision) != PrecisionVersion
+                    || !SetupPrecisionData.IsCanonical(block, precision)))
+                    throw new InvalidDataException("SETUP block metadata");
+                if (precision == null && (!ArrayOnlyType(block)
+                    || !SetupPrecisionData.NeedsNativeExtension(block) && detail == null))
+                    throw new InvalidDataException("Unnecessary/unsupported SETUP array-only block");
+                metadata.Add(key, precision);
+                details.Add(key, detail);
+                if (precision == null || detail != null) version = CurrentVersion;
+            }
             using (MemoryStream stream = new MemoryStream())
             using (BinaryWriter writer = new BinaryWriter(stream))
             {
-                snapshot.Version = CurrentVersion;
-                writer.Write(Magic); writer.Write(CurrentVersion); writer.Write(native.Length); writer.Write(native);
+                snapshot.Version = version;
+                writer.Write(Magic); writer.Write(version); writer.Write(native.Length); writer.Write(native);
                 writer.Write(snapshot.Blocks.Count);
-                List<int> keys = new List<int>(snapshot.Blocks.Keys); keys.Sort();
                 foreach (int key in keys)
                 {
                     BlockData block = snapshot.Blocks[key];
-                    string metadata = SetupPrecisionData.Export(block);
-                    if (metadata == null || SetupPrecisionData.MetadataVersion(metadata) != CurrentVersion || Key(block) != key)
-                        throw new InvalidDataException("SETUP block metadata");
                     writer.Write(key);
                     for (int i = 0; i < 8; i++) { writer.Write(block.actionID[i]); writer.Write(block.actionParam[i]); }
                     writer.Write((byte)CouplerRotationOrder.Read(block));
-                    byte[] text = Encoding.UTF8.GetBytes(metadata);
-                    writer.Write((ushort)text.Length); writer.Write(text);
+                    WriteText(writer, metadata[key], MaximumMetadataBytes);
+                    if (version == CurrentVersion) WriteText(writer, details[key], MaximumDetailBytes);
                 }
                 writer.Write(snapshot.Poses.Count);
                 keys = new List<int>(snapshot.Poses.Keys); keys.Sort();
@@ -94,35 +117,49 @@ namespace MPatcherFork.CustomPatches
             {
                 reader.ReadUInt32();
                 int version = reader.ReadInt32();
-                if (version != 1 && version != CurrentVersion) throw new InvalidDataException("Unsupported SETUP protocol");
+                if (version != 1 && version != PrecisionVersion && version != CurrentVersion)
+                    throw new InvalidDataException("Unsupported SETUP protocol");
                 int length = Count(reader, MaximumBytes, 1);
                 if (length < 4 || length % 4 != 0) throw new InvalidDataException("SETUP native body length");
                 byte[] native = reader.ReadBytes(length);
                 Snapshot result = new Snapshot { Version = version };
-                int count = Count(reader, MaximumRecords, 72);
+                int count = Count(reader, MaximumRecords, version == CurrentVersion ? 73 : 72);
                 if (count == 0) throw new InvalidDataException("Empty SETUP envelope");
                 for (int record = 0; record < count; record++)
                 {
+                    EnsureEnough(reader, 69);
                     int key = reader.ReadInt32();
                     BlockData block = new BlockData();
                     block.type = (BlockData.AAHMDBHDCDK)((key >> 24) & 255);
                     block.x = (sbyte)((key >> 16) & 255); block.y = (sbyte)((key >> 8) & 255); block.z = (sbyte)(key & 255);
                     for (int i = 0; i < 8; i++) { block.actionID[i] = reader.ReadInt32(); block.actionParam[i] = reader.ReadInt32(); }
                     int order = reader.ReadByte();
-                    int textLength = reader.ReadUInt16();
-                    if (textLength < 2 || textLength > 512 || textLength > stream.Length - stream.Position - 4)
-                        throw new InvalidDataException("SETUP metadata length");
-                    string data = Encoding.UTF8.GetString(reader.ReadBytes(textLength));
-                    if (!CouplerRotationOrder.IsValid(order) || SetupPrecisionData.MetadataVersion(data) != version
-                        || !SetupPrecisionData.IsCanonical(block, data) || !SetupPrecisionData.Import(block, data)
+                    string data = ReadText(reader, MaximumMetadataBytes, version == CurrentVersion);
+                    string detail = version == CurrentVersion ? ReadText(reader, MaximumDetailBytes, true) : null;
+                    int precisionVersion = version == 1 ? 1 : PrecisionVersion;
+                    if (!CouplerRotationOrder.IsValid(order)
+                        || block.type != BlockData.AAHMDBHDCDK.Coupler && order != CouplerRotationOrder.Default
+                        || data != null && (SetupPrecisionData.MetadataVersion(data) != precisionVersion
+                            || !SetupPrecisionData.IsCanonical(block, data) || !SetupPrecisionData.Import(block, data))
                         || result.Blocks.ContainsKey(key))
                         throw new InvalidDataException("Invalid/duplicate SETUP block");
+                    if (detail != null)
+                    {
+                        if (block.props == null) block.props = new Dictionary<string, object>();
+                        block.props[ShapeDetailRetention.PropertyName] = detail;
+                        if (!ShapeDetailRetention.HasRetainedDetail(block))
+                            throw new InvalidDataException("Invalid SETUP shape detail");
+                    }
+                    if (data == null && (version != CurrentVersion || !ArrayOnlyType(block)
+                        || !SetupPrecisionData.NeedsNativeExtension(block) && detail == null))
+                        throw new InvalidDataException("Unnecessary/unsupported SETUP array-only block");
                     if (block.type == BlockData.AAHMDBHDCDK.Coupler) CouplerRotationOrder.Set(block, order);
                     result.Blocks.Add(key, block);
                 }
                 count = Count(reader, MaximumRecords, 32);
                 for (int record = 0; record < count; record++)
                 {
+                    EnsureEnough(reader, 32);
                     Pose pose = new Pose { Index = reader.ReadInt32(), Kind = reader.ReadInt32(), Rotation = ReadVector(reader), Offset = ReadVector(reader) };
                     if (!Valid(pose, false) || result.Poses.ContainsKey(pose.Index)) throw new InvalidDataException("Invalid/duplicate SETUP pose");
                     result.Poses.Add(pose.Index, pose);
@@ -133,12 +170,49 @@ namespace MPatcherFork.CustomPatches
             }
         }
 
+        private static bool ArrayOnlyType(BlockData block)
+        {
+            return block.type == BlockData.AAHMDBHDCDK.BoxGen || block.type == BlockData.AAHMDBHDCDK.CapGen
+                || block.type == BlockData.AAHMDBHDCDK.Coupler;
+        }
+
+        private static string ExportDetail(BlockData block)
+        {
+            object value;
+            return ShapeDetailRetention.HasRetainedDetail(block) && block.props != null
+                && block.props.TryGetValue(ShapeDetailRetention.PropertyName, out value) ? value as string : null;
+        }
+
+        private static void WriteText(BinaryWriter writer, string value, int maximum)
+        {
+            byte[] bytes = value == null ? new byte[0] : Encoding.UTF8.GetBytes(value);
+            if (bytes.Length > maximum || bytes.Length == 1) throw new InvalidDataException("SETUP text length");
+            writer.Write((ushort)bytes.Length); writer.Write(bytes);
+        }
+
+        private static string ReadText(BinaryReader reader, int maximum, bool optional)
+        {
+            EnsureEnough(reader, 2);
+            int length = reader.ReadUInt16();
+            if (length > maximum || length < 2 && !(optional && length == 0)
+                || length > reader.BaseStream.Length - reader.BaseStream.Position - 4)
+                throw new InvalidDataException("SETUP text length");
+            return length == 0 ? null : Encoding.UTF8.GetString(reader.ReadBytes(length));
+        }
+
         private static int Count(BinaryReader reader, int maximum, int minimumBytes)
         {
+            EnsureEnough(reader, 4);
             int count = reader.ReadInt32();
             if (count < 0 || count > maximum || (long)count * minimumBytes > reader.BaseStream.Length - reader.BaseStream.Position - 4)
                 throw new InvalidDataException("SETUP record count");
             return count;
+        }
+
+        private static void EnsureEnough(BinaryReader reader, int bytes)
+        {
+            if (reader.BaseStream.Length - reader.BaseStream.Position - 4 < bytes)
+                throw new InvalidDataException("Truncated SETUP record");
         }
 
         internal static bool Valid(Pose pose, bool motion)

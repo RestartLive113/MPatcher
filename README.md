@@ -1,4 +1,4 @@
-# MPatcher 0.3.9.14 Alpha
+# MPatcher 0.3.9.15 Alpha
 
 Community continuation of MPatcher for MachineCraft 0.248c.
 
@@ -17,6 +17,16 @@ The Windows bootstrap installer always retrieves the Alpha package and verifies 
 Once the tab is restored, select **OPTIONS → MPatcher → Update Channel → Alpha** for later updates. To return to Stable 0.3.8 on Windows, first use **Remove patcher** in the new Alpha installer, then install Stable. The old Stable installer cannot clean up the external Scale module, so a direct in-game channel switch is not the supported rollback route. New Scale detail metadata requires this Alpha reader; keep backups of important crafts before trying older versions.
 
 The optional `MPatcherInstaller-Linux-0.1.2-Alpha.tar.gz` asset is TEST support for the updated package format. It uses native Python to install the Windows game package in a Steam/Proton or Wine directory; it is not a native Linux game build. Live Proton/Wine acceptance is still open. See the included language-specific README before using it.
+
+## Shape synchronization in 0.3.9.15
+
+BOX and Capsule could appear in the wrong place or with the wrong size or angle to other players when their expanded parameters were whole numbers. The exact network extension previously selected only blocks with fractional metadata, leaving whole numbers to the game's narrower packed fields.
+
+The new SETUP-v3 structure extension carries complete parameters for those blocks, expanded Coupler offsets, and retained shape detail. The receiving client restores them before generating the remote geometry. Native-fit blocks keep their existing packets; fractional-only records without retained detail keep the same SETUP-v2 bytes. Older SETUP-v1/v2 packets remain readable.
+
+**Update the host and every participant to 0.3.9.15 before using these shapes in multiplayer. 0.3.9.14 and older readers cannot read SETUP-v3.** Use the existing installer update procedure above.
+
+Targeted checks passed 337 assertions, including an optional 24-block reproduction fixture, exact parameter restoration, packet validation, and old SETUP-v2 byte compatibility. These are code and packet checks; live two-client acceptance remains open. User machines and logs are not included in the source or package.
 
 ## Performance in 0.3.9.14
 
@@ -56,8 +66,16 @@ This repository contains the source scope of this Alpha, including the external 
 
 The core files include the generated overrides actually passed to the tested compiler. They are a release source snapshot rather than the mutable development checkout: use [the compiler input list](ReleaseSources/compiler-inputs.json) when rebuilding, rather than regenerating and compiling a second copy of version attributes or capture hooks.
 
+The new packet regression tool requires a .NET SDK, matching patched-game references and a separately obtained `dnlib.dll`. Supply the dependency paths explicitly:
+
+```powershell
+pwsh tools/Test-SetupPrecisionExpandedNetwork.ps1 -AssemblyPath build/alpha/MPatchrMain.dll -ReferenceDirectory path/to/patched-game-references -DnlibPath path/to/dnlib.dll
+```
+
+Reports are written under repository `analysis` by default. `-MachineFixturePath` optionally checks a separately supplied reproduction craft; no machine file is bundled.
+
 `ReleaseSources/ScaleRuntimeVersion.cs` records the generated attributes of the exact tested module. The module builder generates those attributes itself; it is stored outside the normal ScaleRuntime source glob.
 
 Original MPatcher: Dylan Grinberg (dylanpdx). Original installer credits also name Sanikku. This continuation and redistribution are made with permission from the original author. See [third-party notices](Installer/THIRD-PARTY-NOTICES.txt). Public signing uses recovered public-key metadata and is not an authentic signature by the original author.
 
-[Changes in 0.3.9.14](docs/CHANGELOG-0.3.9.14-ALPHA.md). [OPTIONS hotfix](docs/CHANGELOG-0.3.9.13-ALPHA.md). [Previous Alpha changes](docs/CHANGELOG-0.3.9.12-ALPHA.md).
+[Changes in 0.3.9.15](docs/CHANGELOG-0.3.9.15-ALPHA.md). [Performance changes in 0.3.9.14](docs/CHANGELOG-0.3.9.14-ALPHA.md). [OPTIONS hotfix](docs/CHANGELOG-0.3.9.13-ALPHA.md). [Previous Alpha changes](docs/CHANGELOG-0.3.9.12-ALPHA.md).
