@@ -1,4 +1,4 @@
-# MPatcher 0.3.9.13 Alpha
+# MPatcher 0.3.9.14 Alpha
 
 Community continuation of MPatcher for MachineCraft 0.248c.
 
@@ -17,6 +17,20 @@ The Windows bootstrap installer always retrieves the Alpha package and verifies 
 Once the tab is restored, select **OPTIONS → MPatcher → Update Channel → Alpha** for later updates. To return to Stable 0.3.8 on Windows, first use **Remove patcher** in the new Alpha installer, then install Stable. The old Stable installer cannot clean up the external Scale module, so a direct in-game channel switch is not the supported rollback route. New Scale detail metadata requires this Alpha reader; keep backups of important crafts before trying older versions.
 
 The optional `MPatcherInstaller-Linux-0.1.2-Alpha.tar.gz` asset is TEST support for the updated package format. It uses native Python to install the Windows game package in a Steam/Proton or Wine directory; it is not a native Linux game build. Live Proton/Wine acceptance is still open. See the included language-specific README before using it.
+
+## Performance in 0.3.9.14
+
+Routine physics observers now require the explicit `--mpatcher-magnification-diagnostics` opt-in. The Scale physics UI uses the native scene owner instead of searching the whole scene every gameplay frame. Force diagnostics and inertia bookkeeping allocate less memory; owner checkpoint encoding and joint capture also avoid unnecessary buffers. The tracker prefix no longer decodes its immutable scene string on every physical tick; type initialization remains at the original control point.
+
+Physics formulas, input, network data formats and the 250 ms checkpoint cadence are preserved. Scale R10 and the repaired OPTIONS tab are retained. These changes remove measured patcher overhead. Actual FPS gain depends on the scene, machines and scripts; the reported host improvement is a scenario-specific observation.
+
+When rebuilding the core, follow the required `CorePostCompileSteps` in `ReleaseSources/compiler-inputs.json` after metadata-name restoration. The source list alone does not apply the tracker optimization:
+
+```powershell
+pwsh tools/Optimize-TrackerSceneConstant.ps1 -InputAssemblyPath build/restored/MPatchrMain.dll -OutputAssemblyPath build/alpha/MPatchrMain.dll -ProofPath build/alpha/tracker-scene-proof.json
+```
+
+The tool checks the exact constant decoder and preserves existing metadata and every unrelated method. Unknown profiles require review.
 
 ## Scale
 
@@ -46,4 +60,4 @@ The core files include the generated overrides actually passed to the tested com
 
 Original MPatcher: Dylan Grinberg (dylanpdx). Original installer credits also name Sanikku. This continuation and redistribution are made with permission from the original author. See [third-party notices](Installer/THIRD-PARTY-NOTICES.txt). Public signing uses recovered public-key metadata and is not an authentic signature by the original author.
 
-[Changes in 0.3.9.13](docs/CHANGELOG-0.3.9.13-ALPHA.md). [Previous Alpha changes](docs/CHANGELOG-0.3.9.12-ALPHA.md).
+[Changes in 0.3.9.14](docs/CHANGELOG-0.3.9.14-ALPHA.md). [OPTIONS hotfix](docs/CHANGELOG-0.3.9.13-ALPHA.md). [Previous Alpha changes](docs/CHANGELOG-0.3.9.12-ALPHA.md).

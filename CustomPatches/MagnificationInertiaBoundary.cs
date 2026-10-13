@@ -177,7 +177,14 @@ namespace MPatcherFork.CustomPatches
 				&& (physical.x <= 1.1920928955078125e-7f || physical.y <= 1.1920928955078125e-7f || physical.z <= 1.1920928955078125e-7f))
 				MagnificationJointMassNative.WriteSmallInertia(body, physical);
 			else body.inertiaTensor = physical;
-			if (MagnificationScalePolicy.Enabled) requested[body.GetInstanceID()] = new Requested { Body = body, Value = value };
+			if (MagnificationScalePolicy.Enabled)
+			{
+				int id = body.GetInstanceID();
+				Requested cached;
+				if (!requested.TryGetValue(id, out cached) || !ReferenceEquals(cached.Body, body))
+					requested[id] = cached = new Requested { Body = body };
+				cached.Value = value;
+			}
 		}
 		internal static Vector3 LastRequested(Rigidbody body)
 		{

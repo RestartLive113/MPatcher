@@ -73,8 +73,9 @@ namespace MPatcherFork.CustomPatches
 		{
 			if (!MagnificationScalePolicy.Enabled) return;
 			Calls++;
+			if (!(source.sqrMagnitude > 0f)) return;
 			string key = owner.GetType().Name + ":" + mode;
-			if (source.sqrMagnitude > 0f && logged.Add(key)) MagnificationDownscale.Log("FORCE_UNITS_ACTIVE owner=" + key + " factor=" + factor + " source=" + source.ToString("R") + " physical=" + (source * factor).ToString("R"));
+			if (logged.Add(key)) MagnificationDownscale.Log("FORCE_UNITS_ACTIVE owner=" + key + " factor=" + factor + " source=" + source.ToString("R") + " physical=" + (source * factor).ToString("R"));
 		}
 		internal static void Register(Harmony harmony)
 		{

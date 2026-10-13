@@ -25,9 +25,10 @@ namespace MPatcherFork.CustomPatches
 
         private void Update()
         {
-            Build current = build;
-            if (current == null || !current.isActiveAndEnabled) current = UnityEngine.Object.FindObjectOfType<Build>();
-            if (current == null)
+            // The native scene owner identifies Build without scanning every
+            // gameplay object while this persistent UI runner is outside Build.
+            Build current = SceneMan.JFAOKFIDAGK as Build;
+            if (current == null || !current.isActiveAndEnabled)
             {
                 build = null;
                 toggle = null;

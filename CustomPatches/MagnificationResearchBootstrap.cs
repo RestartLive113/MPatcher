@@ -11,6 +11,7 @@ namespace MPatcherFork.CustomPatches
 	internal static class MagnificationResearchBootstrap
 	{
 		private static bool publicAlpha;
+		internal static bool DetailedDiagnostics { get { return !publicAlpha || Array.IndexOf(Environment.GetCommandLineArgs(), "--mpatcher-magnification-diagnostics") >= 0; } }
 		internal static bool Manual { get { return publicAlpha || Array.IndexOf(Environment.GetCommandLineArgs(), "--mpatcher-magnification-manual") >= 0; } }
 		internal static float ManualMassUnit { get { return publicAlpha || (Manual && Array.IndexOf(Environment.GetCommandLineArgs(), "--mpatcher-magnification-manual-body-units") >= 0) ? 1000000f : 1f; } }
 		private static bool attempted;
@@ -116,7 +117,8 @@ namespace MPatcherFork.CustomPatches
                 if (Manual)
                 {
                     MagnificationCraftModelProbe.Register(harmony);
-                    MagnificationSafetyObserver.Register(harmony);
+                    if (DetailedDiagnostics) MagnificationSafetyObserver.Register(harmony);
+                    MagnificationDownscale.Log("PHYSICS_DIAGNOSTICS enabled=" + DetailedDiagnostics + " optIn=--mpatcher-magnification-diagnostics observers=read-only fileLogging=retained");
                     MagnificationPhysicsModeUi.Start();
                     MagnificationDownscale.Log((publicAlpha ? "ALPHA_MAGNIFICATION_READY revision=R68c baseline=R66 safetyUnits=true model=22 massUnit=" : "RESEARCH_MANUAL_READY revision=R68c baseline=R66 safetyUnits=true model=22 massUnit=") + ManualMassUnit.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + " percent100=bypass input=native automaticRuns=false automaticExit=false nativeLimitExperiment=false jointUnitExperiment=false sledVisualUnits=true acceptance=pending");
                     return;
@@ -134,13 +136,13 @@ namespace MPatcherFork.CustomPatches
 			MagnificationJointAnchors.FinalizeMachine(__instance);
 			if (MagnificationCraftProbe.Model != 18 && MagnificationCraftProbe.Model != 19 && MagnificationCraftProbe.Model != 20 && MagnificationCraftProbe.Model != 22) MagnificationJointMassBalance.Track(__instance);
 			if (MagnificationScalePolicy.Enabled) MagnificationCraftModelProbe.ApplyInertia(__instance);
-			MagnificationRuntimeDiagnostics.Attach(__instance);
+			if (DetailedDiagnostics) MagnificationRuntimeDiagnostics.Attach(__instance);
 		}
 		private static void Respawn(MachineController __instance)
 		{
 			if (MagnificationCraftProbe.Model != 18 && MagnificationCraftProbe.Model != 19 && MagnificationCraftProbe.Model != 20 && MagnificationCraftProbe.Model != 22) MagnificationJointMassBalance.Track(__instance);
 			if (MagnificationScalePolicy.Enabled) MagnificationCraftModelProbe.ApplyInertia(__instance);
-			MagnificationRuntimeDiagnostics.ObserveRespawn(__instance);
+			if (DetailedDiagnostics) MagnificationRuntimeDiagnostics.ObserveRespawn(__instance);
 		}
 	}
 }

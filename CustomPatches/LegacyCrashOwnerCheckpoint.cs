@@ -164,7 +164,7 @@ namespace MPatcherFork.CustomPatches
 			}
 			try
 			{
-				using (MemoryStream stream = new MemoryStream())
+				using (MemoryStream stream = new MemoryStream(payload.Length + 64 + Encoding.UTF8.GetByteCount(target)))
 				using (BinaryWriter writer = new BinaryWriter(stream, Encoding.UTF8))
 				{
 					writer.Write(Magic);
@@ -175,8 +175,8 @@ namespace MPatcherFork.CustomPatches
 					writer.Write(payload.Length);
 					writer.Write(payload);
 					writer.Flush();
-					byte[] withoutChecksum = stream.ToArray();
-					writer.Write(Checksum(withoutChecksum, withoutChecksum.Length));
+					byte[] withoutChecksum = stream.GetBuffer();
+					writer.Write(Checksum(withoutChecksum, (int)stream.Length));
 					writer.Flush();
 					if (stream.Length > MaximumEnvelopeBytes)
 					{

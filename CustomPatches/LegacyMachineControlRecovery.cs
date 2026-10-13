@@ -454,7 +454,7 @@ namespace MPatcherFork.CustomPatches
 				if (joint == null) { state.JointKind = 4; return; }
 				state.JointKind = 2;
 				state.JointFlags = (int)joint.xMotion | ((int)joint.yMotion << 2) | ((int)joint.zMotion << 4);
-				List<float> v = new List<float>();
+				List<float> v = new List<float>(19);
 				Vector3 p = joint.targetPosition; v.Add(p.x); v.Add(p.y); v.Add(p.z);
 				AddDrive(v, joint.xDrive); AddDrive(v, joint.yDrive); AddDrive(v, joint.zDrive);
 				AddDrive(v, (JointDrive)PistonDriveField.GetValue(piston));
@@ -468,7 +468,7 @@ namespace MPatcherFork.CustomPatches
 			HingeJoint native = hinge.ALGHGLCBLDJ;
 			state.JointKind = 1;
 			state.JointFlags = (native.useSpring ? 1 : 0) | (native.useLimits ? 2 : 0) | (native.useMotor ? 4 : 0);
-			List<float> values = new List<float>();
+			List<float> values = new List<float>(26);
 			AddSpring(values, (JointSpring)JointSpringField.GetValue(hinge)); AddSpring(values, native.spring);
 			AddLimits(values, (JointLimits)JointLimitsField.GetValue(hinge));
 			AddLimits(values, (JointLimits)JointOtherLimitsField.GetValue(hinge)); AddLimits(values, native.limits);
