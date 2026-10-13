@@ -1,4 +1,4 @@
-# MPatcher 0.3.9.15 Alpha
+# MPatcher 0.3.9.16 Alpha
 
 Community continuation of MPatcher for MachineCraft 0.248c.
 
@@ -18,13 +18,21 @@ Once the tab is restored, select **OPTIONS → MPatcher → Update Channel → A
 
 The optional `MPatcherInstaller-Linux-0.1.2-Alpha.tar.gz` asset is TEST support for the updated package format. It uses native Python to install the Windows game package in a Steam/Proton or Wine directory; it is not a native Linux game build. Live Proton/Wine acceptance is still open. See the included language-specific README before using it.
 
+## Package download timeout in 0.3.9.16
+
+The in-game updater previously aborted a package download after 30 seconds even when data was still arriving. Package downloads now allow up to 60 seconds for initial activity and 60 seconds without increasing progress, with a 10-minute total limit. Polling uses the nonblocking progress value. File logs record estimated received bytes, expected size, progress and elapsed/idle time every 10 seconds; completed downloads report the exact byte count. Transfer state is cleaned up when the coroutine completes, fails or is disposed; package size and SHA-256 checks remain required before saving and launching it.
+
+If an updater in 0.3.9.14 or 0.3.9.15 still reports `timeout`, use the manual installer steps above to obtain 0.3.9.16. The fix cannot change the updater already running in an older version.
+
+The updater policy and cleanup fixtures pass, including continuous 45/180-second transfers, bounded monotonic progress estimates, first-byte/stall/total limits, retry isolation and manifest rejection checks. These fixtures do not establish successful download and installation over every live internet connection.
+
 ## Shape synchronization in 0.3.9.15
 
 BOX and Capsule could appear in the wrong place or with the wrong size or angle to other players when their expanded parameters were whole numbers. The exact network extension previously selected only blocks with fractional metadata, leaving whole numbers to the game's narrower packed fields.
 
 The new SETUP-v3 structure extension carries complete parameters for those blocks, expanded Coupler offsets, and retained shape detail. The receiving client restores them before generating the remote geometry. Native-fit blocks keep their existing packets; fractional-only records without retained detail keep the same SETUP-v2 bytes. Older SETUP-v1/v2 packets remain readable.
 
-**Update the host and every participant to 0.3.9.15 before using these shapes in multiplayer. 0.3.9.14 and older readers cannot read SETUP-v3.** Use the existing installer update procedure above.
+**Use 0.3.9.15 or newer on the host and every participant before using these shapes in multiplayer. 0.3.9.14 and older readers cannot read SETUP-v3.** Use the existing installer update procedure above.
 
 Targeted checks passed 337 assertions, including an optional 24-block reproduction fixture, exact parameter restoration, packet validation, and old SETUP-v2 byte compatibility. These are code and packet checks; live two-client acceptance remains open. User machines and logs are not included in the source or package.
 
@@ -74,8 +82,14 @@ pwsh tools/Test-SetupPrecisionExpandedNetwork.ps1 -AssemblyPath build/alpha/MPat
 
 Reports are written under repository `analysis` by default. `-MachineFixturePath` optionally checks a separately supplied reproduction craft; no machine file is bundled.
 
+The updater policy checks compile the same download deadline and cleanup helpers without Unity objects:
+
+```powershell
+dotnet run --project tools/MPatcherUpdaterChecks/MPatcherUpdaterChecks.csproj --configuration Release
+```
+
 `ReleaseSources/ScaleRuntimeVersion.cs` records the generated attributes of the exact tested module. The module builder generates those attributes itself; it is stored outside the normal ScaleRuntime source glob.
 
 Original MPatcher: Dylan Grinberg (dylanpdx). Original installer credits also name Sanikku. This continuation and redistribution are made with permission from the original author. See [third-party notices](Installer/THIRD-PARTY-NOTICES.txt). Public signing uses recovered public-key metadata and is not an authentic signature by the original author.
 
-[Changes in 0.3.9.15](docs/CHANGELOG-0.3.9.15-ALPHA.md). [Performance changes in 0.3.9.14](docs/CHANGELOG-0.3.9.14-ALPHA.md). [OPTIONS hotfix](docs/CHANGELOG-0.3.9.13-ALPHA.md). [Previous Alpha changes](docs/CHANGELOG-0.3.9.12-ALPHA.md).
+[Changes in 0.3.9.16](docs/CHANGELOG-0.3.9.16-ALPHA.md). [Shape synchronization in 0.3.9.15](docs/CHANGELOG-0.3.9.15-ALPHA.md). [Performance changes in 0.3.9.14](docs/CHANGELOG-0.3.9.14-ALPHA.md). [OPTIONS hotfix](docs/CHANGELOG-0.3.9.13-ALPHA.md). [Previous Alpha changes](docs/CHANGELOG-0.3.9.12-ALPHA.md).

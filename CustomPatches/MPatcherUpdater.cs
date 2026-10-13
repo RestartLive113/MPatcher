@@ -9,11 +9,14 @@ using System.Net;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+#if !MPATCHER_UPDATER_POLICY_ONLY
 using MPatchrMain;
 using UnityEngine;
+#endif
 
 namespace MPatcherFork.CustomPatches
 {
+#if !MPATCHER_UPDATER_POLICY_ONLY
 	internal enum MPatcherUpdaterState
 	{
 		Idle,
@@ -77,7 +80,7 @@ namespace MPatcherFork.CustomPatches
 				Log("REGISTERED version=" + currentVersion + " buildChannel=" + currentBuildChannel
 					+ " selectedChannel=" + selectedChannel + " manifest=" + manifestUri
 					+ " testOverride=" + MPatcherUpdateManifest.IsLoopbackTestUri(manifestUri)
-					+ " autoApply=" + automaticTestApply);
+					+ " autoApply=" + automaticTestApply + " packageTimeout=first-byte60/stall60/total600");
 				ReadPreviousResult();
 				runner.StartCoroutine(CheckCoroutine(true));
 			}
@@ -121,7 +124,7 @@ namespace MPatcherFork.CustomPatches
 				|| state == MPatcherUpdaterState.Downloading || state == MPatcherUpdaterState.Launching)
 				return;
 			if (state == MPatcherUpdaterState.Available && availableManifest != null)
-				runner.StartCoroutine(DownloadAndApplyCoroutine());
+				runner.StartCoroutine(new MPatcherDownloadScope(DownloadAndApplyCoroutine()));
 			else
 				runner.StartCoroutine(CheckCoroutine(false));
 		}
@@ -198,7 +201,7 @@ namespace MPatcherFork.CustomPatches
 				{
 					automaticTestApply = false;
 					Log("TEST_AUTO_APPLY version=" + parsed.VersionText);
-					yield return runner.StartCoroutine(DownloadAndApplyCoroutine());
+					yield return runner.StartCoroutine(new MPatcherDownloadScope(DownloadAndApplyCoroutine()));
 				}
 			}
 			else
@@ -216,10 +219,12 @@ namespace MPatcherFork.CustomPatches
 				yield break;
 
 			SetState(MPatcherUpdaterState.Downloading, string.Empty, 0f);
-			Log("DOWNLOAD_BEGIN version=" + target.VersionText + " url=" + target.InstallerUri);
+			Log("DOWNLOAD_BEGIN version=" + target.VersionText + " url=" + target.InstallerUri
+				+ " expectedBytes=" + target.InstallerLength + " firstByteTimeoutSeconds=60 stallTimeoutSeconds=60 totalTimeoutSeconds=600");
 			WWW request = CreateRequest(target.InstallerUri.AbsoluteUri);
 			float startedAt = Time.realtimeSinceStartup;
-			while (!request.isDone && Time.realtimeSinceStartup - startedAt < NetworkTimeoutSeconds)
+			MPatcherDownloadRequests.Begin(request, startedAt, target.InstallerLength);
+			while (!request.isDone && MPatcherDownloadRequests.Continue(request, Time.realtimeSinceStartup, startedAt))
 			{
 				downloadProgress = Mathf.Clamp01(request.progress);
 				MPatcherUpdaterUi.Refresh();
@@ -229,19 +234,22 @@ namespace MPatcherFork.CustomPatches
 			if (!request.isDone)
 			{
 				request.Dispose();
-				Fail("DOWNLOAD_FAILED reason=timeout", "timeout");
+				Fail("DOWNLOAD_FAILED reason=timeout " + MPatcherDownloadRequests.End(request, Time.realtimeSinceStartup), "timeout");
 				yield break;
 			}
 			if (!string.IsNullOrEmpty(request.error))
 			{
 				string requestError = request.error;
 				request.Dispose();
-				Fail("DOWNLOAD_FAILED reason=network error=" + requestError, requestError);
+				Fail("DOWNLOAD_FAILED reason=network error=" + requestError + " "
+					+ MPatcherDownloadRequests.End(request, Time.realtimeSinceStartup), requestError);
 				yield break;
 			}
 
 			byte[] bytes = request.bytes;
 			request.Dispose();
+			Log("DOWNLOAD_RECEIVED " + MPatcherDownloadRequests.End(request, Time.realtimeSinceStartup,
+				bytes == null ? 0L : bytes.LongLength));
 			if (bytes == null || bytes.LongLength != target.InstallerLength)
 			{
 				Fail("DOWNLOAD_FAILED reason=length actual=" + (bytes == null ? 0L : bytes.LongLength)
@@ -535,4 +543,179 @@ namespace MPatcherFork.CustomPatches
 				"[MPatcher.Update] " + message);
 		}
 	}
+#endif
+
+	// Pure deadline state: a slow transfer can continue while progress advances,
+	// startup, stalled traffic and the total lifetime still have bounded waits.
+	internal sealed class MPatcherDownloadDeadline
+	{
+		internal const float FirstByteSeconds = 60f;
+		internal const float StallSeconds = 60f;
+		internal const float TotalSeconds = 600f;
+		internal readonly float StartedAt;
+		internal float LastDataAt;
+		internal long ReceivedBytes;
+		private float lastObservedAt;
+		private bool invalidClock;
+
+		internal MPatcherDownloadDeadline(float startedAt)
+		{
+			StartedAt = LastDataAt = lastObservedAt = startedAt;
+			invalidClock = float.IsNaN(startedAt) || float.IsInfinity(startedAt);
+		}
+
+		internal void Observe(float now, long receivedBytes)
+		{
+			if (float.IsNaN(now) || float.IsInfinity(now) || now < lastObservedAt)
+				invalidClock = true;
+			else lastObservedAt = now;
+			if (receivedBytes > ReceivedBytes)
+			{
+				ReceivedBytes = receivedBytes;
+				LastDataAt = now;
+			}
+		}
+
+		internal string TimeoutReason(float now)
+		{
+			if (invalidClock || float.IsNaN(now) || float.IsInfinity(now) || now < lastObservedAt)
+				return "clock-rollback";
+			if (now - StartedAt >= TotalSeconds) return "total";
+			if (ReceivedBytes == 0L) return now - StartedAt >= FirstByteSeconds ? "first-byte" : null;
+			return now - LastDataAt >= StallSeconds ? "stall" : null;
+		}
+
+		internal static float ClampProgress(float progress)
+		{
+			if (float.IsNaN(progress) || float.IsInfinity(progress)) return 0f;
+			return Math.Max(0f, Math.Min(1f, progress));
+		}
+
+		internal static long EstimateProgress(float progress, long expectedBytes, long previousBytes)
+		{
+			if (expectedBytes <= 0L) return 0L;
+			long estimate = (long)((double)ClampProgress(progress) * expectedBytes);
+			return Math.Max(Math.Max(0L, Math.Min(expectedBytes, previousBytes)), Math.Min(expectedBytes, estimate));
+		}
+	}
+
+	internal sealed class MPatcherDownloadScope : IEnumerator, IDisposable
+	{
+		[ThreadStatic] internal static MPatcherDownloadScope CurrentScope;
+		private readonly IEnumerator inner;
+		private bool disposed;
+		internal Action Cleanup;
+		internal MPatcherDownloadScope(IEnumerator original) { inner = original; }
+		public object Current { get { return inner.Current; } }
+		public void Reset() { throw new NotSupportedException(); }
+		public bool MoveNext()
+		{
+			if (disposed) return false;
+			MPatcherDownloadScope previous = CurrentScope;
+			try
+			{
+				CurrentScope = this;
+				bool next = inner.MoveNext();
+				if (!next) Dispose();
+				return next;
+			}
+			catch { Dispose(); throw; }
+			finally { CurrentScope = previous; }
+		}
+		public void Dispose()
+		{
+			if (disposed) return;
+			disposed = true;
+			Action cleanup = Cleanup; Cleanup = null;
+			try
+			{
+				IDisposable disposable = inner as IDisposable;
+				if (disposable != null) disposable.Dispose();
+			}
+			finally { if (cleanup != null) cleanup(); }
+		}
+	}
+
+#if !MPATCHER_UPDATER_POLICY_ONLY
+	// Keep transfer state outside the existing coroutine's hoisted field layout.
+	// Every terminal path removes its WWW key before hash/save/launch handling.
+	internal static class MPatcherDownloadRequests
+	{
+		private sealed class Transfer
+		{
+			internal MPatcherDownloadDeadline Deadline;
+			internal long ExpectedBytes;
+			internal float LastLogAt;
+			internal float Progress;
+			internal MPatcherDownloadScope Scope;
+			internal bool Completed;
+		}
+		private static readonly Dictionary<WWW, Transfer> transfers = new Dictionary<WWW, Transfer>();
+
+		internal static void Begin(WWW request, float startedAt, long expectedBytes)
+		{
+			transfers[request] = new Transfer { Deadline = new MPatcherDownloadDeadline(startedAt),
+				ExpectedBytes = expectedBytes, LastLogAt = startedAt, Scope = MPatcherDownloadScope.CurrentScope };
+			if (MPatcherDownloadScope.CurrentScope != null)
+				MPatcherDownloadScope.CurrentScope.Cleanup = delegate { Cancel(request); };
+		}
+
+		internal static bool Continue(WWW request, float now, float startedAt)
+		{
+			Transfer transfer;
+			if (!transfers.TryGetValue(request, out transfer) || transfer.Deadline.StartedAt != startedAt)
+				return false;
+			// On this Unity build bytesDownloaded can wait for the entire request.
+			// Its nonblocking progress getter is the existing updater's polling API.
+			transfer.Progress = MPatcherDownloadDeadline.ClampProgress(request.progress);
+			now = Time.realtimeSinceStartup;
+			transfer.Deadline.Observe(now, MPatcherDownloadDeadline.EstimateProgress(transfer.Progress,
+				transfer.ExpectedBytes, transfer.Deadline.ReceivedBytes));
+			if (now - transfer.LastLogAt >= 10f)
+			{
+				transfer.LastLogAt = now;
+				MPatcherUpdater.Log("DOWNLOAD_PROGRESS " + Describe(transfer, now));
+			}
+			return transfer.Deadline.TimeoutReason(now) == null;
+		}
+
+		internal static string End(WWW request, float now, long receivedBytes = -1L)
+		{
+			Transfer transfer;
+			if (!transfers.TryGetValue(request, out transfer)) return "phase=missing-transfer";
+			transfers.Remove(request);
+			if (transfer.Scope != null) transfer.Scope.Cleanup = null;
+			if (receivedBytes >= 0L)
+			{
+				transfer.Deadline.Observe(now, receivedBytes);
+				transfer.Deadline.ReceivedBytes = receivedBytes;
+				transfer.Deadline.LastDataAt = now;
+				transfer.Progress = 1f;
+				transfer.Completed = true;
+			}
+			return Describe(transfer, now);
+		}
+
+		private static void Cancel(WWW request)
+		{
+			if (!transfers.ContainsKey(request)) return;
+			string detail = End(request, Time.realtimeSinceStartup);
+			try { request.Dispose(); }
+			finally { MPatcherUpdater.Log("DOWNLOAD_CANCELLED " + detail); }
+		}
+
+		private static string Describe(Transfer transfer, float now)
+		{
+			return "phase=" + (transfer.Completed ? "completed" : transfer.Deadline.TimeoutReason(now)
+				?? (transfer.Deadline.ReceivedBytes == 0L ? "awaiting-first-byte" : "receiving"))
+				+ (transfer.Completed ? " receivedBytes=" : " estimatedBytes=")
+				+ transfer.Deadline.ReceivedBytes.ToString(CultureInfo.InvariantCulture)
+				+ " countSource=" + (transfer.Completed ? "completed-bytes" : "WWW.progress-estimate")
+				+ " expectedBytes=" + transfer.ExpectedBytes.ToString(CultureInfo.InvariantCulture)
+				+ " progress=" + transfer.Progress.ToString("0.000", CultureInfo.InvariantCulture)
+				+ " elapsedSeconds=" + (now - transfer.Deadline.StartedAt).ToString("0.0", CultureInfo.InvariantCulture)
+				+ " idleSeconds=" + (now - transfer.Deadline.LastDataAt).ToString("0.0", CultureInfo.InvariantCulture);
+		}
+	}
+#endif
 }

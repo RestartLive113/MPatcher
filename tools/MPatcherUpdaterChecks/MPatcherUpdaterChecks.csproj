@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <DefineConstants>$(DefineConstants);MPATCHER_UPDATER_POLICY_ONLY</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="MPatcherUpdaterChecks.cs" />
+    <Compile Include="..\..\CustomPatches\MPatcherUpdateManifest.cs" Link="MPatcherUpdateManifest.cs" />
+    <Compile Include="..\..\CustomPatches\MPatcherUpdater.cs" Link="MPatcherUpdater.cs" />
+  </ItemGroup>
+</Project>

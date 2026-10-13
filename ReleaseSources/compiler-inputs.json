@@ -1,5 +1,5 @@
 {
-  "ProductVersion": "0.3.9.15",
+  "ProductVersion": "0.3.9.16",
   "HostApiVersion": 1,
   "CoreDefines": [
     "MPATCHER_EXCLUDE_PLAYER_PRESENCE"
@@ -7,7 +7,7 @@
   "CoreSources": [
     {
       "path": "CustomPatches/AlphaReleaseVersion.cs",
-      "sha256": "E1BBD8FC2CCA7D2213AC31717A791E8C356BB388E040D5E35494BF897A3E985F"
+      "sha256": "770CA19633FFABDF1BFFD70DEA41A40B093CF77343DCFCA7A3845E4B8363FA52"
     },
     {
       "path": "CustomPatches/AutoReconnect.cs",
@@ -355,7 +355,7 @@
     },
     {
       "path": "CustomPatches/MPatcherUpdater.cs",
-      "sha256": "C0F2E94264C4FB36CD43B83B823D1CCD75C5C1C1AC34CC2C8A4BF19D91F1F3EB"
+      "sha256": "48E5890F34EE81200B57DDA16FAA4D872F569771173385153F75CA0F7BCC70AA"
     },
     {
       "path": "CustomPatches/MPatcherUpdaterUi.cs",
@@ -1965,22 +1965,35 @@
     {
       "path": "tools/Test-SetupPrecisionExpandedNetwork.ps1",
       "sha256": "1882FBC50DE1D070750DD596AD3F5F546F96FBA6E0EACE7ECB4E8D6644B961CC"
+    },
+    {
+      "path": "tools/MPatcherUpdaterChecks/MPatcherUpdaterChecks.cs",
+      "sha256": "ECE13259B5F18D87E7C2197B1C956B33C200AFEA14C3ED629605AF63A5706534"
+    },
+    {
+      "path": "tools/MPatcherUpdaterChecks/MPatcherUpdaterChecks.csproj",
+      "sha256": "D6142B5DE347B3050CD9846D815C63525B6832944F97122F13A727515FFE4831"
     }
   ],
   "ReleaseDocumentation": [
     {
       "path": "README.md",
-      "sha256": "64C1AD6E1719F58A7E3205EB1BCDF06BCB3D243FD07D4A3FD40204A9A4790F2E"
+      "sha256": "28EA36671932549AE505B796595AEC36D710FA027F4E0D708E5C796CEC2E8561"
     },
     {
       "path": "Installer/DISTRIBUTION-README-ALPHA.txt",
-      "sha256": "E2BE99B0314FF1E1F15A3F2E26EFD5D8DD4973A89D81674BA328F1A046428E06"
+      "sha256": "FAF9EA8908C598839C2BBD7B02557C2EB41FFB65D8CCF9AF4AB3F9F25158DD04"
     },
     {
       "path": "docs/CHANGELOG-0.3.9.15-ALPHA.md",
       "sha256": "3FB0AD79D5E97C324FF56466438E02CFF6F2DCC3CDF7215A907D8BAA1D003B0A"
+    },
+    {
+      "path": "docs/CHANGELOG-0.3.9.16-ALPHA.md",
+      "sha256": "C6C787D757E39DCD23C89BF745D8FF0E3097CA6B3084B7FC0FBF510AC690ED34"
     }
   ],
   "ValidationCommand": "pwsh tools/Test-SetupPrecisionExpandedNetwork.ps1 -AssemblyPath build/alpha/MPatchrMain.dll -ReferenceDirectory <matching-patched-game-references> -DnlibPath <separately-obtained-dnlib.dll>",
-  "OptionalMachineFixture": "A separately supplied machine file can be checked with -MachineFixturePath; no user machine is included."
+  "OptionalMachineFixture": "A separately supplied machine file can be checked with -MachineFixturePath; no user machine is included.",
+  "UpdaterValidationCommand": "dotnet run --project tools/MPatcherUpdaterChecks/MPatcherUpdaterChecks.csproj --configuration Release"
 }
